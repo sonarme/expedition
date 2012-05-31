@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.google.code.crawler-commons</groupId>
+  <artifactId>crawler-commons</artifactId>
+  <versioning>
+    <versions>
+      <version>0.2-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20120531002452</lastUpdated>
+  </versioning>
+</metadata>
