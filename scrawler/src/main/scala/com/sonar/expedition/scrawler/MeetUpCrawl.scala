@@ -375,6 +375,7 @@ class MeetUpCrawl(args: Args) extends Job(args) {
     def extractProfileGrpName(url: String): String = {
 
         try {
+
             url.substring(url.indexOf("com/") + 4, url.indexOf("/members/"));
         } catch {
             case e: Exception => {
