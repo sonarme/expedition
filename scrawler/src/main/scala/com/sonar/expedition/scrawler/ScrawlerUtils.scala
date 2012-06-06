@@ -1,6 +1,5 @@
 import org.apache.commons.httpclient.methods.PostMethod
 import org.apache.commons.httpclient.{HttpStatus, HttpClient}
-import java.net._
 import java.io._;
 import org.jsoup.select.Elements;
 import org.jsoup.nodes.Document;
