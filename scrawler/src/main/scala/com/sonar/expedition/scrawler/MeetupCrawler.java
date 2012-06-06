@@ -6,15 +6,18 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.util.FileCopyUtils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Collection;
 
-
+/**
+ * Created by IntelliJ IDEA.
+ * User: paul
+ * Date: 9/5/11
+ * Time: 11:11 PM
+ * To change this template use File | Settings | File Templates.
+ */
 public class MeetupCrawler {
 
     private static final transient Logger LOGGER = Logger.getLogger(MeetupCrawler.class);
@@ -57,10 +60,6 @@ public class MeetupCrawler {
                             //todo: update datum to include other sitemapurl details, such as priority and frequency
                             String currentSiteMapUrl = siteMapURL.getUrl().toExternalForm();
                             urls += currentSiteMapUrl + "\n";
-                            //System.out.println(currentSiteMapUrl);
-                            //CrawlDbDatum datum = new CrawlDbDatum(normalizer.normalize(currentSiteMapUrl), 0, 0, UrlStatus.UNFETCHED, 0);
-
-                            //              writer.add(datum.getTuple());
                             counter++;
                             if (counter > MAX_SITEMAP_URLS) {
                                 break;
@@ -73,60 +72,8 @@ public class MeetupCrawler {
 
             //writer.close();
         } catch (Exception e) {
-            //HadoopUtils.safeRemove(crawlDbPath.getFileSystem(conf), crawlDbPath);
             throw e;
         }
         return urls;
     }
-
-
-    public static String doHttpUrlConnectionAction(String desiredUrl)
-            throws Exception {
-        URL url = null;
-        BufferedReader reader = null;
-        StringBuilder stringBuilder;
-
-        try {
-            // create the HttpURLConnection
-            url = new URL(desiredUrl);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-
-            // just want to do an HTTP GET here
-            connection.setRequestMethod("POST");
-
-            // give it 15 seconds to respond
-            connection.setReadTimeout(15 * 1000);
-
-            connection.setRequestProperty("USER-AGENT", "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.0)");
-
-            connection.setRequestProperty("Content-type", "application/x-www-form-urlenCcoded");
-            connection.setAllowUserInteraction(true);
-            connection.connect();
-
-            // read the output from the server
-            reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            stringBuilder = new StringBuilder();
-
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                stringBuilder.append(line + "\n");
-            }
-            return stringBuilder.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        } finally {
-            // close the reader; this can throw an exception too, so
-            // wrap it in another try/catch block.
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException ioe) {
-                    ioe.printStackTrace();
-                }
-            }
-        }
-    }
-
-
 }
