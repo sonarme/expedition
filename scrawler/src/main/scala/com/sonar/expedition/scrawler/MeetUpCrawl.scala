@@ -55,7 +55,8 @@ class MeetUpCrawl(args: Args) extends Job(args) {
             .flatMap('memberlinks -> 'profiles) {
         profiles: String => ScrawlerUtils.extractContentsfromPageLinks(profiles).split("\\n") //get profile page links from each page
     }.filter('profiles) {
-        innerprofiles: String => ScrawlerUtils.checkIfProfileURL(innerprofiles) //filter profile pages   , checkURL in java file
+
+        profiles: String => ScrawlerUtils.checkIfProfileURL(profiles) //filter profile pages   , checkURL in java file
     }.unique('profiles)
             .mapTo('profiles -> 'infofrommeetup) {
         profiles: String => ScrawlerUtils.getProfileInfo(profiles) //get actual contents and write to a tap sink
