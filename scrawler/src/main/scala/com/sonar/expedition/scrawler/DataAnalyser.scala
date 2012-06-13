@@ -66,78 +66,85 @@ class DataAnalyser(args: Args) extends Job(args) {
             .mapTo(Fields.ALL -> Fields.ALL) {
         fields: (String, String, String, String, String) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-            var value4 = getValue4(serviceType, serviceType2, jsondata2)
-            var value5 = getValue5(serviceType, serviceType2, jsondata2)
-            (fields._1, fields._2, fields._3, value4, value5)
+            var value2 = getIDType2(serviceType, serviceType2)
+            var value3 = getJson3(serviceType, serviceType2, jsondata)
+            var value4 = getIDType4(serviceType, serviceType2)
+            var value5 = getJson5(serviceType, serviceType2, jsondata2)
+            // if (value4==null && value5 ==null){
+            //   (fields._1, value4, value5, value4, value5)
+            //}else{
+            (fields._1, value2, value3, value4, value5)
+        //}
+
     }.project(Fields.ALL)
             .mapTo(Fields.ALL -> Fields.ALL) {
         fields: (String, String, String, String, String) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-
-            //var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(jsondata.toString.getBytes())); // can reuse, share globally
-            var fbid = getFBID(jsondata)
-            //var lndata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(jsondata2.toString.getBytes())); // can reuse, share globally
-            var lnid = getFBID(jsondata2) //"2"//lndata.getImageUrl()
+            var fbid = getID(jsondata)
+            var lnid = getID(jsondata2) //"2"//lndata.getImageUrl()
             (id, fbid, jsondata, lnid, jsondata2)
     }.project(Fields.ALL)
             .write(TextLine(out))
 
-    def getFBID(input: String): String = {
+    def getIDType2(inp1: String, inp2: String): String = {
+
+        if ((inp1 == inp2) && inp1.trim == "ln") {
+            "null"
+        }
+        else {
+            inp2
+        }
+    }
+
+    def getIDType4(inp1: String, inp2: String): String = {
+
+        if ((inp1 == inp2) && inp1.trim == "fb") {
+            "null"
+        }
+        else {
+            inp2
+        }
+    }
+
+    def getJson3(inp1: String, inp2: String, inp3: String): String = {
+
+        if (inp1 == inp2 && inp1.trim == "ln") {
+            "null"
+        }
+        else {
+            inp3
+        }
+    }
+
+    def getJson5(inp1: String, inp2: String, inp3: String): String = {
+
+        if (inp1 == inp2 && inp1.trim == "fb") {
+            "null"
+        }
+        else {
+            inp3
+        }
+    }
+
+    def getID(input: String): String = {
         if (input == null) {
             "null"
         } else {
             try {
-
-
-                var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(input.getBytes()));
+                var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(input.toString.getBytes()));
                 if (fbdata == null) {
                     "null"
                 } else {
                     fbdata.getUserId()
                 }
             } catch {
-                case e: Exception => "null"
+                case e: Exception => null
             }
 
         }
 
     }
 
-    def getLNID(input: String): String = {
-        if (input == null) {
-            "null"
-        } else {
-            var lndata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(input.getBytes()));
-            if (lndata == null) {
-                "null"
-            } else {
-                lndata.getUserId()
-            }
-        }
-
-    }
-
-    def getValue4(inp1: String, inp2: String, inp3: String): String = {
-
-        if (inp1 == inp2) {
-            "null"
-        }
-        else {
-            inp2
-        }
-
-    }
-
-    def getValue5(inp1: String, inp2: String, inp3: String): String = {
-
-        if (inp1 == inp2) {
-            "null"
-        }
-        else {
-            inp3
-        }
-
-    }
 
 }
 
