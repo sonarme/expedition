@@ -1,6 +1,7 @@
 package com.sonar.expedition.scrawler;//package com.sonar.expedition.scrawler;
 
-import bixo.urls.SimpleUrlNormalizer;
+//import bixo.urls.SimpleUrlNormalizer;
+
 import crawlercommons.sitemaps.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -27,9 +28,6 @@ public class MeetupCrawler {
     public static String importLinks(String urlsitemap) throws Exception {
         String urls = "";
         try {
-            ///Tap urlSink = new Hfs(new SequenceFile(CrawlDbDatum.FIELDS), crawlDbPath.toUri().toString(), true);
-            //TupleEntryCollector writer = urlSink.openForWrite(conf);
-            SimpleUrlNormalizer normalizer = new SimpleUrlNormalizer();
 
             SiteMapParser siteMapParser = new SiteMapParser();
             URL url = new URL("http://www.meetup.com/sitemap.xml");
