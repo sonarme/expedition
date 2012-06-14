@@ -1,6 +1,5 @@
 package com.sonar.expedition.scrawler;//package com.sonar.expedition.scrawler;
 
-//import bixo.urls.SimpleUrlNormalizer;
 
 import crawlercommons.sitemaps.*;
 import org.apache.commons.lang.StringUtils;
