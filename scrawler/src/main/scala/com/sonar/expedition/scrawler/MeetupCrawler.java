@@ -3,7 +3,8 @@ package com.sonar.expedition.scrawler;//package com.sonar.expedition.scrawler;
 
 import crawlercommons.sitemaps.*;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.FileCopyUtils;
 
 import java.io.InputStreamReader;
@@ -20,7 +21,7 @@ import java.util.Collection;
  */
 public class MeetupCrawler {
 
-    private static final transient Logger LOGGER = Logger.getLogger(MeetupCrawler.class);
+    private static final transient Logger LOGGER = LoggerFactory.getLogger(MeetupCrawler.class);
 
     static final int MAX_SITEMAP_URLS = 500000; //TODO: FIXME!
 
@@ -38,7 +39,7 @@ public class MeetupCrawler {
             int counter = 0;
             if (abstractSiteMapIndex.isIndex()) {
                 SiteMapIndex siteMapIndex = (SiteMapIndex) abstractSiteMapIndex;
-                Collection<AbstractSiteMap> siteMaps = siteMapIndex.getSitemaps();
+                Collection<SiteMap> siteMaps = siteMapIndex.getSitemaps();
                 for (AbstractSiteMap abstractSiteMap : siteMaps) {
                     if (!abstractSiteMap.isIndex()) {
                         SiteMap siteMap = (SiteMap) abstractSiteMap;

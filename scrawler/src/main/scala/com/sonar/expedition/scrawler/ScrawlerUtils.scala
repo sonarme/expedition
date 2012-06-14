@@ -1,5 +1,10 @@
 import org.apache.commons.httpclient.methods.PostMethod
-import org.apache.commons.httpclient.{HttpStatus, HttpClient}
+import org.apache.http.client.HttpClient
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.HttpStatus
+import org.apache.http.impl.client.DefaultHttpClient
+
+//import org.apache.commons.httpclient.{HttpStatus, HttpClient}
 import java.io._;
 import org.jsoup.select.Elements;
 import org.jsoup.nodes.Document;
@@ -16,8 +21,9 @@ object ScrawlerUtils {
         var document: Document = null
         var responseBodyString = ""
         var results: String = ""
-        var httpclient = new HttpClient();
-        var method = new PostMethod(urlpass);
+        //todo: FIx me!!!! We should probably only have a singleton httpClient
+        var httpclient = new DefaultHttpClient();
+        var method = new HttpPost(urlpass);
         httpclient.getParams().setParameter(
             HttpMethodParams.USER_AGENT,
             "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2"
@@ -99,8 +105,8 @@ object ScrawlerUtils {
     def doHttpUrlConnectionAction(desiredUrl: String): String = {
         var responseBodyString = ""
         var results: String = ""
-        var httpclient = new HttpClient();
-        var method = new PostMethod(desiredUrl);
+        var httpclient = new DefaultHttpClient();
+        var method = new HttpPost(desiredUrl);
         httpclient.getParams().setParameter(
             HttpMethodParams.USER_AGENT,
             "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2"
@@ -130,8 +136,8 @@ object ScrawlerUtils {
         var profiledocument: Document = null
         var responseBodyString = ""
         var results: String = ""
-        var httpclient = new HttpClient();
-        var method = new PostMethod(urlpass);
+        var httpclient = new DefaultHttpClient();
+        var method = new HttpPost(urlpass);
         httpclient.getParams().setParameter(
             HttpMethodParams.USER_AGENT,
             "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2"

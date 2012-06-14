@@ -56,39 +56,12 @@
             <artifactId>jackson-mapper-asl</artifactId>
             <version>${jackson.version}</version>
         </dependency>
-        <dependency>
+       <!-- <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-parent</artifactId>
             <version>7</version>
         </dependency>
-        <dependency>
-            <groupId>bixo</groupId>
-            <artifactId>bixo-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.bixolabs</groupId>
-                    <artifactId>cascading.utils</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>cascading</groupId>
-                    <artifactId>cascading-11-jdbc</artifactId>
-                </exclusion>
-
-                <exclusion>
-                    <artifactId>httpclient</artifactId>
-                    <groupId>org.apache.httpcomponents</groupId>
-                </exclusion>
-
-            </exclusions>
-        </dependency>
-
-
-        <dependency>
-            <groupId>com.google.code.crawler-commons</groupId>
-            <artifactId>crawler-commons</artifactId>
-            <version>0.2-SNAPSHOT</version>
-        </dependency>
+-->
 
         <!--   <dependency>
             <groupId>com.bixolabs</groupId>
@@ -138,7 +111,7 @@
         <dependency>
             <groupId>com.google.code.crawler-commons</groupId>
             <artifactId>crawler-commons</artifactId>
-            <version>0.2-SNAPSHOT</version>
+            <version>0.1</version>
             <exclusions>
                 <exclusion>
                     <artifactId>commons-httpclient</artifactId>
