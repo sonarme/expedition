@@ -38,7 +38,7 @@ public class MeetupCrawler {
             int counter = 0;
             if (abstractSiteMapIndex.isIndex()) {
                 SiteMapIndex siteMapIndex = (SiteMapIndex) abstractSiteMapIndex;
-                Collection<AbstractSiteMap> siteMaps = siteMapIndex.getSitemaps();
+                Collection<SiteMap> siteMaps = siteMapIndex.getSitemaps();
                 for (AbstractSiteMap abstractSiteMap : siteMaps) {
                     if (!abstractSiteMap.isIndex()) {
                         SiteMap siteMap = (SiteMap) abstractSiteMap;

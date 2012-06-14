@@ -47,6 +47,22 @@
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.cassandra</groupId>
+            <artifactId>cassandra-all</artifactId>
+            <version>1.0.8</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-core-asl</artifactId>
             <version>${jackson.version}</version>
@@ -87,7 +103,7 @@
         <dependency>
             <groupId>com.google.code.crawler-commons</groupId>
             <artifactId>crawler-commons</artifactId>
-            <version>0.2-SNAPSHOT</version>
+            <version>0.1</version>
         </dependency>
 
         <!--   <dependency>
@@ -138,7 +154,7 @@
         <dependency>
             <groupId>com.google.code.crawler-commons</groupId>
             <artifactId>crawler-commons</artifactId>
-            <version>0.2-SNAPSHOT</version>
+            <version>0.1</version>
             <exclusions>
                 <exclusion>
                     <artifactId>commons-httpclient</artifactId>
