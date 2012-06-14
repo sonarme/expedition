@@ -1,5 +1,4 @@
-package com.sonar.expedition.scrawler;//package com.sonar.expedition.scrawler;
-
+package com.sonar.expedition.scrawler;
 
 import crawlercommons.sitemaps.*;
 import org.apache.commons.lang.StringUtils;

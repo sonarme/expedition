@@ -65,5 +65,3 @@ class MeetUpCrawl(args: Args) extends Job(args) {
 
 }
 
-
-

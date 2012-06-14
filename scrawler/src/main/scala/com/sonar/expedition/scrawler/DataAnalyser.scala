@@ -1,11 +1,13 @@
 import cascading.tuple.Fields
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
-import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.dossier.dto.{UserEducation, ServiceProfileDTO}
 import com.sonar.expedition.scrawler.MeetupCrawler
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import DataAnalyser._
 import util.matching.Regex
+
+import com.sonar.dossier.dto.UserEducation
 
 /**
  * Created with IntelliJ IDEA.
@@ -26,7 +28,7 @@ output : the file to which the non visited profile links will be written to
 class DataAnalyser(args: Args) extends Job(args) {
 
     var inputData = "/tmp/dataAnalyse.txt"
-    var out = "/tmp/results5.txt"
+    var out = "/tmp/results7.txt"
     var data = (TextLine(inputData).read.project('line).map(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
@@ -42,6 +44,13 @@ class DataAnalyser(args: Args) extends Job(args) {
         _.size
     }.rename('size -> 'numProfiles)
 
+    var out2 = TextLine("/tmp/data123.txt")
+    var rest = data.groupBy('id) {
+        fields: (String, String, String) =>
+            val (id: String, serviceType: String, jsondata: String) = fields
+            (id, _.mkString('serviceType, ","), _.mkString('jsondata, ","))
+
+    }.write(out2)
     // Merge `serviceType` with `numProfiles`, by joining on their id fields.
     val profiles =
         data.joinWithSmaller('id -> 'id, numProfiles)
@@ -83,8 +92,27 @@ class DataAnalyser(args: Args) extends Job(args) {
             var fbid = getID(jsondata)
             var lnid = getID(jsondata2) //"2"//lndata.getImageUrl()
             (id, fbid, jsondata, lnid, jsondata2)
+    }
+            .project(Fields.ALL)
+            //.mapTo(Fields.ALL -> 'fb_id, 'lnid, 'fname, 'lname, 'currentcity, 'worklocation, 'employer, 'jobtype, 'workhistory, 'education, 'likes,'friends)
+            .mapTo(Fields.ALL ->('rowkey, 'fbid, 'lnid, 'work)) {
+        fields: (String, String, String, String, String) =>
+            val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+            var fbid = getID(jsondata)
+            var lnid = getID(jsondata2)
+            //var fname       = getFbFirstName(jsondata)
+            //var lname       = getFbLastName(jsondata)
+            //var currentcity = getCurrentCity(jsondata)
+            //var worklocation= getWorkLocation(jsondata)
+            (fields._1, fbid, lnid, getFBInfo(jsondata2))
     }.project(Fields.ALL)
             .write(TextLine(out))
+
+    def getFBInfo(input: String): List[UserEducation] = {
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(input.toString.getBytes()));
+        //println(fbdata.getWork()groupBy)
+        fbdata.getEducation().toList
+    }
 
     def getIDType2(inp1: String, inp2: String): String = {
 

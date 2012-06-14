@@ -14,7 +14,9 @@ class SampleListTuple(args: Args) extends Job(args) {
             var joblist: List[String] = getJobs(line)
             (id, joblist)
 
-    }.project('id, 'joblist).write(TextLine(out))
+    }.project('id, 'joblist)
+
+    //.write(TextLine(out))
 
     def getId(input: String): String = {
         input.substring(0, input.indexOf(":")).trim
