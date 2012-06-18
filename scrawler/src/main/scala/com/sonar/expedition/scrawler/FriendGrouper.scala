@@ -11,8 +11,8 @@ import grizzled.slf4j.Logging
 
 class FriendGrouper(args: Args) extends Job(args) {
 
-    var inputData = "/tmp/friendData.txt"
-    var out = "/tmp/userGroupedFriends.txt"
+    val inputData = "/tmp/friendData.txt"
+    val out = "/tmp/userGroupedFriends.txt"
     var data = (TextLine(inputData).read.project('line).map(('line) ->('id, 'frienddata)) {
         line: String => {
             line match {
