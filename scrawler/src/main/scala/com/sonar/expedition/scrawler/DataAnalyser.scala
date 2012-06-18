@@ -85,7 +85,6 @@ class DataAnalyser(args: Args) extends Job(args) {
             var lnid = getID(jsondata2)
             (id, fbid, jsondata, lnid, jsondata2)
     } //.write(out2)
-
             .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
         fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
@@ -98,16 +97,16 @@ class DataAnalyser(args: Args) extends Job(args) {
             var fbusername = getUserName(jsondata)
             var fbcity = getCity(jsondata)
             var lncity = getCity(jsondata2)
-
+            var city = formCityList(fbcity, lncity)
             //var currwork = getWork(jsondata,jsondata2)
             //var currcity = getCity(jsondata,jsondata2)
             //var name
             //var worktitle
             //var workhistory = getWorkHistory(jsondata,jsondata2)
             //var locationhistory
-            (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, fbcity.mkString + ":" + lncity.mkString)
+            (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
     }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
-        fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEducation]], Option[List[UserEmployment]], Option[List[UserEmployment]], String) =>
+        fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEducation]], Option[List[UserEmployment]], Option[List[UserEmployment]], List[String]) =>
             val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
             val edulist = formEducationlist(fbedu, lnedu)
             val worklist = formWorkHistoryList(fbwork, lnwork)
@@ -125,6 +124,19 @@ class DataAnalyser(args: Args) extends Job(args) {
             .discard(1, 2, 3, 4, 5, 6, 7, 8, 9)
             //map()
             .write(TextLine(out))
+
+    /* var friendlist = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+       line: String => {
+           line match {
+               case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+               case _ => List.empty
+           }
+       }
+   }).write(TextLine("/tmp/friend.txt")) */
+
+    def formCityList(fbcitydata: Option[String], lnkdcitydata: Option[String]): List[String] = {
+        fbcitydata.toList ++ lnkdcitydata.toList
+    }
 
     def formWorkHistoryList(fbworkdata: Option[scala.collection.immutable.List[UserEmployment]], lnkdworkdata: Option[scala.collection.immutable.List[UserEmployment]]): List[scala.collection.immutable.List[UserEmployment]] = {
         fbworkdata.toList ++ lnkdworkdata.toList
