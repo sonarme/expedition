@@ -1,13 +1,17 @@
 import cascading.tuple.Fields
+import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
-import com.sonar.dossier.dto.{UserEducation, ServiceProfileDTO}
+import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO}
 import com.sonar.expedition.scrawler.MeetupCrawler
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import DataAnalyser._
+import me.prettyprint.hector.api.exceptions.HectorSerializationException
+import org.codehaus.jackson.JsonParseException
+import scala.{Some, Option}
 import util.matching.Regex
 
-import com.sonar.dossier.dto.UserEducation
+import com.sonar.dossier.ScalaGoodies._
 
 /**
  * Created with IntelliJ IDEA.
@@ -29,151 +33,194 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     var inputData = "/tmp/dataAnalyse.txt"
     var out = "/tmp/results7.txt"
-    var data = (TextLine(inputData).read.project('line).map(('line) ->('id, 'serviceType, 'jsondata)) {
+    var data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => (userProfileId, serviceType, json)
-                case _ => ("", "", "")
+                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case _ => List.empty
             }
         }
     }).project('id, 'serviceType, 'jsondata)
 
-    //.write(TextLine(out)
-    //Now tuple contains 'id, 'serviceType, 'jsondata,'numProfiles
     val numProfiles = data.groupBy('id) {
         _.size
     }.rename('size -> 'numProfiles)
 
+    var out3 = TextLine("/tmp/data1234.txt")
     var out2 = TextLine("/tmp/data123.txt")
-    var rest = data.groupBy('id) {
-        fields: (String, String, String) =>
-            val (id: String, serviceType: String, jsondata: String) = fields
-            (id, _.mkString('serviceType, ","), _.mkString('jsondata, ","))
 
-    }.write(out2)
+    /*var rest1 = data.groupBy('id) {group =>
+        group.toList[String]('serviceType,'jsondata)
+    }
+
+    var rest2 = data.groupBy('id) {group =>
+        group.toList[String]('jsondata,'serviceType)
+    }.joinWithSmaller('id->'id,rest1).project('id,'jsondata,'serviceType).write(out2)
+    */
+
     // Merge `serviceType` with `numProfiles`, by joining on their id fields.
-    val profiles =
-        data.joinWithSmaller('id -> 'id, numProfiles)
+
+    val profiles = data.joinWithSmaller('id -> 'id, numProfiles)
 
     //join profiles againts itself to get all corelated ids(fb and linked correlation i am talking about :) )
 
 
-    val dupProfiles =
-        profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+    val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
 
 
     val joinedProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
-
-            /*val resultant1 = joinedProfiles.filter('serviceType, 'serviceType2) {
-                serviceType : (String, String) => (serviceType._1 != serviceType._2) || serviceType._1==null || serviceType._2==null
-            }
-
-            var resultant2 = joinedProfiles.filter('serviceType, 'serviceType2) {
-                serviceType : (String, String) => (serviceType._1 == serviceType._2)
-            }.project('id,'serviceType,'jsondata)
-            */
             .mapTo(Fields.ALL -> Fields.ALL) {
         fields: (String, String, String, String, String) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-            var value2 = getIDType2(serviceType, serviceType2)
-            var value3 = getJson3(serviceType, serviceType2, jsondata)
-            var value4 = getIDType4(serviceType, serviceType2)
-            var value5 = getJson5(serviceType, serviceType2, jsondata2)
-            // if (value4==null && value5 ==null){
-            //   (fields._1, value4, value5, value4, value5)
-            //}else{
+            var value2 = getFBId(serviceType, serviceType2)
+            var value3 = getFBJson(serviceType, serviceType2, jsondata)
+            var value4 = getLinkedInId(serviceType, serviceType2)
+            var value5 = getLNKDINJson(serviceType, serviceType2, jsondata2)
             (fields._1, value2, value3, value4, value5)
-        //}
-
-    }.project(Fields.ALL)
-            .mapTo(Fields.ALL -> Fields.ALL) {
-        fields: (String, String, String, String, String) =>
-            val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-            var fbid = getID(jsondata)
-            var lnid = getID(jsondata2) //"2"//lndata.getImageUrl()
-            (id, fbid, jsondata, lnid, jsondata2)
     }
-            .project(Fields.ALL)
-            //.mapTo(Fields.ALL -> 'fb_id, 'lnid, 'fname, 'lname, 'currentcity, 'worklocation, 'employer, 'jobtype, 'workhistory, 'education, 'likes,'friends)
-            .mapTo(Fields.ALL ->('rowkey, 'fbid, 'lnid, 'work)) {
-        fields: (String, String, String, String, String) =>
+            .mapTo(Fields.ALL -> Fields.ALL) {
+        fields: (String, String, Option[String], String, Option[String]) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
             var fbid = getID(jsondata)
             var lnid = getID(jsondata2)
-            //var fname       = getFbFirstName(jsondata)
-            //var lname       = getFbLastName(jsondata)
-            //var currentcity = getCurrentCity(jsondata)
-            //var worklocation= getWorkLocation(jsondata)
-            (fields._1, fbid, lnid, getFBInfo(jsondata2))
-    }.project(Fields.ALL)
+            (id, fbid, jsondata, lnid, jsondata2)
+    } //.write(out2)
+
+            .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
+        fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
+            val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+            var fbid = getID(jsondata)
+            var lnid = getID(jsondata2)
+            var fbedu = Option(getEducation(jsondata))
+            var lnedu = Option(getEducation(jsondata2))
+            var fbwork = Option(getWork(jsondata))
+            var lnwork = Option(getWork(jsondata2))
+            var fbusername = getUserName(jsondata)
+            var fbcity = getCity(jsondata)
+            var lncity = getCity(jsondata2)
+
+            //var currwork = getWork(jsondata,jsondata2)
+            //var currcity = getCity(jsondata,jsondata2)
+            //var name
+            //var worktitle
+            //var workhistory = getWorkHistory(jsondata,jsondata2)
+            //var locationhistory
+            (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, fbcity.mkString + ":" + lncity.mkString)
+    }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
+        fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEducation]], Option[List[UserEmployment]], Option[List[UserEmployment]], String) =>
+            val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
+            val edulist = formEducationlist(fbedu, lnedu)
+            val worklist = formWorkHistoryList(fbwork, lnwork)
+            (rowkey, fbname.mkString, fbid, lnid, edulist, worklist, city)
+    }
+
+            //.pack[ProfileAnalysis](('sonarkey, 'height) -> 'person)
+            /*.map(Fields.ALL -> ('skey,'fid,'lid,'edu)){
+                fields: (String, String, String, Some[List[UserEducation]] , Some[List[UserEducation]]) =>
+                val (rowkey, fbid, lnid, fbedu, lnedu) = fields
+                var edulist=fbedu+lnedu
+                (rowkey,fbid,lnid,edulist)
+
+            }*/
+            .discard(1, 2, 3, 4, 5, 6, 7, 8, 9)
+            //map()
             .write(TextLine(out))
 
-    def getFBInfo(input: String): List[UserEducation] = {
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(input.toString.getBytes()));
-        //println(fbdata.getWork()groupBy)
-        fbdata.getEducation().toList
+    def formWorkHistoryList(fbworkdata: Option[scala.collection.immutable.List[UserEmployment]], lnkdworkdata: Option[scala.collection.immutable.List[UserEmployment]]): List[scala.collection.immutable.List[UserEmployment]] = {
+        fbworkdata.toList ++ lnkdworkdata.toList
     }
 
-    def getIDType2(inp1: String, inp2: String): String = {
+    def formEducationlist(fbedulist: Option[scala.collection.immutable.List[UserEducation]], lnedulist: Option[scala.collection.immutable.List[UserEducation]]): List[scala.collection.immutable.List[UserEducation]] = {
+        //fbedulist.toList ++ lnedulist.toList
+        //var fb=Option(fbedulist)
+        //var ln=Option(lnedulist)
+        fbedulist.toList ++ lnedulist.toList
 
-        if ((inp1 == inp2) && inp1.trim == "ln") {
-            "null"
+    }
+
+    def getWork(workJson: Option[String]): Option[java.util.List[UserEmployment]] = {
+        val resultantJson = workJson.mkString;
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        var result = Option(fbdata)
+        result.map(_.getWork())
+    }
+
+    def getEducation(educationJson: Option[String]): Option[java.util.List[UserEducation]] = {
+        val resultantJson = educationJson.mkString;
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        var res4 = Option(fbdata)
+        res4.map(_.getEducation())
+    }
+
+    def getUserName(fbJson: Option[String]): Option[String] = {
+        val resultantJson = fbJson.mkString;
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        var res4 = Option(fbdata)
+        res4.map(_.getFullName())
+    }
+
+    def getCity(fbJson: Option[String]): Option[String] = {
+        val resultantJson = fbJson.mkString;
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        var res4 = Option(fbdata)
+        res4.map(_.getLocation())
+    }
+
+    def getFBId(serviceTypeFB: String, serviceTypeLn: String): Option[String] = {
+        if (serviceTypeFB == null)
+            None
+        if ((serviceTypeFB == serviceTypeLn) && serviceTypeFB.trim == "ln") {
+            None
         }
         else {
-            inp2
+            Option(serviceTypeFB)
         }
     }
 
-    def getIDType4(inp1: String, inp2: String): String = {
-
-        if ((inp1 == inp2) && inp1.trim == "fb") {
-            "null"
+    def getLinkedInId(serviceTypeFB: String, serviceTypeLn: String): Option[String] = {
+        if (serviceTypeFB == null)
+            None
+        if ((serviceTypeFB == serviceTypeLn) && serviceTypeFB.trim == "fb") {
+            None
         }
         else {
-            inp2
+            Option(serviceTypeLn)
         }
     }
 
-    def getJson3(inp1: String, inp2: String, inp3: String): String = {
-
-        if (inp1 == inp2 && inp1.trim == "ln") {
-            "null"
+    def getFBJson(serviceTypeFB: String, serviceTypeLn: String, jsonString: String): Option[String] = {
+        if (serviceTypeFB == null)
+            None
+        if (serviceTypeFB == serviceTypeLn && serviceTypeFB.trim == "ln") {
+            None
         }
         else {
-            inp3
+            Option(jsonString)
         }
     }
 
-    def getJson5(inp1: String, inp2: String, inp3: String): String = {
-
-        if (inp1 == inp2 && inp1.trim == "fb") {
-            "null"
+    def getLNKDINJson(serviceTypeFB: String, serviceTypeLn: String, jsonString: String): Option[String] = {
+        if (serviceTypeFB == null)
+            None
+        if (serviceTypeFB == serviceTypeLn && serviceTypeFB.trim == "fb") {
+            None
         }
         else {
-            inp3
+            Option(jsonString)
         }
     }
 
-    def getID(input: String): String = {
-        if (input == null) {
-            "null"
-        } else {
-            try {
-                var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(input.toString.getBytes()));
-                if (fbdata == null) {
-                    "null"
-                } else {
-                    fbdata.getUserId()
-                }
-            } catch {
-                case e: Exception => null
-            }
-
-        }
-
+    def getID(jsonString: Option[String]): Option[String] = {
+        val resultantJson = jsonString.mkString;
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        var res4 = Option(fbdata)
+        res4.map(_.getUserId())
     }
 
-
+    def prettyPrint(foo: Option[String]): String = foo match {
+        case Some(x) => x
+        case None => "None"
+    }
 }
 
 
