@@ -1,9 +1,9 @@
-package com.sonar.expedition.scrawler
+// package com.sonar.expedition.scrawler
 
 import cascading.tuple.Fields
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import com.sonar.dossier.dto.ServiceProfileDTO
-import com.sonar.expedition.scrawler.MeetupCrawler
+//import com.sonar.expedition.scrawler.MeetupCrawler
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import CheckinGrouper._
@@ -15,16 +15,17 @@ class CheckinGrouper(args: Args) extends Job(args) {
 
     var inputData = "/tmp/checkinData.txt"
     var out = "/tmp/userGroupedCheckins.txt"
-    var data = (TextLine(inputData).read.project('line).map(('line) ->('id, 'checkindata)) {
+    //   logger.debug(checkin.getUserProfileId() + "::" + checkin.getServiceType() + "::" + checkin.getServiceProfileId() + "::" + checkin.getServiceCheckinId() + "::" + checkin.getVenueName() + "::" + checkin.getVenueAddress() + "::" + checkin.getCheckinTime() + "::" + checkin.getGeohash() + "::" + checkin.getLatitude() + "::" + checkin.getLongitude() + "::" + checkin.getMessage())
+    var data = (TextLine(inputData).read.project('line).map(('line) ->('id, 'serviceType, 'serviceID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geoHash, 'lat, 'lng, 'message)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, checkinData) => (userProfileId, checkinData)
-                case _ => ("1",line)
+                case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, message) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, message)
+                case _ => ("0","1","2","3","4","5","6","7","8","9","10")
             }
         }
     }).groupBy('id) {
-
-        group => group.toList[String]('checkindata,'iid)
+        val data = new Tuple10('serviceType, 'serviceID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geoHash, 'lat, 'lng, 'message)
+        group => group.toList[Tuple10[String,String,String,String,String,String,String,String,String,String]](data,'iid)
     }.write(TextLine(out))
 
 }
@@ -32,6 +33,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
 
 object CheckinGrouper {
     val ExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
 }
 
 
