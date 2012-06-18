@@ -43,7 +43,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
         val latitude="";
         checkins foreach{
             venue =>
-                latitude.addString(venue.getLatitude+",")
+                latitude.addString(venue.getLatitude.toString+",")
         }
         latitude
     }
