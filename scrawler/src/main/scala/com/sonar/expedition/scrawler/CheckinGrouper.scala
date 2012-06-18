@@ -40,7 +40,12 @@ class CheckinGrouper(args: Args) extends Job(args) {
 //    var test = dataTuple(2)._5.write(TextLine(out))
 
     def getLatitute(checkins:List[CheckinObjects]) : String ={
-
+        val latitude="";
+        checkins foreach{
+            venue =>
+                latitude.addString(venue.getLatitude+",")
+        }
+        latitude
     }
 
 }
