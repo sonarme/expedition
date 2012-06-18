@@ -32,7 +32,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
         group => group.toList[CheckinObjects]('checkin,'checkindata)
     }.map(Fields.ALL -> 'userProfileId, 'lat){
         fields : (String,List[CheckinObjects]) =>
-        (userid,checkins)    = fields
+        val (userid,checkins)    = fields
         val lat = getLatitute(ch)
         (userid,lat)
     }.write(TextLine(out))
