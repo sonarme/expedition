@@ -30,7 +30,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
         //        group => group.toList[Tuple8[String,String,String,String,String,String,String,String]](packedData,'iid)
         //_.sortBy('userProfileId)
         group => group.toList[CheckinObjects]('checkin,'checkindata)
-    }.map(Fields.ALL -> 'userProfileId, 'lat){
+    }.map(Fields.ALL -> 'ProfileId, 'lat){
         fields : (String,List[CheckinObjects]) =>
         val (userid,checkins)    = fields
         val lat = getLatitute(checkins)
@@ -43,7 +43,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
         val latitude="";
         checkins foreach{
             venue =>
-                latitude.addString(venue.getLatitude.toString+",")
+                latitude ++ venue.getLatitude.toString+",";
         }
         latitude
     }
