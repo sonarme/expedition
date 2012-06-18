@@ -30,26 +30,19 @@ class CheckinGrouper(args: Args) extends Job(args) {
         //        group => group.toList[Tuple8[String,String,String,String,String,String,String,String]](packedData,'iid)
         //_.sortBy('userProfileId)
         group => group.toList[CheckinObjects]('checkin,'checkindata)
-    }.map(Fields.ALL -> 'ProfileId, 'lat){
+    }.map(Fields.ALL -> ('ProfileId, 'lat)){
         fields : (String,List[CheckinObjects]) =>
-        val (userid,checkins)    = fields
+        val (userid ,checkins)    = fields
         val lat = getLatitute(checkins)
         (userid,lat)
-    }.write(TextLine(out))
-
-//    var test = dataTuple(2)._5.write(TextLine(out))
+    }.project('ProfileId,'lat).write(TextLine(out))
 
     def getLatitute(checkins:List[CheckinObjects]) : String ={
-        val latitude="";
-        checkins foreach{
-            venue =>
-                latitude ++ venue.getLatitude.toString+",";
-        }
-        latitude
+
+        checkins.map(_.getLatitude).toString
     }
 
 }
-
 
 object CheckinGrouper {
 //    val ExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)""".r
