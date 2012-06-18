@@ -1,18 +1,14 @@
-import org.apache.commons.httpclient.methods.PostMethod
-import org.apache.http.client.HttpClient
+
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.HttpStatus
 import org.apache.http.impl.client.DefaultHttpClient
 
-//import org.apache.commons.httpclient.{HttpStatus, HttpClient}
 import java.io._;
 import org.jsoup.select.Elements;
 import org.jsoup.nodes.Document;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
-
-import org.apache.commons.httpclient.params.HttpMethodParams;
 
 
 object ScrawlerUtils {
@@ -24,17 +20,10 @@ object ScrawlerUtils {
         //todo: FIx me!!!! We should probably only have a singleton httpClient
         var httpclient = new DefaultHttpClient();
         var method = new HttpPost(urlpass);
-        httpclient.getParams().setParameter(
-            HttpMethodParams.USER_AGENT,
-            "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2"
-        );
+
         // Execute the method.
-        var statusCode = httpclient.executeMethod(method);
-        if (statusCode != HttpStatus.SC_OK) {
-            System.err.println("Method failed: " + method.getStatusLine());
-        } else {
-            responseBodyString = method.getResponseBodyAsString; //bytes
-        }
+        var statusCode = httpclient.execute(method);
+        responseBodyString = method.getEntity.getContent.toString; //bytes
         //document = Jsoup.connect(urlpass).userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:5.0) Gecko/20100101 Firefox/5.0").get
         document = Jsoup.parse(responseBodyString, urlpass);
         val links: Elements = document.select("a[href]")
@@ -107,16 +96,9 @@ object ScrawlerUtils {
         var results: String = ""
         var httpclient = new DefaultHttpClient();
         var method = new HttpPost(desiredUrl);
-        httpclient.getParams().setParameter(
-            HttpMethodParams.USER_AGENT,
-            "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2"
-        );
-        var statusCode = httpclient.executeMethod(method);
-        if (statusCode != HttpStatus.SC_OK) {
-            System.err.println("Method failed: " + method.getStatusLine());
-        } else {
-            responseBodyString = method.getResponseBodyAsString; //bytes
-        }
+
+        var statusCode = httpclient.execute(method);
+        responseBodyString = method.getEntity.getContent.toString; //bytes
         responseBodyString
     }
 
@@ -138,17 +120,11 @@ object ScrawlerUtils {
         var results: String = ""
         var httpclient = new DefaultHttpClient();
         var method = new HttpPost(urlpass);
-        httpclient.getParams().setParameter(
-            HttpMethodParams.USER_AGENT,
-            "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2"
-        );
+
         // Execute the method.
-        var statusCode = httpclient.executeMethod(method);
-        if (statusCode != HttpStatus.SC_OK) {
-            System.err.println("Method failed: " + method.getStatusLine());
-        } else {
-            responseBodyString = method.getResponseBodyAsString; //bytes
-        }
+        var statusCode = httpclient.execute(method);
+
+        responseBodyString = method.getEntity.getContent.toString; //bytes
         profiledocument = Jsoup.parse(responseBodyString, urlpass);
         profiledocument
     }
