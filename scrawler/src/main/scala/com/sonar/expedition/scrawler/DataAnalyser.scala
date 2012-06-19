@@ -2,6 +2,7 @@ import cascading.tuple.Fields
 import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO}
+import com.sonar.expedition.scrawler.CheckinObjects
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import DataAnalyser._
@@ -135,17 +136,49 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     //var writefriendlist= friendlist.write(TextLine("/tmp/friendout.txt"))
 
-    var profile_wth_frnd_list = joinedProfiles.joinWithLarger('skey -> 'id, friendlist).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'frndlist)
-            /*.map(Fields.ALL ->('rkey, 'fbname, 'fbid, 'lnid, 'edulist, 'worklist, 'curcity, 'friendlist)) {
-        fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEmployment]], List[String], List[String]) =>
-            val (rowkey, fbname, fbid, lnid, edu, work, city, frndlist) = fields
-            //var parsedfrndList = getFriendsList(frndlist);
-            (rowkey, fbname, fbid, lnid, edu, work, city, frndlist)
+    val profile_wth_frnd_list = joinedProfiles.joinWithLarger('skey -> 'id, friendlist).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'frndlist)
+    /*.map(Fields.ALL ->('rkey, 'fbname, 'fbid, 'lnid, 'edulist, 'worklist, 'curcity, 'friendlist)) {
+   fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEmployment]], List[String], List[String]) =>
+       val (rowkey, fbname, fbid, lnid, edu, work, city, frndlist) = fields
+       //var parsedfrndList = getFriendsList(frndlist);
+       (rowkey, fbname, fbid, lnid, edu, work, city, frndlist)
 
-    }     */
-            //.project('rkey, 'fbname, 'fbid, 'lnid, 'edulist, 'worklist, 'curcity, 'friendlist)
-            .write(TextLine("/tmp/profile_wth_frnd_list.txt"))
+}     */
+    //.project('rkey, 'fbname, 'fbid, 'lnid, 'edulist, 'worklist, 'curcity, 'friendlist)
+    // .write(TextLine("/tmp/profile_wth_frnd_list.txt"))
 
+    val checkin_inputData = "/tmp/checkinData.txt.small"
+    //val checkin_output = "/tmp/userGroupedCheckins.txt"
+    //   logger.debug(checkin.getUserProfileId() + "::" + checkin.getServiceType() + "::" + checkin.getServiceProfileId() + "::" + checkin.getServiceCheckinId() + "::" + checkin.getVenueName() + "::" + checkin.getVenueAddress() + "::" + checkin.getCheckinTime() + "::" + checkin.getGeohash() + "::" + checkin.getLatitude() + "::" + checkin.getLongitude() + "::" + checkin.getMessage())
+    var checkindata = (TextLine(checkin_inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude, 'message)) {
+        line: String => {
+            line match {
+                case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, message) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, message)
+                case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
+            }
+        }
+    }).pack[CheckinObjects](('serviceType, 'serviceProfileId, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude, 'message) -> 'checkin).groupBy('userProfileId) {
+        //        var packedData = data.pack[Checkin](('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude, 'message) -> 'person)
+        //        group => group.toList[Tuple8[String,String,String,String,String,String,String,String]](packedData,'iid)
+        //_.sortBy('userProfileId)
+        group => group.toList[CheckinObjects]('checkin, 'checkindata)
+    }.project('userProfileId, 'checkindata)
+
+    /*.map(Fields.ALL -> ('ProfileId, 'lat)){
+fields : (String,List[CheckinObjects]) =>
+   val (userid ,checkins)    = fields
+   val lat = getLatitute(checkins)
+   (userid,lat)
+}.project('ProfileId,'lat)
+   .write(TextLine(checkin_output)) */
+
+    val profile_wth_frnd_list_chkindata =
+        profile_wth_frnd_list.joinWithLarger('skey -> 'userProfileId, checkindata).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'checkindata, 'frndlist).write(TextLine(out))
+
+    def getLatitute(checkins: List[CheckinObjects]): String = {
+
+        checkins.map(_.getLatitude).toString
+    }
 
     def formCityList(fbcitydata: Option[String], lnkdcitydata: Option[String]): List[String] = {
         fbcitydata.toList ++ lnkdcitydata.toList
@@ -247,5 +280,6 @@ class DataAnalyser(args: Args) extends Job(args) {
 
 object DataAnalyser {
     val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
 }
 
