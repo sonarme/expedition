@@ -1,4 +1,4 @@
-// package com.sonar.expedition.scrawler
+package com.sonar.expedition.scrawler
 
 import cascading.tuple.Fields
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
@@ -10,6 +10,7 @@ import com.twitter.scalding._
 import java.nio.ByteBuffer
 import FriendGrouper._
 import util.matching.Regex
+import java.security.MessageDigest
 import grizzled.slf4j.Logging
 
 
@@ -25,20 +26,43 @@ class FriendGrouper(args: Args) extends Job(args) {
             }
         }
     }).pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
-        //        var packedData = data.pack[Checkin](('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude, 'message) -> 'person)
-        //        group => group.toList[Tuple8[String,String,String,String,String,String,String,String]](packedData,'iid)
-        //_.sortBy('userProfileId)
         group => group.toList[FriendObjects]('friend,'friendData)
-    }.map(Fields.ALL -> ('ProfileId, 'friendName)){
+    }.map(Fields.ALL -> ('ProfileId, 'serviceType, 'serviceProfileId, 'friendName)){
         fields : (String,List[FriendObjects]) =>
             val (userid, friends)    = fields
             val friendName = getFriendName(friends)
-            (userid, friendName)
-    }.project('ProfileId,'friendName).write(TextLine(out))
+            (userid, serviceType, serviceProfileId, friendName)
+    }.project('ProfileId, 'friendName).write(TextLine(out))
+
+//    This commented section below handles the obfuscation of the userProfileID
+
+     /*.project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileId, 'serType, 'serProfileId, 'friName)){
+        fields : (String, String, String, String) =>
+            val (userid, serviceType, serviceProfileId, friendName)    = fields
+            val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
+            (userid, serviceType, hashedServiceProfileId, friendName)
+    }.project('ProfileId, 'serType, 'serProfileId, 'friName).write(TextLine(out))*/
 
     def getFriendName(friends:List[FriendObjects]) : String ={
 
         friends.map(_.getFriendName).toString()
+    }
+
+    def getServiceType(friends:List[FriendObjects]) : String ={
+
+        friends.map(_.getServiceType).toString()
+    }
+
+    def getServiceProfileId(friends:List[FriendObjects]) : String ={
+
+        friends.map(_.getServiceProfileId).toString()
+    }
+
+    def md5SumString(bytes : Array[Byte]) : String = {
+        val md5 = MessageDigest.getInstance("MD5")
+        md5.reset()
+        md5.update(bytes)
+        md5.digest().map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}
     }
 }
 
@@ -46,6 +70,8 @@ class FriendGrouper(args: Args) extends Job(args) {
 object FriendGrouper {
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo(.*)""".r
 }
+
+
 
 
 
