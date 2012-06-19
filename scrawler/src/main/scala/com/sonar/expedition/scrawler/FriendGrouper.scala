@@ -1,4 +1,4 @@
-// package com.sonar.expedition.scrawler
+package com.sonar.expedition.scrawler
 
 import cascading.tuple.Fields
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
@@ -10,12 +10,13 @@ import com.twitter.scalding._
 import java.nio.ByteBuffer
 import FriendGrouper._
 import util.matching.Regex
+import java.security.MessageDigest
 import grizzled.slf4j.Logging
 
 
 class FriendGrouper(args: Args) extends Job(args) {
     var inputData = "/tmp/friendData.txt"
-    var out = "/tmp/userGroupedFriends.txt"
+    var out = "/tmp/hasheduserGroupedFriends.txt"
     //   logger.debug(checkin.getUserProfileId() + "::" + checkin.getServiceType() + "::" + checkin.getServiceProfileId() + "::" + checkin.getServiceCheckinId() + "::" + checkin.getVenueName() + "::" + checkin.getVenueAddress() + "::" + checkin.getCheckinTime() + "::" + checkin.getGeohash() + "::" + checkin.getLatitude() + "::" + checkin.getLongitude() + "::" + checkin.getMessage())
     var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
         line: String => {
@@ -25,14 +26,11 @@ class FriendGrouper(args: Args) extends Job(args) {
             }
         }
     }).pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
-        //        var packedData = data.pack[Checkin](('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude, 'message) -> 'person)
-        //        group => group.toList[Tuple8[String,String,String,String,String,String,String,String]](packedData,'iid)
-        //_.sortBy('userProfileId)
         group => group.toList[FriendObjects]('friend,'friendData)
     }.map(Fields.ALL -> ('ProfileId, 'friendName)){
         fields : (String,List[FriendObjects]) =>
             val (userid, friends)    = fields
-            val friendName = getFriendName(friends)
+            val friendName = md5SumString(getFriendName(friends).getBytes("UTF-8"))
             (userid, friendName)
     }.project('ProfileId,'friendName).write(TextLine(out))
 
@@ -40,12 +38,21 @@ class FriendGrouper(args: Args) extends Job(args) {
 
         friends.map(_.getFriendName).toString()
     }
+
+    def md5SumString(bytes : Array[Byte]) : String = {
+        val md5 = MessageDigest.getInstance("MD5")
+        md5.reset()
+        md5.update(bytes)
+        md5.digest().map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}
+    }
 }
 
 
 object FriendGrouper {
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo(.*)""".r
 }
+
+
 
 
 
