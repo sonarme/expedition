@@ -2,16 +2,12 @@ import cascading.tuple.Fields
 import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO}
-import com.sonar.expedition.scrawler.MeetupCrawler
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import DataAnalyser._
-import me.prettyprint.hector.api.exceptions.HectorSerializationException
-import org.codehaus.jackson.JsonParseException
 import scala.{Some, Option}
 import util.matching.Regex
 
-import com.sonar.dossier.ScalaGoodies._
 
 /**
  * Created with IntelliJ IDEA.
@@ -110,29 +106,46 @@ class DataAnalyser(args: Args) extends Job(args) {
             val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
             val edulist = formEducationlist(fbedu, lnedu)
             val worklist = formWorkHistoryList(fbwork, lnwork)
-            (rowkey, fbname.mkString, fbid, lnid, edulist, worklist, city)
+            (rowkey, fbname, fbid, lnid, edulist, worklist, city)
+    }.project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)
+
+    //.pack[ProfileAnalysis](('sonarkey, 'height) -> 'person)
+    /*.map(Fields.ALL -> ('skey,'fid,'lid,'edu)){
+        fields: (String, String, String, Some[List[UserEducation]] , Some[List[UserEducation]]) =>
+        val (rowkey, fbid, lnid, fbedu, lnedu) = fields
+        var edulist=fbedu+lnedu
+        (rowkey,fbid,lnid,edulist)
+
+    }*/
+    //.discard(1, 2, 3, 4, 5, 6, 7, 8, 9)
+    //map()
+
+    //var writejoinedProfiles= joinedProfiles.project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity).write(TextLine(out))
+
+    var friendlist = (TextLine("/tmp/frienddatatest.txt").read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsonfrnddata)) {
+        line: String => {
+            line match {
+                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case _ => List.empty
+            }
+        }
+    }).project('id, 'serviceType, 'jsonfrnddata).groupBy('id) {
+        group => group.toList[String]('jsonfrnddata, 'frndlist)
     }
 
-            //.pack[ProfileAnalysis](('sonarkey, 'height) -> 'person)
-            /*.map(Fields.ALL -> ('skey,'fid,'lid,'edu)){
-                fields: (String, String, String, Some[List[UserEducation]] , Some[List[UserEducation]]) =>
-                val (rowkey, fbid, lnid, fbedu, lnedu) = fields
-                var edulist=fbedu+lnedu
-                (rowkey,fbid,lnid,edulist)
+    //var writefriendlist= friendlist.write(TextLine("/tmp/friendout.txt"))
 
-            }*/
-            .discard(1, 2, 3, 4, 5, 6, 7, 8, 9)
-            //map()
-            .write(TextLine(out))
+    var profile_wth_frnd_list = joinedProfiles.joinWithLarger('skey -> 'id, friendlist).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'frndlist)
+            /*.map(Fields.ALL ->('rkey, 'fbname, 'fbid, 'lnid, 'edulist, 'worklist, 'curcity, 'friendlist)) {
+        fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEmployment]], List[String], List[String]) =>
+            val (rowkey, fbname, fbid, lnid, edu, work, city, frndlist) = fields
+            //var parsedfrndList = getFriendsList(frndlist);
+            (rowkey, fbname, fbid, lnid, edu, work, city, frndlist)
 
-    /* var friendlist = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-       line: String => {
-           line match {
-               case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-               case _ => List.empty
-           }
-       }
-   }).write(TextLine("/tmp/friend.txt")) */
+    }     */
+            //.project('rkey, 'fbname, 'fbid, 'lnid, 'edulist, 'worklist, 'curcity, 'friendlist)
+            .write(TextLine("/tmp/profile_wth_frnd_list.txt"))
+
 
     def formCityList(fbcitydata: Option[String], lnkdcitydata: Option[String]): List[String] = {
         fbcitydata.toList ++ lnkdcitydata.toList
@@ -143,11 +156,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     }
 
     def formEducationlist(fbedulist: Option[scala.collection.immutable.List[UserEducation]], lnedulist: Option[scala.collection.immutable.List[UserEducation]]): List[scala.collection.immutable.List[UserEducation]] = {
-        //fbedulist.toList ++ lnedulist.toList
-        //var fb=Option(fbedulist)
-        //var ln=Option(lnedulist)
         fbedulist.toList ++ lnedulist.toList
-
     }
 
     def getWork(workJson: Option[String]): Option[java.util.List[UserEmployment]] = {
@@ -239,6 +248,4 @@ class DataAnalyser(args: Args) extends Job(args) {
 object DataAnalyser {
     val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
 }
-
-
 
