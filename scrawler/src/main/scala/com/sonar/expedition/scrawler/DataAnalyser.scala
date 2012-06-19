@@ -172,8 +172,64 @@ fields : (String,List[CheckinObjects]) =>
 }.project('ProfileId,'lat)
    .write(TextLine(checkin_output)) */
 
+    /* TO UNCOMMENT
+     val profile_wth_frnd_list_chkindata =
+          profile_wth_frnd_list.joinWithLarger('skey -> 'userProfileId, checkindata).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'checkindata, 'frndlist)
+      .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)
+                  //.write(TextLine(out))
+
+    */
+    val twitter_data = (TextLine("/tmp/twitterprofile.txt.small").read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+        line: String => {
+            line match {
+                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case _ => List.empty
+            }
+        }
+    }).project('id, 'serviceType, 'jsondata)
+
+    // qucik fix to handle out data
     val profile_wth_frnd_list_chkindata =
-        profile_wth_frnd_list.joinWithLarger('skey -> 'userProfileId, checkindata).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'checkindata, 'frndlist).write(TextLine(out))
+        profile_wth_frnd_list.joinWithLarger('skey -> 'userProfileId, checkindata).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'checkindata, 'frndlist)
+                .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity).joinWithSmaller('skey -> 'id, twitter_data)
+                .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'jsondata)
+                .mapTo(Fields.ALL ->('key, 'fbname, 'fbid, 'lnid, 'twitter_id, 'edulist, 'worklist, 'listcity)) {
+            fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEmployment]], List[String], String) =>
+                val (rowkey, fbname, fbid, lnid, edu, work, citylist, twitterjson) = fields
+                val twitter_id = getTwitterID(twitterjson)
+                (rowkey, fbname, fbid, lnid, twitter_id, edu, work, citylist)
+
+        }.write(TextLine(out))
+    /*  map(Fields.ALL ->('key, 'facebookname, 'facebookid, 'linkedinid, 'currenteducation, 'currentwork, 'currentcity, 'checkindataLatLongList, 'friendlist)) {
+        fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEmployment]], List[String], List[CheckinObjects], List[String]) =>
+            val (rowkey, fbname, fbid, lnid, edu, work, city, chckinlist, frndlist) = fields
+            val latestdegree = getLatestDegreeAndCollege(edu)
+            val latestcompany = getLatestWorkingCompany(work)
+            val curr_city = getCurrentCity(city)
+            val chckinsList = getChkinsList(chckinlist)
+
+            (rowkey, fbname, fbid, lnid, latestdegree, latestcompany, curr_city, chckinsList, frndlist)
+
+    }*/
+    //.project('key, 'facebookname, 'facebookid, 'linkedinid, 'currenteducation, 'currentwork, 'currentcity, 'checkindataLatLongList, 'friendlist).write(TextLine(out))
+
+    def getChkinsList(chkins: List[CheckinObjects]): Option[List[String]] = {
+        Option(chkins.map(_.getLocation).toList)
+    }
+
+    def getCurrentCity(citylist: List[String]): Option[String] = {
+        Option(citylist(0)).map(_.toString())
+    }
+
+    def getLatestDegreeAndCollege(edulist: Option[List[UserEducation]]): Option[String] = {
+        Option(edulist.firstOption).map(_.toString())
+    }
+
+    def getLatestWorkingCompany(emplist: Option[List[UserEmployment]]): Option[String] = {
+
+        Option(emplist.firstOption).map(_.toString())
+
+    }
 
     def getLatitute(checkins: List[CheckinObjects]): String = {
 
@@ -265,6 +321,13 @@ fields : (String,List[CheckinObjects]) =>
     }
 
     def getID(jsonString: Option[String]): Option[String] = {
+        val resultantJson = jsonString.mkString;
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        var res4 = Option(fbdata)
+        res4.map(_.getUserId())
+    }
+
+    def getTwitterID(jsonString: String): Option[String] = {
         val resultantJson = jsonString.mkString;
         var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
         var res4 = Option(fbdata)
