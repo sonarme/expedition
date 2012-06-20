@@ -6,8 +6,11 @@ import com.sonar.expedition.scrawler.CheckinObjects
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import DataAnalyser._
+import java.security.MessageDigest
 import scala.{Some, Option}
 import util.matching.Regex
+
+import scala.collection.JavaConversions._
 
 
 /**
@@ -28,8 +31,9 @@ output : the file to which the non visited profile links will be written to
  */
 class DataAnalyser(args: Args) extends Job(args) {
 
-    var inputData = "/tmp/dataAnalyse.txt"
+    var inputData = "/tmp/dataAnalyse1.txt"
     var out = "/tmp/results7.txt"
+    //TextLine(inputData).read.project('line).write(TextLine(out))
     var data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
@@ -39,12 +43,13 @@ class DataAnalyser(args: Args) extends Job(args) {
         }
     }).project('id, 'serviceType, 'jsondata)
 
+
     val numProfiles = data.groupBy('id) {
         _.size
     }.rename('size -> 'numProfiles)
 
-    var out3 = TextLine("/tmp/data1234.txt")
-    var out2 = TextLine("/tmp/data123.txt")
+    //var out3 = TextLine("/tmp/data1234.txt")
+    //var out2 = TextLine("/tmp/data123.txt")
 
     /*var rest1 = data.groupBy('id) {group =>
         group.toList[String]('serviceType,'jsondata)
@@ -87,10 +92,10 @@ class DataAnalyser(args: Args) extends Job(args) {
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
             var fbid = getID(jsondata)
             var lnid = getID(jsondata2)
-            var fbedu = Option(getEducation(jsondata))
-            var lnedu = Option(getEducation(jsondata2))
-            var fbwork = Option(getWork(jsondata))
-            var lnwork = Option(getWork(jsondata2))
+            var fbedu = getEducation(jsondata)
+            var lnedu = getEducation(jsondata2)
+            var fbwork = getWork(jsondata)
+            var lnwork = getWork(jsondata2)
             var fbusername = getUserName(jsondata)
             var fbcity = getCity(jsondata)
             var lncity = getCity(jsondata2)
@@ -103,13 +108,50 @@ class DataAnalyser(args: Args) extends Job(args) {
             //var locationhistory
             (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
     }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
-        fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEducation]], Option[List[UserEmployment]], Option[List[UserEmployment]], List[String]) =>
+        fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
             val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
             val edulist = formEducationlist(fbedu, lnedu)
             val worklist = formWorkHistoryList(fbwork, lnwork)
             (rowkey, fbname, fbid, lnid, edulist, worklist, city)
-    }.project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)
+    }
+            .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
+            .mapTo(Fields.ALL ->('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
+        fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
+            val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
 
+            val educationschool = getFirstEdu(edu)
+            val edudegree = getFirstEduDegree(edu)
+            var eduyear = getFirstEduDegreeYear(edu)
+
+            val workcomp = getFirstWork(work)
+            val worktitle = getWorkTitle(work)
+            val workdesc = getWorkSummary(work)
+
+            val ccity = getcurrCity(city)
+
+            (rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+
+    }.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+
+
+            //.map(Fields.ALL -> ('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity) )
+
+
+            /*val joinedProfileswork =   joinedProfiles
+                    .flatMapTo('skey,'work -> ('rkey, 'worked)){
+                fields: (String, Option[UserEmployment]) =>
+                val (rowkey, work) = fields
+                val getfirstjob=getFirstWork(work)
+
+                (rowkey,getfirstjob)
+
+            }*/
+            .write(TextLine(out))
+    //    .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity).write(TextLine(out))
+
+    /*def getFirstWork(works: Option[UserEmployment]): String = {
+        Option(works.get.getCompanyName()).toString
+    } */
     //.pack[ProfileAnalysis](('sonarkey, 'height) -> 'person)
     /*.map(Fields.ALL -> ('skey,'fid,'lid,'edu)){
         fields: (String, String, String, Some[List[UserEducation]] , Some[List[UserEducation]]) =>
@@ -123,7 +165,7 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     //var writejoinedProfiles= joinedProfiles.project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity).write(TextLine(out))
 
-    var friendlist = (TextLine("/tmp/frienddatatest.txt").read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsonfrnddata)) {
+    /*var friendlist = (TextLine("/tmp/frienddatatest.txt").read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsonfrnddata)) {
         line: String => {
             line match {
                 case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
@@ -163,7 +205,6 @@ class DataAnalyser(args: Args) extends Job(args) {
         //_.sortBy('userProfileId)
         group => group.toList[CheckinObjects]('checkin, 'checkindata)
     }.project('userProfileId, 'checkindata)
-    //.write(out2)
 
     /*.map(Fields.ALL -> ('ProfileId, 'lat)){
 fields : (String,List[CheckinObjects]) =>
@@ -173,81 +214,67 @@ fields : (String,List[CheckinObjects]) =>
 }.project('ProfileId,'lat)
    .write(TextLine(checkin_output)) */
 
-    /* TO UNCOMMENT
-     val profile_wth_frnd_list_chkindata =
-          profile_wth_frnd_list.joinWithLarger('skey -> 'userProfileId, checkindata).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'checkindata, 'frndlist)
-      .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)
-                  //.write(TextLine(out))
-
-    */
-    val twitter_data = (TextLine("/tmp/twitterprofile.txt.small").read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ExtractLineTwitter(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project('id, 'serviceType, 'jsondata)
-
-    // qucik fix to handle out data
     val profile_wth_frnd_list_chkindata =
-        profile_wth_frnd_list
-                .joinWithLarger('skey -> 'userProfileId, checkindata).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'checkindata, 'frndlist)
-                .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)
-                //.joinWithSmaller('skey -> 'id, twitter_data)
+        profile_wth_frnd_list.joinWithLarger('skey -> 'userProfileId, checkindata).project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'checkindata, 'frndlist)
 
-                //.project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity, 'jsondata)
+    var companies=profile_wth_frnd_list_chkindata.
+    flatMapTo('work -> 'corp ){
+        work : List[scala.collection.immutable.List[UserEmployment]] => Option(work).flatten
+    }.filter('corp){
+        name : String => !name.trim.toString.contains("None")
+    }.filter('corp){
+        name : String => !name.trim.toString.contains("Some([])")
+    }
+    .write(TextLine(out)) */
 
-                //.mapTo(Fields.ALL ->('key, 'fbname, 'fbid, 'lnid, 'twitter_id, 'edulist, 'worklist, 'listcity)) {
-                //fields: (String, Option[String], Option[String],Option[String], Option[List[UserEducation]], Option[List[UserEmployment]], List[String], String) =>
-                //val (rowkey, fbname, fbid, lnid, edu, work, citylist, twitterjson) = fields
-
-                //var twitterid = getTwitterID(twitterjson)
-                //var latestdegree = getLatestDegreeAndCollege(edu)
-                //var latestcompany = getLatestWorkingCompany(work)
-                //var currcity = getCurrentCity(citylist)
-                // (rowkey, fbname, fbid, lnid, edu, work, citylist, twitterjson)
-                //(rowkey, fbname, fbid, lnid, twitterid, latestdegree, latestcompany, currcity)
-
-                //}.project('key, 'fbname, 'fbid, 'lnid, 'twitter_id, 'edulist, 'worklist, 'listcity)
-                //.write(TextLine(out))
-                //map(Fields.ALL ->('key, 'facebookname, 'facebookid, 'linkedinid,'tweeterid, 'currenteducation, 'currentwork, 'currentcity, 'checkindataLatLongList, 'friendlist)) {
-                /*.map(Fields.ALL ->('key, 'facebookname, 'facebookid, 'linkedinid,'tweeterid, 'currenteducation, 'currentwork, 'currentcity)) {
-           fields: (String, Option[String], Option[String], Option[String], Option[String],  Option[List[UserEducation]], Option[List[UserEmployment]], List[String]) =>
-           val (rowkey, fbname, fbid, lnid,twid, edu, work, city) = fields
-           val latestdegree = getLatestDegreeAndCollege(edu)
-           val latestcompany = getLatestWorkingCompany(work)
-           val curr_city = getCurrentCity(city)
-           //val chckinsList = getChkinsList(chckinlist)
-          (rowkey, fbname, fbid, lnid,twid, latestdegree, latestcompany, curr_city)*/
-                //    }
-                /* .flatMapTo(Fields.ALL -> ('key, 'name, 'idfb, 'idln, 'education, 'worklist, 'currcity1)){
-                       fields: (String, Option[String], Option[String], Option[String], Option[List[UserEducation]], Option[List[UserEmployment]], List[String]) =>
-                       val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
-
-
-                       (rowkey, fbname, fbid, lnid, edu, work, city)
-
-               } */
-                .write(TextLine(out))
-    //.project('key, 'facebookname, 'facebookid, 'linkedinid, 'currenteducation, 'currentwork, 'currentcity, 'checkindataLatLongList, 'friendlist).write(TextLine(out))
-
-    def getChkinsList(chkins: List[CheckinObjects]): Option[List[String]] = {
-        Option(chkins.map(_.getLocation).toList)
+    def getcurrCity(city: List[String]): String = {
+        city.headOption.mkString
     }
 
-    def getCurrentCity(citylist: List[String]): Option[String] = {
-        Option(citylist(0)).map(_.toString())
+    def getFirstEdu(edu: scala.collection.immutable.List[UserEducation]): String = {
+        // if(edu.length>0)
+        //     println(edu)
+        edu.headOption.map(_.getSchoolName()).mkString
+        //"job"
+
     }
 
-    def getLatestDegreeAndCollege(edulist: Option[List[UserEducation]]): Option[String] = {
 
-        Option(edulist.firstOption.mkString).map(_.toString())
+    def getFirstEduDegree(edu: scala.collection.immutable.List[UserEducation]): String = {
+        // if(edu.length>0)
+        //     println(edu)
+        edu.headOption.map(_.getDegree()).mkString
+        //"job"
+
     }
 
-    def getLatestWorkingCompany(emplist: Option[List[UserEmployment]]): Option[String] = {
 
-        Option(emplist.firstOption).map(_.toString())
+    def getFirstEduDegreeYear(edu: scala.collection.immutable.List[UserEducation]): String = {
+        // if(edu.length>0)
+        //     println(edu)
+        edu.headOption.map(_.getYear()).mkString
+        //"job"
+
+    }
+
+    def getFirstWork(work: scala.collection.immutable.List[UserEmployment]): String = {
+        //println(work)
+        work.headOption.map(_.getCompanyName()).mkString
+        //"work"
+
+    }
+
+    def getWorkSummary(work: scala.collection.immutable.List[UserEmployment]): String = {
+        //println(work)
+        work.headOption.map(_.getSummary()).mkString
+        //"work"
+
+    }
+
+    def getWorkTitle(work: scala.collection.immutable.List[UserEmployment]): String = {
+        //println(work)
+        work.headOption.map(_.getTitle()).mkString
+        //"work"
 
     }
 
@@ -260,26 +287,48 @@ fields : (String,List[CheckinObjects]) =>
         fbcitydata.toList ++ lnkdcitydata.toList
     }
 
-    def formWorkHistoryList(fbworkdata: Option[scala.collection.immutable.List[UserEmployment]], lnkdworkdata: Option[scala.collection.immutable.List[UserEmployment]]): List[scala.collection.immutable.List[UserEmployment]] = {
+    def formWorkHistoryList(fbworkdata: scala.collection.immutable.List[UserEmployment], lnkdworkdata: scala.collection.immutable.List[UserEmployment]): scala.collection.immutable.List[UserEmployment] = {
+        // fbworkdata ++ lnkdworkdata
+        // Option(fbworkdata ++ lnkdworkdata).toList
         fbworkdata.toList ++ lnkdworkdata.toList
+    }
+
+    def formEducationlist(fbedulist: scala.collection.immutable.List[UserEducation], lnedulist: scala.collection.immutable.List[UserEducation]): scala.collection.immutable.List[UserEducation] = {
+        fbedulist ++ lnedulist
+    }
+
+    /*def formCityList(fbcitydata: Option[String], lnkdcitydata: Option[String]): String = {
+        //fbcitydata.toList ++ lnkdcitydata.toList
+        //Option(Option(Option(fbcitydata).head).head).mkString
+        (Option(fbcitydata).head).mkString
+    }
+
+    def formWorkHistoryList(fbworkdata: Option[scala.collection.immutable.List[UserEmployment]], lnkdworkdata: Option[scala.collection.immutable.List[UserEmployment]]): List[scala.collection.immutable.List[UserEmployment]] = {
+    //def formWorkHistoryList(fbworkdata: Option[scala.collection.immutable.List[UserEmployment]], lnkdworkdata: Option[scala.collection.immutable.List[UserEmployment]]): Option[UserEmployment] = {
+        fbworkdata.toList ++ lnkdworkdata.toList
+        //Option(Option(Option(lnkdworkdata).head).head)
     }
 
     def formEducationlist(fbedulist: Option[scala.collection.immutable.List[UserEducation]], lnedulist: Option[scala.collection.immutable.List[UserEducation]]): List[scala.collection.immutable.List[UserEducation]] = {
         fbedulist.toList ++ lnedulist.toList
-    }
+        //Option(Option(Option(Option(Option(lnedulist).head).head).head).head).map(_.getSchoolName()).toString
+        //Option(Option(Option(lnedulist).head).head).mkString
+        //Option(Option(Option(lnedulist).head.foreach())
 
-    def getWork(workJson: Option[String]): Option[java.util.List[UserEmployment]] = {
+
+    }*/
+
+    def getWork(workJson: Option[String]): List[UserEmployment] = {
         val resultantJson = workJson.mkString;
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        var result = Option(fbdata)
-        result.map(_.getWork())
+        val fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        Option(fbdata).map(_.getWork().toList).getOrElse(List[UserEmployment]())
     }
 
-    def getEducation(educationJson: Option[String]): Option[java.util.List[UserEducation]] = {
+    def getEducation(educationJson: Option[String]): List[UserEducation] = {
         val resultantJson = educationJson.mkString;
         var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        var res4 = Option(fbdata)
-        res4.map(_.getEducation())
+        Option(fbdata).map(_.getEducation().toList).getOrElse(List[UserEducation]())
+
     }
 
     def getUserName(fbJson: Option[String]): Option[String] = {
@@ -347,23 +396,25 @@ fields : (String,List[CheckinObjects]) =>
         res4.map(_.getUserId())
     }
 
-    def getTwitterID(jsonString: String): Option[String] = {
-        val resultantJson = jsonString;
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        var res4 = Option(fbdata)
-        res4.map(_.getUserId())
-    }
-
     def prettyPrint(foo: Option[String]): String = foo match {
         case Some(x) => x
         case None => "None"
+    }
+
+    def md5SumString(bytes: Array[Byte]): String = {
+        val md5 = MessageDigest.getInstance("MD5")
+        md5.reset()
+        md5.update(bytes)
+        md5.digest().map(0xFF & _).map {
+            "%02x".format(_)
+        }.foldLeft("") {
+            _ + _
+        }
     }
 }
 
 
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
-    val ExtractLineTwitter: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
+    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
 }
-

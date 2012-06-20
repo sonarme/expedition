@@ -1,16 +1,16 @@
 package com.sonar.expedition.scrawler;
 
 public class CheckinObjects {
-    String serviceType ="";
-    String serviceProfileId="";
-    String serviceCheckinID="";
-    String venueName="";
-    String venueAddress="";
+    String serviceType = "";
+    String serviceProfileId = "";
+    String serviceCheckinID = "";
+    String venueName = "";
+    String venueAddress = "";
     String checkinTime;
-    String geohash="";
-    String latitude="";
-    String longitude="";
-    String message="";
+    String geohash = "";
+    String latitude = "";
+    String longitude = "";
+    String message = "";
 
     public String getServiceType() {
         return serviceType;
@@ -38,6 +38,10 @@ public class CheckinObjects {
 
     public String getVenueName() {
         return venueName;
+    }
+
+    public String getLocation() {
+        return latitude + "," + longitude;
     }
 
     public void setVenueName(String venueName) {
@@ -91,4 +95,5 @@ public class CheckinObjects {
     public void setMessage(String message) {
         this.message = message;
     }
+
 }
