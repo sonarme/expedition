@@ -21,27 +21,28 @@ class FriendGrouper(args: Args) extends Job(args) {
     var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
         line: String => {
             line match {
-                case DataExtractLine(id, other2, serviceID, serviceType, friendName, other) => (id, serviceType, serviceID, friendName)
+                case DataExtractLine(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
+                case NullNameExtractLine(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
                 case _ => ("None","None","None","None")
             }
         }
-    }).pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
+    })/*.pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
         group => group.toList[FriendObjects]('friend,'friendData)
     }.map(Fields.ALL -> ('ProfileId, 'serviceType, 'serviceProfileId, 'friendName)){
         fields : (String,List[FriendObjects]) =>
             val (userid, friends)    = fields
             val friendName = getFriendName(friends)
             (userid, serviceType, serviceProfileId, friendName)
-    }.project('ProfileId, 'friendName).write(TextLine(out))
+    }.project('ProfileId, 'friendName).write(TextLine(out))*/
 
 //    This commented section below handles the obfuscation of the userProfileID
 
-     /*.project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileId, 'serType, 'serProfileId, 'friName)){
+     .project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileId, 'serType, 'serProfileId, 'friName)){
         fields : (String, String, String, String) =>
             val (userid, serviceType, serviceProfileId, friendName)    = fields
             val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
             (userid, serviceType, hashedServiceProfileId, friendName)
-    }.project('ProfileId, 'serType, 'serProfileId, 'friName).write(TextLine(out))*/
+    }.project('ProfileId, 'serType, 'serProfileId, 'friName).write(TextLine(out))
 
     def getFriendName(friends:List[FriendObjects]) : String ={
 
@@ -68,7 +69,8 @@ class FriendGrouper(args: Args) extends Job(args) {
 
 
 object FriendGrouper {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo(.*)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo.*""".r
+    val NullNameExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":(null),"photo.*""".r
 }
 
 
