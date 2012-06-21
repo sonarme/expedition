@@ -2,7 +2,7 @@ import cascading.tuple.Fields
 import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO}
-import com.sonar.expedition.scrawler.CheckinObjects
+import com.sonar.expedition.scrawler.{FriendObjects, CheckinObjects}
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import DataAnalyser._
@@ -31,7 +31,7 @@ output : the file to which the non visited profile links will be written to
  */
 class DataAnalyser(args: Args) extends Job(args) {
 
-    var inputData = "/tmp/dataAnalyse1.txt"
+    var inputData = "/tmp/dataAnalyse.txt"
     var out = "/tmp/results7.txt"
     //TextLine(inputData).read.project('line).write(TextLine(out))
     var data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
@@ -129,24 +129,89 @@ class DataAnalyser(args: Args) extends Job(args) {
 
             val ccity = getcurrCity(city)
 
-            (rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+            //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+            (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
 
-    }.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+        //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+    }
+
+    var companies = joinedProfiles.project('key, 'name, 'fbid, 'lnid, 'worked)
+            .filter('worked) {
+        name: String => !name.trim.toString.equals("")
+    }.project('key, 'name, 'fbid, 'lnid, 'worked)
+    //.unique('worked)
+    //.write(TextLine(out))
 
 
-            //.map(Fields.ALL -> ('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity) )
+    var finp = "/tmp/frienddata.txt"
+    var frout = "/tmp/userGroupedFriends.txt"
 
 
-            /*val joinedProfileswork =   joinedProfiles
-                    .flatMapTo('skey,'work -> ('rkey, 'worked)){
-                fields: (String, Option[UserEmployment]) =>
-                val (rowkey, work) = fields
-                val getfirstjob=getFirstWork(work)
+    var friends = (TextLine(finp).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
+        line: String => {
+            line match {
+                case DataExtractLineFriend(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
+                case NullNameExtractLine(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
+                case _ => ("None", "None", "None", "None")
+            }
+        }
+    })
+            .project(Fields.ALL).discard(0).map(Fields.ALL ->('key, 'serType, 'serProfileId, 'friName)) {
+        fields: (String, String, String, String) =>
+            val (userid, serviceType, serviceProfileId, friendName) = fields
+            //val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
+            val hashedServiceProfileId = serviceProfileId
+            (userid, serviceType, hashedServiceProfileId, friendName)
+    }.project('key, 'serType, 'serProfileId, 'friName).write(TextLine(frout))
 
-                (rowkey,getfirstjob)
 
-            }*/
-            .write(TextLine(out))
+    var chkininputData = "/tmp/checkinDatatest.txt"
+    var chkinout = "/tmp/hasheduserGroupedCheckins.txt"
+    var chkindata = (TextLine(chkininputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
+        line: String => {
+            line match {
+                case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
+            }
+        }
+    })
+            .project(Fields.ALL).discard(0).map(Fields.ALL ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)) {
+        fields: (String, String, String, String, String, String, String, String, String, String) =>
+            val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) = fields
+            //val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
+            val hashedServiceID = serviceID
+            (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+    }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)
+    //.write(TextLine(chkinout))
+
+    val frnd_chkinjoin = companies.joinWithLarger('key -> 'keyid, chkindata).project('key, 'name, 'fbid, 'lnid, 'worked, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)
+            .write(TextLine(chkinout))
+
+    def getVenue(checkins: List[CheckinObjects]): String = {
+        checkins.map(_.getVenueName).toString
+    }
+
+
+    /*.map(Fields.ALL -> ('ProfileId, 'serviceType, 'serviceProfileId, 'friendName)){
+       fields : (String,List[FriendObjects]) =>
+           val (userid, friends)    = fields
+           val friendName = getFriendName(friends)
+           (userid, serviceType, serviceProfileId, friendName)
+   }.project('ProfileId, 'friendName).write(TextLine(frout))*/
+
+    //.map(Fields.ALL -> ('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity) )
+
+
+    /*val joinedProfileswork =   joinedProfiles
+            .flatMapTo('skey,'work -> ('rkey, 'worked)){
+        fields: (String, Option[UserEmployment]) =>
+        val (rowkey, work) = fields
+        val getfirstjob=getFirstWork(work)
+
+        (rowkey,getfirstjob)
+
+    }*/
+    //.write(TextLine(out))
     //    .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity).write(TextLine(out))
 
     /*def getFirstWork(works: Option[UserEmployment]): String = {
@@ -411,10 +476,29 @@ fields : (String,List[CheckinObjects]) =>
             _ + _
         }
     }
+
+    def getFriendName(friends: List[FriendObjects]): String = {
+
+        friends.map(_.getFriendName).toString()
+    }
+
+    def getServiceType(friends: List[FriendObjects]): String = {
+
+        friends.map(_.getServiceType).toString()
+    }
+
+    def getServiceProfileId(friends: List[FriendObjects]): String = {
+
+        friends.map(_.getServiceProfileId).toString()
+    }
+
 }
 
 
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
+    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+    val DataExtractLineFriend: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo.*""".r
+    val NullNameExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":(null),"photo.*""".r
+    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
 }
