@@ -6,12 +6,24 @@ import org.apache.commons.codec.language._
 
 class EmployerCheckinMatch {
 
+    val checkin = new CheckinObjects
+    val venueName = checkin.getVenueName
+
+
     def checkStemMatch(employer: String, venueName: String): Boolean = {
         val stemmer = new StemAndMetaphoneEmployer
         stemmer.removeStopWords(employer).matches(stemmer.removeStopWords(venueName))
     }
 
-    def checkMeta
+
+    def checkMetaphone(employer: String, venueName: String): Boolean = {
+        val metaphoner = new StemAndMetaphoneEmployer
+        val empMet1 = metaphoner.getStemmedMetaphone(employer)
+        val empMet2 = metaphoner.getStemmedAlternateMetaphone(employer)
+        val venMet1 = metaphoner.getStemmedMetaphone(venueName)
+        val venMet2 = metaphoner.getStemmedAlternateMetaphone(venueName)
+        empMet1.matches(venMet1) || empMet1.matches(venMet2)  || empMet2.matches(venMet1) || empMet2.matches(venMet2)
+    }
 
 }
 
