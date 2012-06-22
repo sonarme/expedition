@@ -1,3 +1,5 @@
+package com.sonar.expedition.scrawler
+
 import cascading.tuple.Fields
 import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
@@ -29,10 +31,13 @@ input : the  file path from which the already parsed profile links are taken
 output : the file to which the non visited profile links will be written to
 
  */
+//TODO add service type to each friend serviceid when exporting
+
 class DataAnalyser(args: Args) extends Job(args) {
 
-    var inputData = "/tmp/dataAnalyse1.txt"
-    var out = "/tmp/results7.txt"
+    var inputData = "/tmp/serviceProfileData.txt"
+    var out = "/tmp/employerGroupedServiceProfiles.txt"
+    var serviceIDs = "/tmp/serviceIDs.txt"
     //TextLine(inputData).read.project('line).write(TextLine(out))
     var data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -116,7 +121,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     }
             .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
             .mapTo(Fields.ALL ->('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
-        fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
+            fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
             val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
 
             val educationschool = getFirstEdu(edu)
@@ -129,10 +134,24 @@ class DataAnalyser(args: Args) extends Job(args) {
 
             val ccity = getcurrCity(city)
 
-            (rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+            (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
 
-    }.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+    }/*.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+    /* .groupBy('worked){
+        fields: (String)
+        val (work) =
+    } */
+            .groupAll{ _.sortBy('worked) }.filter('worked){workplace : String => !workplace.matches("")}
+            .groupBy('worked){
+            group => group.toList[String]('key,'keys)
+    }.project('worked,'keys).map(Fields.ALL -> ('dworked, 'dkeys)) {
+        fields: (String, List[String]) =>
+            val (worked, key) = fields
+            val dkey = key.distinct
+            (worked, dkey)
+    }.project('dworked, 'dkeys)      */
 
+            .project('key, 'fbid, 'lnid)
 
             //.map(Fields.ALL -> ('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity) )
 
@@ -146,7 +165,7 @@ class DataAnalyser(args: Args) extends Job(args) {
                 (rowkey,getfirstjob)
 
             }*/
-            .write(TextLine(out))
+            .write(TextLine(serviceIDs))
     //    .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity).write(TextLine(out))
 
     /*def getFirstWork(works: Option[UserEmployment]): String = {

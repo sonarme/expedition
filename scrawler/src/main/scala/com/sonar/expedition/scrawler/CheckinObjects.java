@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler;
 
 public class CheckinObjects {
     String serviceType = "";
-    String serviceProfileId = "";
+    String serviceProfileID = "";
     String serviceCheckinID = "";
     String venueName = "";
     String venueAddress = "";
@@ -20,12 +20,12 @@ public class CheckinObjects {
         this.serviceType = serviceType;
     }
 
-    public String getServiceProfileId() {
-        return serviceProfileId;
+    public String getServiceProfileID() {
+        return serviceProfileID;
     }
 
-    public void setServiceProfileId(String serviceProfileId) {
-        this.serviceProfileId = serviceProfileId;
+    public void setServiceProfileID(String serviceProfileID) {
+        this.serviceProfileID = serviceProfileID;
     }
 
     public String getServiceCheckinID() {

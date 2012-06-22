@@ -13,12 +13,12 @@ public class FriendObjects {
         this.serviceType = serviceType;
     }
 
-    public String getServiceProfileId() {
+    public String getServiceProfileID() {
         return serviceProfileID;
     }
 
-    public void setServiceProfileId(String serviceProfileId) {
-        this.serviceProfileID = serviceProfileId;
+    public void setServiceProfileID(String serviceProfileID) {
+        this.serviceProfileID = serviceProfileID;
     }
 
 
@@ -26,8 +26,8 @@ public class FriendObjects {
         return friendName;
     }
 
-    public void setFriendName(String venueName) {
-        this.friendName = venueName;
+    public void setFriendName(String friendName) {
+        this.friendName = friendName;
     }
 
 }
