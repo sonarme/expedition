@@ -46,7 +46,7 @@ class DataAnalyser(args: Args) extends Job(args) {
                 case _ => List.empty
             }
         }
-    }).project('id, 'serviceType, 'jsondata)
+    }).project(('id, 'serviceType, 'jsondata))
 
 
     val numProfiles = data.groupBy('id) {
@@ -75,7 +75,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
 
 
-    val joinedProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
+    val joinedProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
             .mapTo(Fields.ALL -> Fields.ALL) {
         fields: (String, String, String, String, String) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
@@ -137,7 +137,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
     }
 
-//            This is used to create a text file that groups UserIDs by employers
+//              This is used to create a text file that groups UserIDs by employers
 
 //    .project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
 //    /* .groupBy('worked){
@@ -152,9 +152,15 @@ class DataAnalyser(args: Args) extends Job(args) {
 //            val (worked, key) = fields
 //            val dkey = key.distinct
 //            (worked, dkey)
-//    }.project('dworked, 'dkeys)
+//    }.project('dworked, 'dkeys).write(TextLine(out))
 
-            .project('key, 'fbid, 'lnid)
+//              End code segment
+
+
+
+//              This is used to create a text file that
+
+            .project(('key, 'fbid, 'lnid))
 
             //.map(Fields.ALL -> ('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity) )
 
@@ -169,6 +175,9 @@ class DataAnalyser(args: Args) extends Job(args) {
 
             }*/
             .write(TextLine(serviceIDs))
+
+//              End code segment
+
     //    .project('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity).write(TextLine(out))
 
     /*def getFirstWork(works: Option[UserEmployment]): String = {
@@ -341,27 +350,27 @@ fields : (String,List[CheckinObjects]) =>
     }*/
 
     def getWork(workJson: Option[String]): List[UserEmployment] = {
-        val resultantJson = workJson.mkString;
+        val resultantJson = workJson.mkString
         val fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
         Option(fbdata).map(_.getWork().toList).getOrElse(List[UserEmployment]())
     }
 
     def getEducation(educationJson: Option[String]): List[UserEducation] = {
-        val resultantJson = educationJson.mkString;
+        val resultantJson = educationJson.mkString
         var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
         Option(fbdata).map(_.getEducation().toList).getOrElse(List[UserEducation]())
 
     }
 
     def getUserName(fbJson: Option[String]): Option[String] = {
-        val resultantJson = fbJson.mkString;
+        val resultantJson = fbJson.mkString
         var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
         var res4 = Option(fbdata)
         res4.map(_.getFullName())
     }
 
     def getCity(fbJson: Option[String]): Option[String] = {
-        val resultantJson = fbJson.mkString;
+        val resultantJson = fbJson.mkString
         var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
         var res4 = Option(fbdata)
         res4.map(_.getLocation())
@@ -412,8 +421,8 @@ fields : (String,List[CheckinObjects]) =>
     }
 
     def getID(jsonString: Option[String]): Option[String] = {
-        val resultantJson = jsonString.mkString;
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
+        val resultantJson = jsonString.mkString
+        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")))
         var res4 = Option(fbdata)
         res4.map(_.getUserId())
     }
