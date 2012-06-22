@@ -135,21 +135,24 @@ class DataAnalyser(args: Args) extends Job(args) {
             val ccity = getcurrCity(city)
 
             (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+    }
 
-    }/*.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
-    /* .groupBy('worked){
-        fields: (String)
-        val (work) =
-    } */
-            .groupAll{ _.sortBy('worked) }.filter('worked){workplace : String => !workplace.matches("")}
-            .groupBy('worked){
-            group => group.toList[String]('key,'keys)
-    }.project('worked,'keys).map(Fields.ALL -> ('dworked, 'dkeys)) {
-        fields: (String, List[String]) =>
-            val (worked, key) = fields
-            val dkey = key.distinct
-            (worked, dkey)
-    }.project('dworked, 'dkeys)      */
+//            This is used to create a text file that groups UserIDs by employers
+
+//    .project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+//    /* .groupBy('worked){
+//        fields: (String)
+//        val (work) =
+//    } */
+//            .groupAll{ _.sortBy('worked) }.filter('worked){workplace : String => !workplace.matches("")}
+//            .groupBy('worked){
+//            group => group.toList[String]('key,'keys)
+//    }.project('worked,'keys).map(Fields.ALL -> ('dworked, 'dkeys)) {
+//        fields: (String, List[String]) =>
+//            val (worked, key) = fields
+//            val dkey = key.distinct
+//            (worked, dkey)
+//    }.project('dworked, 'dkeys)
 
             .project('key, 'fbid, 'lnid)
 
