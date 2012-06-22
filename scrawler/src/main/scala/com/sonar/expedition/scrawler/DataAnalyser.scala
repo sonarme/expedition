@@ -2,7 +2,7 @@ import cascading.tuple.Fields
 import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO}
-import com.sonar.expedition.scrawler.{FriendObjects, CheckinObjects}
+import com.sonar.expedition.scrawler.{HttpClientRest, FriendObjects, CheckinObjects, uniqueCompanies}
 import com.twitter.scalding._
 import java.nio.ByteBuffer
 import DataAnalyser._
@@ -11,7 +11,7 @@ import scala.{Some, Option}
 import util.matching.Regex
 
 import scala.collection.JavaConversions._
-
+import util.parsing.json.{JSONArray, JSONObject}
 
 /**
  * Created with IntelliJ IDEA.
@@ -49,7 +49,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.rename('size -> 'numProfiles)
 
     //var out3 = TextLine("/tmp/data1234.txt")
-    //var out2 = TextLine("/tmp/data123.txt")
+    var out2 = TextLine("/tmp/data123.txt")
 
     /*var rest1 = data.groupBy('id) {group =>
         group.toList[String]('serviceType,'jsondata)
@@ -115,7 +115,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             (rowkey, fbname, fbid, lnid, edulist, worklist, city)
     }
             .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
-            .mapTo(Fields.ALL ->('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
+            .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
         fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
             val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
 
@@ -135,13 +135,133 @@ class DataAnalyser(args: Args) extends Job(args) {
         //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
     }
 
-    var companies = joinedProfiles.project('key, 'name, 'fbid, 'lnid, 'worked)
+    val companies = joinedProfiles.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'workdesc)
             .filter('worked) {
         name: String => !name.trim.toString.equals("")
-    }.project('key, 'name, 'fbid, 'lnid, 'worked)
+    }.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'workdesc)
     //.unique('worked)
     //.write(TextLine(out))
+    val tmpcompanies = companies.project('worked, 'uname, 'city, 'worktitle, 'workdesc, 'fbid, 'lnid)
 
+
+    //find companies with uqniue coname and city
+    val unq_cmp_city = tmpcompanies.unique('worked, 'city, 'fbid, 'lnid)
+
+    val city_latlong = unq_cmp_city.unique('worked, 'city).mapTo(Fields.ALL ->('work, 'cname, 'lat, 'long)) {
+        fields: (String, String) =>
+            val (work, city) = fields
+            val location = getLatLongCity(city)
+            val locationregex(lat, long) = location
+            (work, city, lat, long)
+
+    }.project('work, 'cname, 'lat, 'long).mapTo(Fields.ALL ->('workname, 'placename, 'lati, 'longi, 'street_address)) {
+        fields: (String, String, String, String) =>
+            val (work, city, lat, long) = fields
+            if (city == null) {
+
+                (work, city, "", "", "")
+            } else {
+                val locationworkplace = fourSquareCall(work, lat, long)
+                val locationofficeregex(lati, longi, pincode) = locationworkplace
+                (work, city, lati, longi, pincode)
+            }
+
+    }.project('workname, 'placename, 'lati, 'longi, 'street_address)
+
+    val work_loc = city_latlong
+            .filter('lati, 'longi, 'street_address) {
+        fields: (String, String, String) =>
+            val (lat, lng, addr) = fields
+            (!lat.toString.equalsIgnoreCase("-1")) && (!lng.toString.equalsIgnoreCase("-1")) && (!addr.toString.equalsIgnoreCase("-1"))
+
+    }.write(TextLine("/tmp/work_place.txt"))
+
+    val joinedwork_location = tmpcompanies.joinWithSmaller('city -> 'placename, city_latlong)
+            .project('worked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'workdesc, 'fbid, 'lnid)
+            .unique('worked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'workdesc, 'fbid, 'lnid)
+            .filter('lati, 'longi, 'street_address) {
+        fields: (String, String, String) =>
+            val (lat, lng, addr) = fields
+            (!lat.toString.equalsIgnoreCase("-1")) && (!lng.toString.equalsIgnoreCase("-1")) && (!addr.toString.equalsIgnoreCase("-1"))
+
+    }
+            .write(out2)
+    //val company_locand_users = joinedwork_location.mapTo(Fields.ALL ->())
+
+    //code starts to find correlation between comapnies.
+    /*val tmpuniquecompanies= tmpcompanies.unique('worked,'city,'worktitle,'workdesc).mapTo('worked -> ('works,'cpid)){
+        worked:String =>
+        (worked,0)
+    }.project('works,'cpid)
+
+    val dup_tmpcompanies = tmpuniquecompanies.rename(('works,'cpid), ('works2,'cpid2))
+
+    val unique_cos = tmpuniquecompanies.joinWithLarger('cpid->'cpid2,dup_tmpcompanies).project('works,'works2).mapTo(Fields.ALL -> ('works1,'works2,'linkw,'corltn)){
+        fields: (String, String) =>
+        val (wrk1, wrk2) = fields
+        if(wrk1.contains(wrk2) || wrk2.contains(wrk1)){
+            val linkweight = uniqueCompanies.relevantScore(wrk1,wrk2)
+            val companiesregex(linkweght,corltn)=linkweight
+            (wrk1, wrk2, linkweght.mkString.toDouble,corltn.mkString.toDouble)
+
+        }else{
+            val linkweight = "0:0"
+            val companiesregex(linkweght,corltn)=linkweight
+            (wrk1, wrk2, linkweght.mkString.toDouble,corltn.mkString.toDouble)
+        }
+        //val companiesregex(linkweght,corltn)=linkweight
+        //(wrk1, wrk2, linkweght.mkString.toDouble,corltn.mkString.toDouble)
+        /*linkweight: String => {
+            line match {
+                case companiesregex(linkweght,corltn) => (wrk1, wrk2, linkweght.mkString.toDouble,corltn.mkString.toDouble)
+                case _ => ("None", "None", "None", "None")
+            }
+        }*/
+
+    }
+
+    .filter('works1, 'works2) { works : (String, String) => works._1 >= works._2 }
+    .project('works1,'works2,'linkw,'corltn)
+
+     val tmpcmp_filter = unique_cos.filter('linkw,'corltn) {
+        fields : (Double, Double) =>
+        val (lnw, corl) = fields
+        (lnw > 50 ) ||  (corl > 0.1)
+    }
+    /*
+    a a      sonarme sonar c d
+    sonar sonar  sonarme sonar c d
+    sonarme sonarme sonarme sonar c d
+    sonarme sonar  sonarme sonar   c d
+
+    a a      path.to path2 c d
+    sonar sonar path.to path2 c d
+    sonarme sonarme path.to path2 c d
+    sonarme sonar  path.to path2   c d
+      */
+    val tmpcp1 = tmpcmp_filter.filter('works1,'works2){
+        works : (String, String) => works._1 != works._2
+    }.rename(('works1,'works2,'linkw,'corltn)->('works3,'works4,'linkw1,'corltn1))
+    /*
+   sonarme sonar  a b
+    */
+
+    val unique_cos_tmp = tmpcmp_filter.joinWithSmaller('works2 -> 'works3 ,tmpcp1)
+    .project('works2,'works4)
+            /*
+
+    sonar sonar sonarme sonar
+    sonarme sonarme sonarme sonar
+    sonarme sonar sonarme sonar
+
+    .filter('works2,'works11){
+        works : (String, String) => works._1 == works._2
+    }        */
+    /*.unique('works2)*/
+    //.project('works11)
+    .write(TextLine(out))
+    //code end to find correlation between comapnies.
+    */
 
     var finp = "/tmp/frienddata.txt"
     var frout = "/tmp/userGroupedFriends.txt"
@@ -167,6 +287,7 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     var chkininputData = "/tmp/checkinDatatest.txt"
     var chkinout = "/tmp/hasheduserGroupedCheckins.txt"
+
     var chkindata = (TextLine(chkininputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
         line: String => {
             line match {
@@ -184,12 +305,8 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)
     //.write(TextLine(chkinout))
 
-    val frnd_chkinjoin = companies.joinWithLarger('key -> 'keyid, chkindata).project('key, 'name, 'fbid, 'lnid, 'worked, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)
+    val frnd_chkinjoin = companies.joinWithLarger('key -> 'keyid, chkindata).project('key, 'uname, 'fbid, 'lnid, 'worked, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)
             .write(TextLine(chkinout))
-
-    def getVenue(checkins: List[CheckinObjects]): String = {
-        checkins.map(_.getVenueName).toString
-    }
 
 
     /*.map(Fields.ALL -> ('ProfileId, 'serviceType, 'serviceProfileId, 'friendName)){
@@ -492,6 +609,31 @@ fields : (String,List[CheckinObjects]) =>
         friends.map(_.getServiceProfileId).toString()
     }
 
+    def getVenue(checkins: List[CheckinObjects]): String = {
+        checkins.map(_.getVenueName).toString
+    }
+
+    def getLatLongCity(city: String): String = {
+        val resp = new HttpClientRest()
+        val location = resp.getLatLong(city);
+        location
+
+    }
+
+    def fourSquareCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
+        val resp = new HttpClientRest()
+        val location = resp.getFSQWorkplaceLatLong(workplace, locationCityLat, locationCityLong);
+        location
+        /*val fsquery = query.replaceAll(" ","%20")
+        val fslocation=location;
+        val url= "https://api.foursquare.com/v2/venues/search?ll="+fslocation+"&query="+fsquery+"&client_id=NB45JIY4HBP3VY232KO12XGDAZGF4O3DKUOBRTGZ5REY50E1&client_secret=5NCZW0FWUCHCJ5VS35YDG20AYHGBC2H5Z1W2OIG13IUEDHNK";
+        var responseBodyString = HttpClientRestApi.fetchresponse(url)
+        responseBodyString
+        */
+
+
+    }
+
 }
 
 
@@ -501,4 +643,7 @@ object DataAnalyser {
     val DataExtractLineFriend: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo.*""".r
     val NullNameExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":(null),"photo.*""".r
     val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+    val companiesregex: Regex = """(.*):(.*)""".r
+    val locationregex: Regex = """(.*):(.*)""".r
+    val locationofficeregex: Regex = """(.*):(.*):(.*)""".r
 }
