@@ -41,7 +41,7 @@ class CheckinGrouperFunctionTest(args: Args) extends Job(args){
                 }
             }
         }
-                .pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
+       .pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
                 .groupBy('userProfileID) {
             group => group.toList[CheckinObjects]('checkin,'checkindata)
         }.map(Fields.ALL -> ('ProfileID, 'venue)){
@@ -55,6 +55,3 @@ class CheckinGrouperFunctionTest(args: Args) extends Job(args){
     }
 }
 
-object CheckinGrouperFunctionTest {
-
-}
