@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: fi.foyt:foursquare-api:1.0.0-SNAPSHOT-snr">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/fi/foyt/foursquare-api/1.0.0-SNAPSHOT-snr/foursquare-api-1.0.0-SNAPSHOT-snr.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/fi/foyt/foursquare-api/1.0.0-SNAPSHOT-snr/foursquare-api-1.0.0-SNAPSHOT-snr-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/fi/foyt/foursquare-api/1.0.0-SNAPSHOT-snr/foursquare-api-1.0.0-SNAPSHOT-snr-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
