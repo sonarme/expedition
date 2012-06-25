@@ -18,7 +18,7 @@ import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
 class CheckinGrouper(args: Args) extends Job(args) {
 
 
-    // reads in checkin data then packs them into checkinobjects, grouped by sonar id. objects will need to be joined with service profile data and friend data
+    // extracts key data for employerfinder to use. no longer groups
     var inputData = "/tmp/tcheckinData.txt"
     var out = "/tmp/userGroupedCheckins.txt"
     var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {

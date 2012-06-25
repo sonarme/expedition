@@ -6,7 +6,7 @@ import org.apache.commons.codec.language._
 import EmployerFinder._
 import com.twitter.scalding.{Job, Args, TextLine}
 
-// currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id and location name
+// currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
 
 class EmployerFinder(args: Args) extends Job(args) {
 
@@ -47,14 +47,14 @@ class EmployerFinder(args: Args) extends Job(args) {
 
 
     val joined = userIDGroupedCheckins.joinWithSmaller('userID -> 'listofworkers, employerGroupedEmployeeUserIDs)
-            .mapTo(('userID, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberID, 'venueName, 'latitude, 'longitude)){
+            .mapTo(('userID, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberID, 'venueName, 'employer, 'latitude, 'longitude)){
         fields : (String, String, String, String, String) =>
             val (userID, venue, workplace, lat, lng) = fields
             val matcher = new EmployerCheckinMatch
-            val matchedName = matcher.checkStemMatch(workplace, venue)
-            var result = ("","","","")
+            val matchedName = matcher.checkMetaphone(workplace, venue)
+            var result = ("","","","","")
             if(matchedName ==  true){
-                result = (userID, workplace, lat, lng)}
+                result = (userID, workplace, venue, lat, lng)}
             result
     }
             .filter('numberID){id : String => !id.matches("")}

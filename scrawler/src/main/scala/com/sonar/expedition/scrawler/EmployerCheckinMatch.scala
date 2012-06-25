@@ -17,11 +17,14 @@ class EmployerCheckinMatch {
 
     def checkMetaphone(employer: String, venueName: String): Boolean = {
         val metaphoner = new StemAndMetaphoneEmployer
+        var bool = false
+        if (!employer.matches("") && !venueName.matches("")){
         val empMet1 = metaphoner.getStemmedMetaphone(employer)
         val empMet2 = metaphoner.getStemmedAlternateMetaphone(employer)
         val venMet1 = metaphoner.getStemmedMetaphone(venueName)
         val venMet2 = metaphoner.getStemmedAlternateMetaphone(venueName)
-        empMet1.matches(venMet1) || empMet1.matches(venMet2)  || empMet2.matches(venMet1) || empMet2.matches(venMet2)
+        bool = empMet1.matches(venMet1) || empMet1.matches(venMet2)  || empMet2.matches(venMet1) || empMet2.matches(venMet2)}
+        bool
     }
 
 }
