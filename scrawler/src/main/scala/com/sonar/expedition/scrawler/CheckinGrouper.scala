@@ -28,14 +28,23 @@ class CheckinGrouper(args: Args) extends Job(args) {
                 case _ => ("None","None","None","None","None","None","None","None","None","None")
             }
         }
-    }).pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin).groupBy('userProfileID) {
-        group => group.toList[CheckinObjects]('checkin,'checkindata)
-    }.map(Fields.ALL -> ('ProfileID, 'venue)){
-        fields : (String,List[CheckinObjects]) =>
-            val (userid ,checkin) = fields
-            val venue = checkin.map(_.getVenueName)
-            (userid,venue)
-    }.project('ProfileID,'venue).write(TextLine(out))
+    })
+//            .pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
+//            .groupBy('userProfileID) {
+//        group => group
+//                .toList[String]('venueName,'venue)
+//            .toList[String]('latitude, 'lat)
+//            .toList[String]('longitude, 'lng)
+//    }
+//            .map(Fields.ALL -> ('ProfileID, 'venue, 'lat, 'lng)){
+//        fields : (String,List[CheckinObjects]) =>
+//            val (userid ,checkin) = fields
+//            val venue = checkin.map(_.getVenueName)
+//            val lat = checkin.map(_.getLatitude)
+//            val long = checkin.map(_.getLongitude)
+//            (userid,venue,lat,long)
+//    }
+            .project(('userProfileID,'venueName,'latitude,'longitude)).write(TextLine(out))
 
 
 

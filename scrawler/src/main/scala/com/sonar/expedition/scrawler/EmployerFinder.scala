@@ -29,37 +29,35 @@ class EmployerFinder(args: Args) extends Job(args) {
     }.project(('employer, 'listofworkers))
 
 
-    val userIDGroupedCheckins = (TextLine(checkinInput).read.project('line).map(('line) ->('userID, 'checkins)) {
+    val userIDGroupedCheckins = (TextLine(checkinInput).read.project('line).map(('line) ->('userID, 'venueName, 'latitude, 'longitude)) {
         line: String => {
             line match {
-                case ExtractFromList(userID, checkins) => (userID, checkins)
-                case _ => ("None","None")
+                case ExtractCheckin(userID, venue, lat, lng) => (userID, venue, lat, lng)
+                case _ => ("None","None","None","None")
             }
         }
-    }).map(('userID, 'checkins) -> ('id, 'listofcheckins)) {
-        fields : (String, String) =>
-            val (userIDString, checkinString) = fields
-            val checkinVenues = checkinString.split(", ").toList
-            (userIDString, checkinVenues)
-    }
+    })
+//            .map(('userID, 'checkins) -> ('id, 'listofcheckins)) {
+//        fields : (String, String) =>
+//            val (userIDString, checkinString) = fields
+//            val checkinVenues = checkinString.split(", ").toList
+//            (userIDString, checkinVenues)
+//    }
 
 
 
-    val joined = userIDGroupedCheckins.joinWithSmaller('id -> 'listofworkers, employerGroupedEmployeeUserIDs)
-            .map(('id, 'listofcheckins, 'employer) -> ('numberID, 'venueName)){
-        fields : (String, List[String], String) =>
-            val (userID, listcheckins, workplace) = fields
+    val joined = userIDGroupedCheckins.joinWithSmaller('userID -> 'listofworkers, employerGroupedEmployeeUserIDs)
+            .mapTo(('userID, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberID, 'venueName, 'latitude, 'longitude)){
+        fields : (String, String, String, String, String) =>
+            val (userID, venue, workplace, lat, lng) = fields
             val matcher = new EmployerCheckinMatch
-            var result = ("","")
-            for (checkin <- listcheckins){
-            val matchedName = matcher.checkStemMatch(workplace, checkin)
-            if(matchedName)
-                result = (userID, workplace)
-            }
+            val matchedName = matcher.checkStemMatch(workplace, venue)
+            var result = ("","","","")
+            if(matchedName ==  true){
+                result = (userID, workplace, lat, lng)}
             result
     }
             .filter('numberID){id : String => !id.matches("")}
-            .project(('numberID, 'venueName))
             .write(TextLine(out))
 
 
@@ -87,5 +85,7 @@ class EmployerFinder(args: Args) extends Job(args) {
 
 object EmployerFinder{
     val ExtractFromList: Regex = """(.*)\tList\((.*)\)""".r
+//    val ExtractFromCheckinList: Regex = """(.*)\tList\((.*)\)\tList\((.*)\)\tList\((.*)\)""".r
+    val ExtractCheckin: Regex = """(.*)\t(.*)\t(.*)\t(.*)""".r
 
 }
