@@ -38,6 +38,7 @@ public class HttpClientRest {
     }
 
     public String getLatLong(String place) {
+
         place = place.replaceAll(" ", "%20");
         String url = "http://maps.googleapis.com/maps/api/geocode/json?address=" + place + "&sensor=true";
         JSONObject jsonObject = new JSONObject();

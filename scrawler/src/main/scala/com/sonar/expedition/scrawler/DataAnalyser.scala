@@ -31,10 +31,15 @@ output : the file to which the non visited profile links will be written to
  */
 class DataAnalyser(args: Args) extends Job(args) {
 
-    var inputData = "/tmp/dataAnalyse.txt"
-    var out = "/tmp/results7.txt"
-    //TextLine(inputData).read.project('line).write(TextLine(out))
-    var data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+    val inputData = "/tmp/dataAnalyse.txt"
+    val out = "/tmp/results7.txt"
+    val out2 = TextLine("/tmp/data123.txt")
+    val finp = "/tmp/frienddata.txt"
+    val frout = "/tmp/userGroupedFriends.txt"
+    val chkininputData = "/tmp/checkinDatatest.txt"
+    val chkinout = "/tmp/hasheduserGroupedCheckins.txt"
+
+    val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
                 case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
@@ -43,132 +48,38 @@ class DataAnalyser(args: Args) extends Job(args) {
         }
     }).project('id, 'serviceType, 'jsondata)
 
+    val joinedProfiles = getDTOProfileInfoInTuples(data)
 
-    val numProfiles = data.groupBy('id) {
-        _.size
-    }.rename('size -> 'numProfiles)
-
-    //var out3 = TextLine("/tmp/data1234.txt")
-    var out2 = TextLine("/tmp/data123.txt")
-
-    /*var rest1 = data.groupBy('id) {group =>
-        group.toList[String]('serviceType,'jsondata)
-    }
-
-    var rest2 = data.groupBy('id) {group =>
-        group.toList[String]('jsondata,'serviceType)
-    }.joinWithSmaller('id->'id,rest1).project('id,'jsondata,'serviceType).write(out2)
-    */
-
-    // Merge `serviceType` with `numProfiles`, by joining on their id fields.
-
-    val profiles = data.joinWithSmaller('id -> 'id, numProfiles)
-
-    //join profiles againts itself to get all corelated ids(fb and linked correlation i am talking about :) )
-
-
-    val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
-
-
-    val joinedProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
-            .mapTo(Fields.ALL -> Fields.ALL) {
-        fields: (String, String, String, String, String) =>
-            val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-            var value2 = getFBId(serviceType, serviceType2)
-            var value3 = getFBJson(serviceType, serviceType2, jsondata)
-            var value4 = getLinkedInId(serviceType, serviceType2)
-            var value5 = getLNKDINJson(serviceType, serviceType2, jsondata2)
-            (fields._1, value2, value3, value4, value5)
-    }
-            .mapTo(Fields.ALL -> Fields.ALL) {
-        fields: (String, String, Option[String], String, Option[String]) =>
-            val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-            var fbid = getID(jsondata)
-            var lnid = getID(jsondata2)
-            (id, fbid, jsondata, lnid, jsondata2)
-    } //.write(out2)
-            .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
-        fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
-            val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-            var fbid = getID(jsondata)
-            var lnid = getID(jsondata2)
-            var fbedu = getEducation(jsondata)
-            var lnedu = getEducation(jsondata2)
-            var fbwork = getWork(jsondata)
-            var lnwork = getWork(jsondata2)
-            var fbusername = getUserName(jsondata)
-            var fbcity = getCity(jsondata)
-            var lncity = getCity(jsondata2)
-            var city = formCityList(fbcity, lncity)
-            //var currwork = getWork(jsondata,jsondata2)
-            //var currcity = getCity(jsondata,jsondata2)
-            //var name
-            //var worktitle
-            //var workhistory = getWorkHistory(jsondata,jsondata2)
-            //var locationhistory
-            (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
-    }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
-        fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
-            val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
-            val edulist = formEducationlist(fbedu, lnedu)
-            val worklist = formWorkHistoryList(fbwork, lnwork)
-            (rowkey, fbname, fbid, lnid, edulist, worklist, city)
-    }
-            .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
-            .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
-        fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
-            val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
-
-            val educationschool = getFirstEdu(edu)
-            val edudegree = getFirstEduDegree(edu)
-            var eduyear = getFirstEduDegreeYear(edu)
-
-            val workcomp = getFirstWork(work)
-            val worktitle = getWorkTitle(work)
-            val workdesc = getWorkSummary(work)
-
-            val ccity = getcurrCity(city)
-
-            //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
-            (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
-
-        //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
-    }
-
-    val companies = joinedProfiles.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'workdesc)
+    val companies = joinedProfiles
+            .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle)
             .filter('worked) {
         name: String => !name.trim.toString.equals("")
-    }.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'workdesc)
+    }.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle)
+
+    /*
+    if city is not filled up find city form chekcins and friends checkin
+     */
+    var friends = friendsDataPipe(finp)
+    friends.write(TextLine(frout))
+
+    val chkindata = getCheckinsDataPipe(chkininputData)
+    //.write(TextLine(chkinout))
+    val frnd_chkinjoin = companies.joinWithLarger('key -> 'keyid, chkindata).project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    //.filter('fbid, 'lnid) { ids : (String, String) => ids._1 <= ids._2 }
+    //.write(TextLine(chkinout))
+    val findcityfromchkins = findCityofUserFromChkins(frnd_chkinjoin)
+    //-> ('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln,'locate)
     //.unique('worked)
     //.write(TextLine(out))
-    val tmpcompanies = companies.project('worked, 'uname, 'city, 'worktitle, 'workdesc, 'fbid, 'lnid)
 
-
+    //companies with city names from checkin information if not present in profile
+    val tmpcompanies = findcityfromchkins.project('worked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
     //find companies with uqniue coname and city
     val unq_cmp_city = tmpcompanies.unique('worked, 'city, 'fbid, 'lnid)
 
-    val city_latlong = unq_cmp_city.unique('worked, 'city).mapTo(Fields.ALL ->('work, 'cname, 'lat, 'long)) {
-        fields: (String, String) =>
-            val (work, city) = fields
-            val location = getLatLongCity(city)
-            val locationregex(lat, long) = location
-            (work, city, lat, long)
+    val coandcity_latlong = findLatLongFromCompAndCity(unq_cmp_city)
 
-    }.project('work, 'cname, 'lat, 'long).mapTo(Fields.ALL ->('workname, 'placename, 'lati, 'longi, 'street_address)) {
-        fields: (String, String, String, String) =>
-            val (work, city, lat, long) = fields
-            if (city == null) {
-
-                (work, city, "", "", "")
-            } else {
-                val locationworkplace = fourSquareCall(work, lat, long)
-                val locationofficeregex(lati, longi, pincode) = locationworkplace
-                (work, city, lati, longi, pincode)
-            }
-
-    }.project('workname, 'placename, 'lati, 'longi, 'street_address)
-
-    val work_loc = city_latlong
+    val work_loc = coandcity_latlong
             .filter('lati, 'longi, 'street_address) {
         fields: (String, String, String) =>
             val (lat, lng, addr) = fields
@@ -176,9 +87,9 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     }.write(TextLine("/tmp/work_place.txt"))
 
-    val joinedwork_location = tmpcompanies.joinWithSmaller('city -> 'placename, city_latlong)
-            .project('worked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'workdesc, 'fbid, 'lnid)
-            .unique('worked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'workdesc, 'fbid, 'lnid)
+    val joinedwork_location = tmpcompanies.joinWithSmaller('city -> 'placename, coandcity_latlong)
+            .project('worked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'fbid, 'lnid)
+            .unique('worked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'fbid, 'lnid)
             .filter('lati, 'longi, 'street_address) {
         fields: (String, String, String) =>
             val (lat, lng, addr) = fields
@@ -262,51 +173,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     .write(TextLine(out))
     //code end to find correlation between comapnies.
     */
-
-    var finp = "/tmp/frienddata.txt"
-    var frout = "/tmp/userGroupedFriends.txt"
-
-
-    var friends = (TextLine(finp).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
-        line: String => {
-            line match {
-                case DataExtractLineFriend(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
-                case NullNameExtractLine(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
-                case _ => ("None", "None", "None", "None")
-            }
-        }
-    })
-            .project(Fields.ALL).discard(0).map(Fields.ALL ->('key, 'serType, 'serProfileId, 'friName)) {
-        fields: (String, String, String, String) =>
-            val (userid, serviceType, serviceProfileId, friendName) = fields
-            //val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
-            val hashedServiceProfileId = serviceProfileId
-            (userid, serviceType, hashedServiceProfileId, friendName)
-    }.project('key, 'serType, 'serProfileId, 'friName).write(TextLine(frout))
-
-
-    var chkininputData = "/tmp/checkinDatatest.txt"
-    var chkinout = "/tmp/hasheduserGroupedCheckins.txt"
-
-    var chkindata = (TextLine(chkininputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
-        line: String => {
-            line match {
-                case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-                case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
-            }
-        }
-    })
-            .project(Fields.ALL).discard(0).map(Fields.ALL ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)) {
-        fields: (String, String, String, String, String, String, String, String, String, String) =>
-            val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) = fields
-            //val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
-            val hashedServiceID = serviceID
-            (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-    }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)
-    //.write(TextLine(chkinout))
-
-    val frnd_chkinjoin = companies.joinWithLarger('key -> 'keyid, chkindata).project('key, 'uname, 'fbid, 'lnid, 'worked, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)
-            .write(TextLine(chkinout))
 
 
     /*.map(Fields.ALL -> ('ProfileId, 'serviceType, 'serviceProfileId, 'friendName)){
@@ -615,8 +481,11 @@ fields : (String,List[CheckinObjects]) =>
 
     def getLatLongCity(city: String): String = {
         val resp = new HttpClientRest()
-        val location = resp.getLatLong(city);
-        location
+        city match {
+            case locationregex(lat, lng) => city
+            case _ => resp.getLatLong(city)
+        }
+
 
     }
 
@@ -634,6 +503,210 @@ fields : (String,List[CheckinObjects]) =>
 
     }
 
+    def findCityFromChkins(chkinlist: List[String]): String = {
+
+        var centroid = Array(0.toDouble, 0.toDouble)
+        chkinlist foreach {
+            chkin =>
+                centroid(0) += chkin.split(":").firstOption.mkString.toDouble
+                centroid(1) += chkin.split(":").lastOption.mkString.toDouble
+        }
+
+        val totalPoints = chkinlist.length;
+        if (totalPoints == 0) {
+            return centroid(0) + ":" + centroid(1);
+        }
+        centroid(0) = centroid(0) / totalPoints;
+        centroid(1) = centroid(1) / totalPoints;
+        return centroid(0) + ":" + centroid(1);
+    }
+
+    def getCheckinsDataPipe(checkinInput: String): RichPipe = {
+
+        val chkindata = (TextLine(chkininputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
+            line: String => {
+                line match {
+                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                    case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
+                }
+            }
+        })
+                .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)
+                .mapTo(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng) ->('userProfileID1, 'serviceType1, 'serviceProfileID1, 'serviceCheckinID1, 'venueName1, 'venueAddress1, 'checkinTime1, 'geohash1, 'loc1)) {
+            fields: (String, String, String, String, String, String, String, String, String, String) =>
+                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) = fields
+                // println("location " +lat + ","+ lng)
+
+                (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat + ":" + lng)
+
+        }.map(('userProfileID1, 'serviceType1, 'serviceProfileID1, 'serviceCheckinID1, 'venueName1, 'venueAddress1, 'checkinTime1, 'geohash1, 'loc1) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location)) {
+            fields: (String, String, String, String, String, String, String, String, String) =>
+                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
+                (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
+
+        }
+                .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location)
+                .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)) {
+            fields: (String, String, String, String, String, String, String, String, String) =>
+                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
+                //val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
+                val hashedServiceID = serviceID
+                (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
+        }
+                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+
+        chkindata
+
+    }
+
+    def friendsDataPipe(checkinInput: String): RichPipe = {
+        val friends = (TextLine(checkinInput).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
+            line: String => {
+                line match {
+                    case DataExtractLineFriend(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
+                    case NullNameExtractLine(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
+                    case _ => ("None", "None", "None", "None")
+                }
+            }
+        })
+                .project(Fields.ALL).discard(0).map(Fields.ALL ->('key, 'serType, 'serProfileId, 'friName)) {
+            fields: (String, String, String, String) =>
+                val (userid, serviceType, serviceProfileId, friendName) = fields
+                //val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
+                val hashedServiceProfileId = serviceProfileId
+                (userid, serviceType, hashedServiceProfileId, friendName)
+        }.project('key, 'serType, 'serProfileId, 'friName)
+
+        friends
+
+    }
+
+    def findCityofUserFromChkins(chkins: RichPipe): RichPipe = {
+        val citypipe = chkins.groupBy('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle) {
+            //fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+            //val (key, uname, fbid, lnid, worked,city,worktitle, serType, serProfileID, venName, venAddress, chknTime, ghash, loc) = fields
+            //val
+
+            //(worked,uname,city_aspercheckins,worktitle,fbid,lnid)
+            _
+                    //.mapReduceMap('key->'key1), todo understand mapreducemap api
+                    .toList[String]('loc -> 'locList)
+
+        }.mapTo(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'locList) ->('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln)) {
+            fields: (String, String, String, String, String, String, String, List[String]) =>
+                val (key, uname, fbid, lnid, worked, city, worktitle, chkinlist) = fields
+                println("city" + city + chkinlist)
+                if (city == "null") {
+                    val chkcity = findCityFromChkins(chkinlist)
+                    (worked, uname, chkcity, worktitle, fbid, lnid)
+                } else {
+                    (worked, uname, city, worktitle, fbid, lnid)
+                }
+        }.mapTo(('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln) ->('worked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)) {
+            fields: (String, String, String, String, String, String) =>
+                val (worked, uname, city, worktitle, fbid, lnid) = fields
+                (worked, uname, city, worktitle, fbid, lnid)
+        }.project('worked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
+
+        citypipe
+    }
+
+    def findLatLongFromCompAndCity(company: RichPipe): RichPipe = {
+        val locationFromCoandCity = unq_cmp_city.unique('worked, 'city).mapTo(Fields.ALL ->('work, 'cname, 'lat, 'long)) {
+            fields: (String, String) =>
+                val (work, city) = fields
+                val location = getLatLongCity(city)
+                val locationregex(lat, long) = location
+                (work, city, lat, long)
+
+        }.project('work, 'cname, 'lat, 'long).mapTo(Fields.ALL ->('workname, 'placename, 'lati, 'longi, 'street_address)) {
+            fields: (String, String, String, String) =>
+                val (work, city, lat, long) = fields
+                if (city == null) {
+
+                    (work, city, "", "", "")
+                } else {
+                    val locationworkplace = fourSquareCall(work, lat, long)
+                    val locationofficeregex(lati, longi, pincode) = locationworkplace
+                    (work, city, lati, longi, pincode)
+                }
+
+        }.project('workname, 'placename, 'lati, 'longi, 'street_address)
+
+        locationFromCoandCity
+    }
+
+    def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
+        val numProfiles = datahandle.groupBy('id) {
+            _.size
+        }.rename('size -> 'numProfiles)
+
+        val profiles = datahandle.joinWithSmaller('id -> 'id, numProfiles)
+
+        val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+
+        val dtoProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, String, String, String) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                var value2 = getFBId(serviceType, serviceType2)
+                var value3 = getFBJson(serviceType, serviceType2, jsondata)
+                var value4 = getLinkedInId(serviceType, serviceType2)
+                var value5 = getLNKDINJson(serviceType, serviceType2, jsondata2)
+                (fields._1, value2, value3, value4, value5)
+        }
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, Option[String], String, Option[String]) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                var fbid = getID(jsondata)
+                var lnid = getID(jsondata2)
+                (id, fbid, jsondata, lnid, jsondata2)
+        } //.write(out2)
+                .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
+            fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                var fbid = getID(jsondata)
+                var lnid = getID(jsondata2)
+                var fbedu = getEducation(jsondata)
+                var lnedu = getEducation(jsondata2)
+                var fbwork = getWork(jsondata)
+                var lnwork = getWork(jsondata2)
+                var fbusername = getUserName(jsondata)
+                var fbcity = getCity(jsondata)
+                var lncity = getCity(jsondata2)
+                var city = formCityList(fbcity, lncity)
+                //var currwork = getWork(jsondata,jsondata2)
+                //var currcity = getCity(jsondata,jsondata2)
+                //var name
+                //var worktitle
+                //var workhistory = getWorkHistory(jsondata,jsondata2)
+                //var locationhistory
+                (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
+        }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
+            fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
+                val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
+                val edulist = formEducationlist(fbedu, lnedu)
+                val worklist = formWorkHistoryList(fbwork, lnwork)
+                (rowkey, fbname, fbid, lnid, edulist, worklist, city)
+        }
+                .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
+                .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
+            fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
+                val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
+                val educationschool = getFirstEdu(edu)
+                val edudegree = getFirstEduDegree(edu)
+                var eduyear = getFirstEduDegreeYear(edu)
+                val workcomp = getFirstWork(work)
+                val worktitle = getWorkTitle(work)
+                val workdesc = getWorkSummary(work)
+                val ccity = getcurrCity(city)
+                //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+                (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString)
+            //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+        }
+
+        dtoProfiles
+    }
 }
 
 
@@ -642,7 +715,7 @@ object DataAnalyser {
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val DataExtractLineFriend: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo.*""".r
     val NullNameExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":(null),"photo.*""".r
-    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r
     val locationregex: Regex = """(.*):(.*)""".r
     val locationofficeregex: Regex = """(.*):(.*):(.*)""".r
