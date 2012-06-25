@@ -18,33 +18,24 @@ import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
 class CheckinGrouper(args: Args) extends Job(args) {
 
 
-    // extracts key data for employerfinder to use. no longer groups
-    val inputData = "/tmp/tcheckinData.txt"
-    val out = "/tmp/userGroupedCheckins.txt"
-    val data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
+    // reads in checkin data then packs them into checkinobjects, grouped by sonar id. objects will need to be joined with service profile data and friend data
+    var inputData = "/tmp/checkinData.txt"
+    var out = "/tmp/userGroupedCheckins.txt"
+    var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
         line: String => {
             line match {
                 case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
                 case _ => ("None","None","None","None","None","None","None","None","None","None")
             }
         }
-    })
-//            .pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
-//            .groupBy('userProfileID) {
-//        group => group
-//                .toList[String]('venueName,'venue)
-//            .toList[String]('latitude, 'lat)
-//            .toList[String]('longitude, 'lng)
-//    }
-//            .map(Fields.ALL -> ('ProfileID, 'venue, 'lat, 'lng)){
-//        fields : (String,List[CheckinObjects]) =>
-//            val (userid ,checkin) = fields
-//            val venue = checkin.map(_.getVenueName)
-//            val lat = checkin.map(_.getLatitude)
-//            val long = checkin.map(_.getLongitude)
-//            (userid,venue,lat,long)
-//    }
-            .project(('userProfileID,'venueName,'latitude,'longitude)).write(TextLine(out))
+    }).pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin).groupBy('userProfileID) {
+        group => group.toList[CheckinObjects]('checkin,'checkindata)
+    }.map(Fields.ALL -> ('ProfileID, 'venue)){
+        fields : (String,List[CheckinObjects]) =>
+            val (userid ,checkin) = fields
+            val venue = checkin.map(_.getVenueName)
+            (userid,venue)
+    }.project('ProfileID,'venue).write(TextLine(out))
 
 
 
