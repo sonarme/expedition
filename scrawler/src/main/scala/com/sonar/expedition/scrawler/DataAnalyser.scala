@@ -35,7 +35,7 @@ output : the file to which the non visited profile links will be written to
 
 class DataAnalyser(args: Args) extends Job(args) {
 
-    var inputData = "/tmp/serviceProfileData.txt"
+    var inputData = "/tmp/serviceProfileDatasmall.txt"
     var out = "/tmp/employerGroupedServiceProfiles.txt"
     var serviceIDs = "/tmp/serviceIDs.txt"
     //TextLine(inputData).read.project('line).write(TextLine(out))
@@ -86,14 +86,14 @@ class DataAnalyser(args: Args) extends Job(args) {
             (fields._1, value2, value3, value4, value5)
     }
             .mapTo(Fields.ALL -> Fields.ALL) {
-        fields: (String, String, Option[String], String, Option[String]) =>
+        fields: (String, String, String, String, String) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
             var fbid = getID(jsondata)
             var lnid = getID(jsondata2)
             (id, fbid, jsondata, lnid, jsondata2)
     } //.write(out2)
             .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
-        fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
+        fields: (String, Option[String], String, Option[String], String) =>
             val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
             var fbid = getID(jsondata)
             var lnid = getID(jsondata2)
@@ -420,8 +420,9 @@ fields : (String,List[CheckinObjects]) =>
         }
     }
 
-    def getID(jsonString: Option[String]): Option[String] = {
+    def getID(jsonString: String): Option[String] = {
         val resultantJson = jsonString.mkString
+        println(jsonString)
         var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")))
         var res4 = Option(fbdata)
         res4.map(_.getUserId())
