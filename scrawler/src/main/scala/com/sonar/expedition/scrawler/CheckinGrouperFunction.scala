@@ -11,27 +11,38 @@ import cascading.flow.FlowDef
 
 //import com.sonar.expedition.scrawler.MeetupCrawler
 import com.twitter.scalding._
+import com.sonar.expedition.scrawler.CheckinGrouperFunction._
 import java.nio.ByteBuffer
 import util.matching.Regex
 import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
 
-object CheckinGrouperFunction{
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+class CheckinGrouperFunction(args : Args) extends Job(args) {
+//    implicit def p2rp(pipe : Pipe) = new RichPipe(pipe)
+//    implicit def rp2p(rp : RichPipe) = rp.pipe
+//    implicit def source2rp(src : Source) : RichPipe = RichPipe(src.read)
+//
+//
+//    def name : String = getClass.getCanonicalName
+//    implicit val flowDef = {
+//        val fd = new FlowDef
+//        fd.setName(name)
+//        fd
+//    }
 
-    //def groupCheckins(checkinInput : String): RichPipe = {
+    def groupCheckins(input : RichPipe): RichPipe = {
 
 
-//        val data = TextLine(checkinInput).read.project('line)
-//                .mapTo('line -> ('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
-//            line: String => {
-//                line match {
-//                    case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-//                    case _ => ("None","None","None","None","None","None","None","None","None","None")
-//                }
-//            }
-//        }
+        val data = input
+                .mapTo('line -> ('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
+            line: String => {
+                line match {
+                    case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                    case _ => ("None","None","None","None","None","None","None","None","None","None")
+                }
+            }
+        }
 //                .pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
 //                .groupBy('userProfileID) {
 //            group => group.toList[CheckinObjects]('checkin,'checkindata)
@@ -41,9 +52,11 @@ object CheckinGrouperFunction{
 //                val venue = checkin.map(_.getVenueName)
 //                (userid,venue)
 //        }.project('ProfileID,'venue)
-//
-//        data
-//    }
+
+                .project(('userProfileID,'venueName,'latitude,'longitude))
+
+        data
+    }
 
 
 
@@ -65,8 +78,9 @@ object CheckinGrouperFunction{
 //}
 }
 
-//object CheckinGrouperFunction {
-  //}
+object CheckinGrouperFunction {
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+}
 
 
 
