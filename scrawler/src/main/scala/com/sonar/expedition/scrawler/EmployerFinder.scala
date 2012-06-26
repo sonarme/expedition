@@ -4,7 +4,7 @@ import cascading.tuple.Fields
 import util.matching.Regex
 import org.apache.commons.codec.language._
 import EmployerFinder._
-import com.twitter.scalding.{Job, Args, TextLine}
+import com.twitter.scalding._
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
 
@@ -63,24 +63,6 @@ class EmployerFinder(args: Args) extends Job(args) {
 
 
 }
-
-
-//    def isCoWorker(employer: String, friend: FriendObjects): Boolean = {
-//        val timeHour = getTimeFromString(checkin.getCheckinTime)
-//        (timeHour < 18 && timeHour > 8)
-//
-//    }
-//
-//    def getTimeFromString(timeString : String): Int = {
-//        val timeHour = {
-//            timeString match {
-//                case ExtractTime(other,hour) => (hour.toInt)
-//                case _ => -1
-//            }
-//        }
-//        timeHour
-//    }
-//
 
 
 object EmployerFinder{
