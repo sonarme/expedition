@@ -6,6 +6,8 @@ import com.sonar.expedition.scrawler.StemAndMetaphoneEmployer
 import org.apache.commons.codec.language._
 import CheckinTimeFilter._
 import javax.management.remote.rmi._RMIConnection_Stub
+import java.text.SimpleDateFormat
+import java.util
 
 class CheckinTimeFilter {
 
@@ -34,4 +36,9 @@ class CheckinTimeFilter {
 object CheckinTimeFilter{
     val ExtractTime: Regex = """(.*)T(\d\d).*""".r
 
+    def parseDateTime(timestamp:String):util.Date = {
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-ddThh:mm:ss.SSSZZZZZZ")
+        val parsedDate = simpleDateFormat.parse(timestamp)
+        parsedDate
+    }
 }

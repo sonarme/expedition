@@ -17,8 +17,11 @@ import util.matching.Regex
 import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
+import java.util.Calendar
 
 class CheckinGrouperFunction(args : Args) extends Job(args) {
+
+
 
     def groupCheckins(input : RichPipe): RichPipe = {
 
@@ -27,7 +30,14 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
                 .mapTo('line -> ('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
             line: String => {
                 line match {
-                    case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                    case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
+                        val timeFilter = Calendar.getInstance()
+                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                        timeFilter.setTime(checkinDate)
+                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        //todo: filter that day of week is > 1 < 7
+                        (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                    }
                     case _ => ("None","None","None","None","None","None","None","None","None","None")
                 }
             }
