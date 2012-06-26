@@ -19,9 +19,9 @@ class CheckinGrouper(args: Args) extends Job(args) {
 
 
     // extracts key data for employerfinder to use. no longer groups
-    var inputData = "/tmp/tcheckinData.txt"
-    var out = "/tmp/userGroupedCheckins.txt"
-    var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
+    val inputData = "/tmp/tcheckinData.txt"
+    val out = "/tmp/userGroupedCheckins.txt"
+    val data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
         line: String => {
             line match {
                 case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)

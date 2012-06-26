@@ -19,17 +19,6 @@ import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
 
 class CheckinGrouperFunction(args : Args) extends Job(args) {
-//    implicit def p2rp(pipe : Pipe) = new RichPipe(pipe)
-//    implicit def rp2p(rp : RichPipe) = rp.pipe
-//    implicit def source2rp(src : Source) : RichPipe = RichPipe(src.read)
-//
-//
-//    def name : String = getClass.getCanonicalName
-//    implicit val flowDef = {
-//        val fd = new FlowDef
-//        fd.setName(name)
-//        fd
-//    }
 
     def groupCheckins(input : RichPipe): RichPipe = {
 
@@ -58,24 +47,6 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
         data
     }
 
-
-
-    //     .project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileID, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)){
-    //        fields : (String, String, String, String, String, String, String, String, String, String) =>
-    //            val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)    = fields
-    //            val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
-    //            (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-    //    }.project('ProfileID, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng).write(TextLine(out))
-    //
-    //
-    //    def md5SumString(bytes : Array[Byte]) : String = {
-    //        val md5 = MessageDigest.getInstance("MD5")
-    //        md5.reset()
-    //        md5.update(bytes)
-    //        md5.digest().map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}
-    //    }
-
-//}
 }
 
 object CheckinGrouperFunction {

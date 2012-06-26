@@ -16,9 +16,9 @@ import grizzled.slf4j.Logging
      //TODO add service type to each friend serviceid when exporting
 
 class FriendGrouper(args: Args) extends Job(args) {
-    var inputData = "/tmp/friendData.txt"
-    var out = "/tmp/userGroupedFriends.txt"
-    var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'friendName)) {
+    val inputData = "/tmp/friendData.txt"
+    val out = "/tmp/userGroupedFriends.txt"
+    val data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'friendName)) {
         line: String => {
             line match {
                 case DataExtractLine(id, other2, serviceID, serviceType, friendName, other) => (id, serviceType, serviceID, friendName)
@@ -32,7 +32,7 @@ class FriendGrouper(args: Args) extends Job(args) {
             val (userid, friends) = fields
             val friendProfileID = friends.map(_.getServiceProfileID)
             (userid, friendProfileID)
-    }.project('ProfileID, 'friendProfileID).write(TextLine(out))
+    }.project(('ProfileID, 'friendProfileID)).write(TextLine(out))
 
 //    This commented section below handles the obfuscation of the userProfileID
 
