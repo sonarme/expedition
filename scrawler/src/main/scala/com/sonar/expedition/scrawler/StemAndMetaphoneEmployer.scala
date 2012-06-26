@@ -6,7 +6,11 @@ import org.apache.commons.codec.language._
 
 class StemAndMetaphoneEmployer {
     val metaphoner = new DoubleMetaphone
-    metaphoner.setMaxCodeLen(6)
+
+    /* changes max code length of metaphoner */
+    def setMaxCodeLen(length : Int){
+        metaphoner.setMaxCodeLen(length)
+    }
 
     /* removes stop words, punctuation and extra whitespace from a employer string */
 
