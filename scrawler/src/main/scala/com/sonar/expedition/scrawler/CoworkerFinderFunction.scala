@@ -108,7 +108,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
             }
         }.project('lnoriginalUId, 'friendUserId, 'emp).unique('lnoriginalUId, 'friendUserId, 'emp)
 
-        val mergedCoWorkers = linkedinCoworkers.joinWithSmaller('lnoriginalUId -> 'emplyer, facebookCoworkers, joiner = new OuterJoin).project('lnoriginalUId, 'friendUserId, 'emp, 'fboriginalUId, 'friendUId, 'emplyer)
+        val mergedCoWorkers = linkedinCoworkers.joinWithSmaller(('lnoriginalUId, 'friendUserId, 'emp)  -> ('fboriginalUId, 'friendUId, 'emplyer), facebookCoworkers, joiner = new OuterJoin).project('lnoriginalUId, 'friendUserId, 'emp, 'fboriginalUId, 'friendUId, 'emplyer)
 
 
 
