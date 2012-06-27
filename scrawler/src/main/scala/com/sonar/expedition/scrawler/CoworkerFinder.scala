@@ -15,7 +15,7 @@ class CoworkerFinder(args: Args) extends Job(args) {
     val temp = "/tmp/tempcoworkerGroups.txt"
     val EandF = "/tmp/employerAndFriends.txt"
 
-    val employerGroupedEmployeeUserIDs = (TextLine(serviceProfileInput).read.project('line).map(('line) ->('employer, 'workers)) {
+    val employerGroupedEmployeeUserIds = (TextLine(serviceProfileInput).read.project('line).map(('line) ->('employer, 'workers)) {
         line: String => {
             line match {
                 case ExtractFromList(employer, workers) => (employer, workers)
@@ -30,35 +30,35 @@ class CoworkerFinder(args: Args) extends Job(args) {
     }.project('employer, 'listofworkers)
 
 
-    val userIDGroupedFriends = (TextLine(friendsInput).read.project('line).map(('line) ->('userID, 'friends)) {
+    val userIdGroupedFriends = (TextLine(friendsInput).read.project('line).map(('line) ->('userId, 'friends)) {
         line: String => {
             line match {
-                case ExtractFromList(userID, friends) => (userID, friends)
+                case ExtractFromList(userId, friends) => (userId, friends)
                 case _ => ("None","None")
             }
         }
-    }).project('userID, 'friends).map('friends -> ('listoffriends)) {
+    }).project('userId, 'friends).map('friends -> ('listoffriends)) {
         fields : (String) =>
             val (friendsString) = fields
-            val friendServiceProfileIDs = friendsString.split(", ").toList
-            friendServiceProfileIDs
-    }.project('userID, 'listoffriends).map('userID, 'uID) {
+            val friendServiceProfileIds = friendsString.split(", ").toList
+            friendServiceProfileIds
+    }.project('userId, 'listoffriends).map('userId, 'uId) {
         fields : (String) =>
-            val (userIDString) = fields
-            val uIDString = userIDString.trim
-            uIDString
-    }.project('uID, 'listoffriends)
+            val (userIdString) = fields
+            val uIdString = userIdString.trim
+            uIdString
+    }.project('uId, 'listoffriends)
 
-val employerAndFriends = userIDGroupedFriends.joinWithLarger('uID -> 'listofworkers, employerGroupedEmployeeUserIDs).project('uID, 'employer, 'listoffriends).write(TextLine(EandF))
+val employerAndFriends = userIdGroupedFriends.joinWithLarger('uId -> 'listofworkers, employerGroupedEmployeeUserIds).project('uId, 'employer, 'listoffriends).write(TextLine(EandF))
 //
-//val findFriendSonarID =
+//val findFriendSonarId =
 
 
-//     .groupBy('userProfileID){
+//     .groupBy('userProfileId){
 //        _
 //                .toList[String]('serviceType -> 'serviceTypelist)
 //                .toList[String]('json -> 'jsonList)
-//    }.project('userProfileID, 'serviceTypelist, 'jsonList)
+//    }.project('userProfileId, 'serviceTypelist, 'jsonList)
 
 
 
