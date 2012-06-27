@@ -1,17 +1,39 @@
 import cascading.tuple.Fields
+
 import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
+import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.dossier.dto.UserEducation
+import com.sonar.dossier.dto.UserEmployment
 import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO}
-import com.sonar.expedition.scrawler.{HttpClientRest, FriendObjects, CheckinObjects, uniqueCompanies}
+import com.sonar.expedition.scrawler._
 import com.twitter.scalding._
+import com.twitter.scalding.TextLine
 import java.nio.ByteBuffer
 import DataAnalyser._
 import java.security.MessageDigest
+import scala.Some
 import scala.{Some, Option}
 import util.matching.Regex
 
 import scala.collection.JavaConversions._
 import util.parsing.json.{JSONArray, JSONObject}
+import org.apache.mahout.classifier.ClassifierResult;
+import org.apache.mahout.classifier.ResultAnalyzer;
+import org.apache.mahout.classifier.bayes.algorithm.BayesAlgorithm;
+import org.apache.mahout.classifier.bayes.common.BayesParameters;
+import org.apache.mahout.classifier.bayes.datastore.InMemoryBayesDatastore;
+import org.apache.mahout.classifier.bayes.interfaces.Algorithm;
+import org.apache.mahout.classifier.bayes.interfaces.Datastore;
+import org.apache.mahout.classifier.bayes.model.ClassifierContext;
+import org.apache.mahout.common.nlp.NGrams;
+import org.apache.mahout.clustering.kmeans;
+import org.apache.mahout.common.RandomUtils;
+import org.apache.mahout.common.distance.DistanceMeasure;
+import org.apache.mahout.common.distance.ManhattanDistanceMeasure;
+import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.Vector;
+import org.apache.mahout.math.VectorWritable;
 
 /**
  * Created with IntelliJ IDEA.
@@ -68,6 +90,8 @@ class DataAnalyser(args: Args) extends Job(args) {
     //.filter('fbid, 'lnid) { ids : (String, String) => ids._1 <= ids._2 }
     //.write(TextLine(chkinout))
     val findcityfromchkins = findCityofUserFromChkins(frnd_chkinjoin)
+    val writechkin = findcityfromchkins.write(TextLine("/tmp/chkindata.txt"))
+
     //-> ('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln,'locate)
     //.unique('worked)
     //.write(TextLine(out))
@@ -491,7 +515,8 @@ fields : (String,List[CheckinObjects]) =>
 
     def fourSquareCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
         val resp = new HttpClientRest()
-        val location = resp.getFSQWorkplaceLatLong(workplace, locationCityLat, locationCityLong);
+        //val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
+        val location = "0:0:0"
         location
         /*val fsquery = query.replaceAll(" ","%20")
         val fslocation=location;
@@ -518,7 +543,12 @@ fields : (String,List[CheckinObjects]) =>
         }
         centroid(0) = centroid(0) / totalPoints;
         centroid(1) = centroid(1) / totalPoints;
-        return centroid(0) + ":" + centroid(1);
+        val km = new KMeans();
+        val clusters = 3;
+        // chnage no of clustures required
+        val res = km.cluster(chkinlist, clusters)
+        return res;
+
     }
 
     def getCheckinsDataPipe(checkinInput: String): RichPipe = {
@@ -595,7 +625,7 @@ fields : (String,List[CheckinObjects]) =>
         }.mapTo(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'locList) ->('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln)) {
             fields: (String, String, String, String, String, String, String, List[String]) =>
                 val (key, uname, fbid, lnid, worked, city, worktitle, chkinlist) = fields
-                println("city" + city + chkinlist)
+                //println("city" + city + chkinlist)
                 if (city == "null") {
                     val chkcity = findCityFromChkins(chkinlist)
                     (worked, uname, chkcity, worktitle, fbid, lnid)
@@ -707,6 +737,8 @@ fields : (String,List[CheckinObjects]) =>
 
         dtoProfiles
     }
+
+
 }
 
 
