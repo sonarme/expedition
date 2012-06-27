@@ -1,2 +1,3 @@
 *.iml
 ./*.iml
+src/main/scala/com/sonar/expedition/scrawler/tmptest
