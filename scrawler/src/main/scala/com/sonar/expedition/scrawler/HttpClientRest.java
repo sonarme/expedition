@@ -9,6 +9,22 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 
+import com.factual.driver.Circle;
+import com.factual.driver.Factual;
+import com.factual.driver.Query;
+import com.factual.driver.ReadResponse;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.type.TypeReference;
+
+
 public class HttpClientRest {
 
     public HttpClientRest() {
@@ -83,18 +99,11 @@ public class HttpClientRest {
                         latitude = name.getString("lat");
                         longitute = name.getString("lng");
                         postcode = name.getString("postalCode");
-                        //System.out.println(latitude);
                     }
 
                 }
-                //String prof = foursqRespList.getJSONObject(String.valueOf(i)).getJSONObject("location").getString("postalCode") ;
-                //if(prof.contains("Professional") || prof.contains("Offices")){
-
-                //}
-
 
             }
-            //System.out.println("fs" + foursqRespList);
             return latitude + ":" + longitute + ":" + postcode;
         } catch (JSONException e) {
             // TODO Auto-generated catch block
@@ -105,6 +114,94 @@ public class HttpClientRest {
 
         }
         return latitude + ":" + longitute + ":" + postcode;
+
+    }
+
+    public String getFactualWorkplaceLatLongWithKeys(String workplace, String citylocationLat, String citylocationLong) {
+        Factual factual = new Factual("xxFiqmh1H26jMWUXmmVrexYbwIIL3RE269Dk8hUx", "mFEshzJuARYclNyoBPmeOZr9wyduWGq9LTm5aQpT");
+        int radius = 10000;
+        ReadResponse resp = factual.fetch("places", new Query().within(new Circle(Double.parseDouble(citylocationLat), Double.parseDouble(citylocationLong), radius)).search("" + workplace + "").field("name").beginsWith("" + workplace + ""));
+        String factualResp = resp.toString();
+        return parseResponseToMap(factualResp, workplace);
+
+    }
+
+    private static String parseResponseToMap(String factualResp, String workplace) {
+        String latitude = "-1";
+        String longitute = "-1";
+        String postcode = "-1";
+        JsonFactory factory = new JsonFactory();
+        ObjectMapper mapper = new ObjectMapper(factory);
+        try {
+            FactualMapper o = mapper.readValue(factualResp, FactualMapper.class);
+
+            int len = o.getFactualresp().getData().size();
+            for (int i = 0; i < len; i++) {
+                System.out.println(o.getFactualresp().getData().get(i).getLatitude() + ", " + o.getFactualresp().getData().get(i).getLongitude());
+                String coname = o.getFactualresp().getData().get(i).getName();
+                if (coname.startsWith(workplace.split(",")[0].trim())) {
+                    latitude = o.getFactualresp().getData().get(i).getLatitude();
+                    longitute = o.getFactualresp().getData().get(i).getLongitude();
+                    postcode = o.getFactualresp().getData().get(i).getPostcode();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return latitude + ":" + longitute + ":" + postcode;
+
+    }
+
+
+    public String getFactualLocsFrmZip(String zip) {
+        Factual factual = new Factual("xxFiqmh1H26jMWUXmmVrexYbwIIL3RE269Dk8hUx", "mFEshzJuARYclNyoBPmeOZr9wyduWGq9LTm5aQpT");
+
+        ReadResponse resp = factual.fetch("places", new Query().field("postcode").equal(zip).limit(50));
+        String factualResp = resp.getJson();
+        System.out.println(factualResp);
+        return getListOfLocations(factualResp);
+
+    }
+
+    private static String getListOfLocations(String factualResp) {
+        String latitude = "-1";
+        String longitute = "-1";
+        String postcode = "-1";
+        String RESULTS = "";
+        JsonFactory factory = new JsonFactory();
+        ObjectMapper mapper = new ObjectMapper(factory);
+        try {
+            FactualMapper o = mapper.readValue(factualResp, FactualMapper.class);
+
+            int len = o.getFactualresp().getData().size();
+            for (int i = 0; i < len; i++) {
+
+                /*String address;
+                String factual_id;
+                String country;
+                String latitude;
+                String longitude;
+                String postcode;
+                String name;
+                String region;
+                String tel;
+
+                */
+                RESULTS += o.getFactualresp().getData().get(i).getAddress() + "\t"
+                        + o.getFactualresp().getData().get(i).getFactual_id() + "\t"
+                        + o.getFactualresp().getData().get(i).getCountry() + "\t"
+                        + o.getFactualresp().getData().get(i).getLatitude() + "\t"
+                        + o.getFactualresp().getData().get(i).getLongitude() + "\t"
+                        + o.getFactualresp().getData().get(i).getPostcode() + "\t"
+                        + o.getFactualresp().getData().get(i).getName() + "\t"
+                        + o.getFactualresp().getData().get(i).getRegion() + "\t"
+                        + o.getFactualresp().getData().get(i).getTel() + "\t"
+                        + "\n";
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return RESULTS;
 
     }
 

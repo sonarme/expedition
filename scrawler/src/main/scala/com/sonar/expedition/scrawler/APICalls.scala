@@ -15,14 +15,27 @@ import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import APICalls._
+import com.factual.driver.Circle;
+import com.factual.driver.Factual;
+import com.factual.driver.Query;
+import com.factual.driver.ReadResponse;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
 
 
 class APICalls(args: Args) extends Job(args) {
 
     def fourSquareCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
         val resp = new HttpClientRest()
-        //val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
-        val location = "0:0:0"
+        val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
+        //val location = "0:0:0"
         location
     }
 
@@ -42,7 +55,8 @@ class APICalls(args: Args) extends Job(args) {
 
                     (work, city, "", "", "")
                 } else {
-                    val locationworkplace = fourSquareCall(work, lat, long)
+                    val locationworkplace = factualCall(work, lat, long)
+                    // val locationworkplace = fourSquareCall(work, lat, long)
                     val locationofficeregex(lati, longi, pincode) = locationworkplace
                     (work, city, lati, longi, pincode)
                 }
@@ -62,6 +76,11 @@ class APICalls(args: Args) extends Job(args) {
 
     }
 
+    def factualCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
+        val resp = new HttpClientRest()
+        val location = resp.getFactualWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
+        location
+    }
 
 }
 

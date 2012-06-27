@@ -101,7 +101,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val clusters = 3;
         // chnage no of clustures required
         val chkins: java.util.List[String] = ListBuffer(chkinlist: _*)
-        val res = km.cluster(chkins, clusters)
+        val res = km.clusterKMeans(chkins, clusters)
         return res;
 
     }
