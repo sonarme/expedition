@@ -27,32 +27,39 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
 
 
         val data = input
-                .mapTo('line -> ('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
+                .mapTo('line -> ('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
             line: String => {
                 line match {
-                    case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
+                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
                         val timeFilter = Calendar.getInstance()
-                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                        val parsedCheckinTime = checkinTime.replaceFirst("T","").reverse.replaceFirst(":","").reverse
+                        val checkinDate = CheckinTimeFilter.parseDateTime(parsedCheckinTime)
                         timeFilter.setTime(checkinDate)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-                        //todo: filter that day of week is > 1 < 7
-                        (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE)/60.0
+                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, dayOfWeek, time)
                     }
-                    case _ => ("None","None","None","None","None","None","None","None","None","None")
+                    case _ => ("None","None","None","None","None","None","None","None","None","None", 1, 0.0)
                 }
             }
         }
-//                .pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
-//                .groupBy('userProfileID) {
+                .filter('dayOfWeek){
+            dayOfWeek : Int => dayOfWeek > 1 && dayOfWeek < 7
+        }.filter('hour){
+            hour : Double => hour > 9.5 && hour < 18
+        }
+
+//                .pack[CheckinObjects](('serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
+//                .groupBy('userProfileId) {
 //            group => group.toList[CheckinObjects]('checkin,'checkindata)
-//        }.map(Fields.ALL -> ('ProfileID, 'venue)){
+//        }.map(Fields.ALL -> ('ProfileId, 'venue)){
 //            fields : (String,List[CheckinObjects]) =>
 //                val (userid ,checkin) = fields
 //                val venue = checkin.map(_.getVenueName)
 //                (userid,venue)
-//        }.project('ProfileID,'venue)
+//        }.project('ProfileId,'venue)
 
-                .project(('userProfileID,'venueName,'latitude,'longitude))
+                .project(('userProfileId,'venueName,'latitude,'longitude))
 
         data
     }

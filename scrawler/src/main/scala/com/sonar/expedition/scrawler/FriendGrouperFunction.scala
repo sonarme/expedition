@@ -23,22 +23,22 @@ class FriendGrouperFunction(args : Args) extends Job(args) {
     def groupFriends(input : RichPipe): RichPipe = {
 
 
-        val data = input.mapTo(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'friendName)) {
+        val data = input.mapTo(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
             line: String => {
                 line match {
-                    case DataExtractLine(id, other2, serviceID, serviceType, friendName, other) => (id, serviceType, serviceID, friendName)
+                    case DataExtractLine(id, other2, serviceId, serviceType, friendName, other) => (id, serviceType, serviceId, friendName)
                     case _ => ("None","None","None","None")
                 }
             }
         }
-        .pack[FriendObjects](('serviceType, 'serviceProfileID, 'friendName) -> 'friend).groupBy('userProfileID) {
+        .pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
             group => group.toList[FriendObjects]('friend,'friendData)
-        }.map(Fields.ALL -> ('ProfileID, 'friendProfileID)){
+        }.map(Fields.ALL -> ('ProfileId, 'friendProfileId)){
             fields : (String,List[FriendObjects]) =>
                 val (userid, friends) = fields
-                val friendProfileID = friends.map(_.getServiceProfileID)
-                (userid, friendProfileID)
-        }.project(('ProfileID, 'friendProfileID))
+                val friendProfileId = friends.map(_.getServiceProfileId)
+                (userid, friendProfileId)
+        }.project(('ProfileId, 'friendProfileId))
 
         data
     }

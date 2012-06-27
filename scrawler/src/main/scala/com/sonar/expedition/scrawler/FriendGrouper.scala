@@ -18,30 +18,30 @@ import grizzled.slf4j.Logging
 class FriendGrouper(args: Args) extends Job(args) {
     val inputData = "/tmp/friendData.txt"
     val out = "/tmp/userGroupedFriends.txt"
-    val data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'friendName)) {
+    val data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
         line: String => {
             line match {
-                case DataExtractLine(id, other2, serviceID, serviceType, friendName, other) => (id, serviceType, serviceID, friendName)
+                case DataExtractLine(id, other2, serviceId, serviceType, friendName, other) => (id, serviceType, serviceId, friendName)
                 case _ => ("None","None","None","None")
             }
         }
-    }).pack[FriendObjects](('serviceType, 'serviceProfileID, 'friendName) -> 'friend).groupBy('userProfileID) {
+    }).pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
         group => group.toList[FriendObjects]('friend,'friendData)
-    }.map(Fields.ALL -> ('ProfileID, 'friendProfileID)){
+    }.map(Fields.ALL -> ('ProfileId, 'friendProfileId)){
         fields : (String,List[FriendObjects]) =>
             val (userid, friends) = fields
-            val friendProfileID = friends.map(_.getServiceProfileID)
-            (userid, friendProfileID)
-    }.project(('ProfileID, 'friendProfileID)).write(TextLine(out))
+            val friendProfileId = friends.map(_.getServiceProfileId)
+            (userid, friendProfileId)
+    }.project(('ProfileId, 'friendProfileId)).write(TextLine(out))
 
-//    This commented section below handles the obfuscation of the userProfileID
+//    This commented section below handles the obfuscation of the userProfileId
 
-//     .project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileID, 'serType, 'serProfileID, 'friName)){
+//     .project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileId, 'serType, 'serProfileId, 'friName)){
 //        fields : (String, String, String, String) =>
-//            val (userid, serviceType, serviceProfileID, friendName)    = fields
-//            val hashedServiceProfileID = md5SumString(serviceProfileID.getBytes("UTF-8"))
-//            (userid, serviceType, hashedServiceProfileID, friendName)
-//    }.project('ProfileID, 'serType, 'serProfileID, 'friName).write(TextLine(out))
+//            val (userid, serviceType, serviceProfileId, friendName)    = fields
+//            val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
+//            (userid, serviceType, hashedServiceProfileId, friendName)
+//    }.project('ProfileId, 'serType, 'serProfileId, 'friName).write(TextLine(out))
 //    def md5SumString(bytes : Array[Byte]) : String = {
 //        val md5 = MessageDigest.getInstance("MD5")
 //        md5.reset()

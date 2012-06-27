@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler
 import cascading.tuple.Fields
 import util.matching.Regex
 import org.apache.commons.codec.language._
-import EmployerFinder._
+import EmployerFinderFunction._
 import com.twitter.scalding._
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
@@ -14,7 +14,7 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
 
 
 
-        val employerGroupedEmployeeUserIDs = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
+        val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
             line: String => {
                 line match {
                     case ExtractFromList(employer, workers) => (employer, workers)
@@ -29,35 +29,35 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
         }.project(('employer, 'listofworkers))
 
 
-        val userIDGroupedCheckins = (checkinInput.map(('line) ->('userID, 'venueName, 'latitude, 'longitude)) {
+        val userIdGroupedCheckins = (checkinInput.map(('line) ->('userId, 'venueName, 'latitude, 'longitude)) {
             line: String => {
                 line match {
-                    case ExtractCheckin(userID, venue, lat, lng) => (userID, venue, lat, lng)
+                    case ExtractCheckin(userId, venue, lat, lng) => (userId, venue, lat, lng)
                     case _ => ("None","None","None","None")
                 }
             }
         })
-        //            .map(('userID, 'checkins) -> ('id, 'listofcheckins)) {
+        //            .map(('userId, 'checkins) -> ('id, 'listofcheckins)) {
         //        fields : (String, String) =>
-        //            val (userIDString, checkinString) = fields
+        //            val (userIdString, checkinString) = fields
         //            val checkinVenues = checkinString.split(", ").toList
-        //            (userIDString, checkinVenues)
+        //            (userIdString, checkinVenues)
         //    }
 
 
 
-        val joined = userIDGroupedCheckins.joinWithSmaller('userID -> 'listofworkers, employerGroupedEmployeeUserIDs)
-                .mapTo(('userID, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberID, 'venueName, 'employer, 'latitude, 'longitude)){
+        val joined = userIdGroupedCheckins.joinWithSmaller('userId -> 'listofworkers, employerGroupedEmployeeUserIds)
+                .mapTo(('userId, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberId, 'venueName, 'employer, 'latitude, 'longitude)){
             fields : (String, String, String, String, String) =>
-                val (userID, venue, workplace, lat, lng) = fields
+                val (userId, venue, workplace, lat, lng) = fields
                 val matcher = new EmployerCheckinMatch
                 val matchedName = matcher.checkMetaphone(workplace, venue)
                 var result = ("","","","","")
                 if(matchedName ==  true){
-                    result = (userID, workplace, venue, lat, lng)}
+                    result = (userId, workplace, venue, lat, lng)}
                 result
         }
-                .filter('numberID){id : String => !id.matches("")}
+                .filter('numberId){id : String => !id.matches("")}
 
         joined
 
@@ -69,7 +69,7 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
 
 
 
-        val employerGroupedEmployeeUserIDs = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
+        val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
             line: String => {
                 line match {
                     case ExtractFromList(employer, workers) => (employer, workers)
@@ -84,22 +84,22 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
         }.project(('employer, 'listofworkers))
 
 
-        val userIDGroupedCheckins = checkinInput.rename('userProfileID -> 'userID)
+        val userIdGroupedCheckins = checkinInput.rename('userProfileId -> 'userId)
 
 
 
-        val joined = userIDGroupedCheckins.joinWithSmaller('userID -> 'listofworkers, employerGroupedEmployeeUserIDs)
-                .mapTo(('userID, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberID, 'venueName, 'employer, 'latitude, 'longitude)){
+        val joined = userIdGroupedCheckins.joinWithSmaller('userId -> 'listofworkers, employerGroupedEmployeeUserIds)
+                .mapTo(('userId, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberId, 'venueName, 'employer, 'latitude, 'longitude)){
             fields : (String, String, String, String, String) =>
-                val (userID, venue, workplace, lat, lng) = fields
+                val (userId, venue, workplace, lat, lng) = fields
                 val matcher = new EmployerCheckinMatch
                 val matchedName = matcher.checkMetaphone(workplace, venue)
                 var result = ("","","","","")
                 if(matchedName ==  true){
-                    result = (userID, workplace, venue, lat, lng)}
+                    result = (userId, workplace, venue, lat, lng)}
                 result
         }
-                .filter('numberID){id : String => !id.matches("")}
+                .filter('numberId){id : String => !id.matches("")}
 
         joined
 

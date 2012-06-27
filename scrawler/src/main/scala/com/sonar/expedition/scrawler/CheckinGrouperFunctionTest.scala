@@ -17,7 +17,7 @@ import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
 
 class CheckinGrouperFunctionTest(args: Args) extends Job(args){
-    var in = "/tmp/tcheckinData.txt"
+    var in = "/tmp/checkinData.txt"
     var out = "/tmp/tempdata.txt"
     val groupFuncTest = new CheckinGrouperFunction(args)
 

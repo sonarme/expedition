@@ -1,11 +1,8 @@
 package com.sonar.expedition.scrawler
 
-import cascading.tuple.Fields
-import util.matching.Regex
-import org.apache.commons.codec.language._
-import EmployerFinder._
 import com.twitter.scalding._
 
+// reads in checkingrouped and employergrouped to output matches
 class EmployerFinderFunctionTest(args: Args) extends Job(args) {
 
     val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"

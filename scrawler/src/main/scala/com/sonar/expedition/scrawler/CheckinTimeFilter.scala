@@ -37,7 +37,7 @@ object CheckinTimeFilter{
     val ExtractTime: Regex = """(.*)T(\d\d).*""".r
 
     def parseDateTime(timestamp:String):util.Date = {
-        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-ddThh:mm:ss.SSSZZZZZZ")
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-ddhh:mm:ss.SSSZ")
         val parsedDate = simpleDateFormat.parse(timestamp)
         parsedDate
     }

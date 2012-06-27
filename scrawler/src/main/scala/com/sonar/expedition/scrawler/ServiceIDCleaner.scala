@@ -9,32 +9,32 @@ import java.security.MessageDigest
 //import com.sonar.expedition.scrawler.MeetupCrawler
 import com.twitter.scalding._
 import java.nio.ByteBuffer
-import ServiceIDCleaner._
+import ServiceIdCleaner._
 import util.matching.Regex
 import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
 
-class ServiceIDCleaner(args: Args) extends Job(args) {
+class ServiceIdCleaner(args: Args) extends Job(args) {
 
 
     // extracts key data for employerfinder to use. no longer groups
-    var inputData = "/tmp/serviceIDs.txt"
-    var out = "/tmp/serviceIDsCleaned.txt"
-    var data = (TextLine(inputData).read.project('line).map(('line) ->('userID, 'oneID, 'twoID)) {
+    var inputData = "/tmp/serviceIds.txt"
+    var out = "/tmp/serviceIdsCleaned.txt"
+    var data = (TextLine(inputData).read.project('line).map(('line) ->('userId, 'oneId, 'twoId)) {
         line: String => {
             line match {
-                case DataExtractLine(userID, oneID, twoID) => (userID, oneID, twoID)
+                case DataExtractLine(userId, oneId, twoId) => (userId, oneId, twoId)
                 case _ => ("None","None","None")
             }
         }
     })
-            .groupBy('userID) {
+            .groupBy('userId) {
         group => group
-                .toList[String]('oneID,'first).sortBy('oneID)
-                .toList[String]('twoID, 'second).sortBy('twoID)
+                .toList[String]('oneId,'first).sortBy('oneId)
+                .toList[String]('twoId, 'second).sortBy('twoId)
     }
-            .project(('userID, 'first, 'second)).mapTo(('userID, 'first, 'second) -> ('userID, 'filteredFirst, 'filteredSecond)){
+            .project(('userId, 'first, 'second)).mapTo(('userId, 'first, 'second) -> ('userId, 'filteredFirst, 'filteredSecond)){
         fields : (String, List[String], List[String]) =>
             val (user, first, second) = fields
             val filterFirst = first.filter{fi : String => isNumeric(fi)}
@@ -56,7 +56,7 @@ class ServiceIDCleaner(args: Args) extends Job(args) {
     def isNumeric(input: String): Boolean = input.forall(_.isDigit)
 }
 
-object ServiceIDCleaner {
+object ServiceIdCleaner {
     val DataExtractLine: Regex = """(.*)\t(.*)\t(.*)""".r
 }
 
