@@ -56,16 +56,17 @@ public class HttpClientRest {
     }
 
 
-    public String getFSQWorkplaceLatLong(String workplace, String citylocationLat, String citylocationLong) {
+    public String getFSQWorkplaceLatLongWithKeys(String workplace, String citylocationLat, String citylocationLong) {
         workplace = workplace.replaceAll(" ", "%20");
         String url = "https://api.foursquare.com/v2/venues/search?ll=" + citylocationLat + "," + citylocationLong + "&query=" + workplace + "&client_id=NB45JIY4HBP3VY232KO12XGDAZGF4O3DKUOBRTGZ5REY50E1&client_secret=5NCZW0FWUCHCJ5VS35YDG20AYHGBC2H5Z1W2OIG13IUEDHNK&v=20120621";
         JSONObject jsonObject = new JSONObject();
         String latitude = "-1";
         String longitute = "-1";
         String postcode = "-1";
+        String getresp = "";
         try {
             //System.out.println(url);
-            String getresp = getresponse(url);
+            getresp = getresponse(url);
             jsonObject = new JSONObject(getresp);
             //System.out.println("fs1" + jsonObject);
             JSONObject foursqRespList = jsonObject.getJSONObject("response");
@@ -97,9 +98,15 @@ public class HttpClientRest {
             return latitude + ":" + longitute + ":" + postcode;
         } catch (JSONException e) {
             // TODO Auto-generated catch block
-            return "0:0:0";
+            System.out.println(getresp);
+
+            e.printStackTrace();
+
+
         }
+        return latitude + ":" + longitute + ":" + postcode;
 
     }
+
 
 }
