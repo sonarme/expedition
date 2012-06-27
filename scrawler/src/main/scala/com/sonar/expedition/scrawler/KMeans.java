@@ -9,6 +9,7 @@ import org.apache.mahout.math.Vector;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class KMeans {
 
     private Vector[] randomPoints;
