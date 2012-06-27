@@ -19,31 +19,31 @@
 //    val checkinInput = "/tmp/checkinData.txt"
 //    val friendsInput = "/tmp/friendsData.txt"
 //    val out = "/tmp/mergedServiceProfileData.txt"
-//    val serviceProfileData = (TextLine(inputData).read.project('line).map(('line) -> ('userProfileID, 'serviceType, 'json)) {
+//    val serviceProfileData = (TextLine(inputData).read.project('line).map(('line) -> ('userProfileId, 'serviceType, 'json)) {
 //        line: String => {
 //            line match {
-//                case DataExtractLine(userProfileID, serviceType, json) => (userProfileID, serviceType, json)
+//                case DataExtractLine(userProfileId, serviceType, json) => (userProfileId, serviceType, json)
 //                case _ => ("None","None","None")
 //            }
 //        }
-//    }).groupBy('userProfileID){
+//    }).groupBy('userProfileId){
 //        _
 //            .toList[String]('serviceType -> 'serviceTypelist)
 //            .toList[String]('json -> 'jsonList)
-//    }.project('userProfileID, 'serviceTypelist, 'jsonList)
+//    }.project('userProfileId, 'serviceTypelist, 'jsonList)
 //
-//    val friendsData = (TextLine(inputData).read.project('line).map(('line) -> ('userProfileID, 'serviceType, 'json)) {
+//    val friendsData = (TextLine(inputData).read.project('line).map(('line) -> ('userProfileId, 'serviceType, 'json)) {
 //        line: String => {
 //            line match {
-//                case DataExtractLine(userProfileID, serviceType, json) => (userProfileID, serviceType, json)
+//                case DataExtractLine(userProfileId, serviceType, json) => (userProfileId, serviceType, json)
 //                case _ => ("None","None","None")
 //            }
 //        }
-//    }).groupBy('userProfileID){
+//    }).groupBy('userProfileId){
 //        _
 //                .toList[String]('serviceType -> 'serviceTypelist)
 //                .toList[String]('json -> 'jsonList)
-//    }.project('userProfileID, 'serviceTypelist, 'jsonList)
+//    }.project('userProfileId, 'serviceTypelist, 'jsonList)
 //}
 //
 //
