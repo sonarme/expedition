@@ -27,7 +27,7 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
 
 
         val data = input
-                .mapTo('line -> ('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
+                .mapTo('line -> ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
             line: String => {
                 line match {
                     case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
@@ -46,7 +46,12 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
                 .filter('dayOfWeek){
             dayOfWeek : Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour){
-            hour : Double => hour > 9.5 && hour < 18
+            hour : Double => hour > 8.5 && hour < 18
+        }.map(('latitude, 'longitude) -> ('loc)) {
+            fields: (String, String) =>
+                val (lat, lng) = fields
+                val loc = lat + ":" + lng
+                (loc)
         }
 
 //                .pack[CheckinObjects](('serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
@@ -59,7 +64,7 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
 //                (userid,venue)
 //        }.project('ProfileId,'venue)
 
-                .project(('userProfileId,'venueName,'latitude,'longitude))
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
         data
     }

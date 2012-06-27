@@ -59,12 +59,12 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
     }
 
     def findCityofUserFromChkins(chkins: RichPipe): RichPipe = {
-        val citypipe = chkins.groupBy('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle) {
+        val citypipe = chkins.groupBy('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle) {
             _
                     //.mapReduceMap('key->'key1), todo understand mapreducemap api
                     .toList[String]('loc -> 'locList)
 
-        }.mapTo(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'locList) ->('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln)) {
+        }.mapTo(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'locList) ->('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln)) {
             fields: (String, String, String, String, String, String, String, List[String]) =>
                 val (key, uname, fbid, lnid, worked, city, worktitle, chkinlist) = fields
                 //println("city" + city + chkinlist)
@@ -74,11 +74,11 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 } else {
                     (worked, uname, city, worktitle, fbid, lnid)
                 }
-        }.mapTo(('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln) ->('worked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)) {
+        }.mapTo(('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln) ->('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)) {
             fields: (String, String, String, String, String, String) =>
                 val (worked, uname, city, worktitle, fbid, lnid) = fields
                 (worked, uname, city, worktitle, fbid, lnid)
-        }.project('worked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
+        }.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
 
         citypipe
     }

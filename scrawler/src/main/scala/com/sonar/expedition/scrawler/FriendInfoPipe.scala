@@ -27,14 +27,17 @@ class FriendInfoPipe(args: Args) extends Job(args) {
                     case _ => ("None", "None", "None", "None")
                 }
             }
-        })
-                .project(Fields.ALL).discard(0).map(Fields.ALL ->('key, 'serType, 'serProfileId, 'friName)) {
-            fields: (String, String, String, String) =>
-                val (userid, serviceType, serviceProfileId, friendName) = fields
-                //val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
-                val hashedServiceProfileId = serviceProfileId
-                (userid, serviceType, hashedServiceProfileId, friendName)
-        }.project('key, 'serType, 'serProfileId, 'friName)
+        }).project('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
+
+//        Use the code below when md5 hashing is needed
+
+//                .project(Fields.ALL).discard(0).map(Fields.ALL ->('key, 'serType, 'serProfileId, 'friName)) {
+//            fields: (String, String, String, String) =>
+//                val (userid, serviceType, serviceProfileId, friendName) = fields
+//                //val hashedServiceProfileId = md5SumString(serviceProfileId.getBytes("UTF-8"))
+//                val serProfileId = serviceProfileId
+//                (userid, serviceType, serProfileId, friendName)
+//        }.project('key, 'serType, 'serProfileId, 'friName)
 
         friends
 
