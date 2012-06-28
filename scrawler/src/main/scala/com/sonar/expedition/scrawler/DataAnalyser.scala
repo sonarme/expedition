@@ -73,16 +73,6 @@ class DataAnalyser(args: Args) extends Job(args) {
 //    val serviceIdsInput = "/tmp/serviceIds.txt"
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
-    val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project('key, 'worked).groupBy('worked) {
-        group => group.toList[String]('key,'employeeData)
-    }.filter('worked){
-        worked : String => !worked.trim.equals("")
-    }.map('worked -> 'mtphnWorked) {
-        fields: String =>
-            val (worked) = fields
-            val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
-            mtphnWorked
-    }.project('mtphnWorked, 'employeeData)
 
     val filteredProfiles = joinedProfiles .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle).map('worked -> 'mtphnWorked) {
         fields: String =>
@@ -107,12 +97,16 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val findcityfromchkins = checkinInfoPipe.findCityofUserFromChkins(profilesAndCheckins)
 
-    val writechkin = findcityfromchkins.write(TextLine("/tmp/chkindata.txt"))
+//    val writechkin = findcityfromchkins.write(TextLine("/tmp/chkindata.txt"))
 
+    val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project('key, 'worked).groupBy('worked) {
+        group => group.toList[String]('key,'employeeData)
+    }.filter('worked){
+        worked : String => !worked.trim.equals("")
+    }.project('worked, 'employeeData)
     val serviceIds = joinedProfiles.project('key, 'fbid, 'lnid)
-
-    val friendsForCoworker = friendGrouper.groupFriends(finp)
-    val coworkerCheckins = coworkerPipe.findCoworkerCheckins(serviceProfilePipe, friendsForCoworker, serviceIds, TextLine(chkininputData).read)
+    val friendsForCoworker = friendGrouper.groupFriends(TextLine(finp).read)
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckins(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, TextLine(chkininputData).read).write(TextLine("/tmp/sanityCheck.txt"))
 
     //companies with city names from checkin information if not present in profile
     val tmpcompanies = findcityfromchkins.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
