@@ -36,15 +36,15 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 var value5 = getLNKDINJson(serviceType, serviceType2, jsondata2)
                 (fields._1, value2, value3, value4, value5)
         }
-                .mapTo(Fields.ALL -> Fields.ALL) {
-            fields: (String, String, Option[String], String, Option[String]) =>
+        .mapTo(Fields.ALL -> Fields.ALL) {
+                fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
                 var fbid = getID(jsondata)
                 var lnid = getID(jsondata2)
                 (id, fbid, jsondata, lnid, jsondata2)
         } //.write(out2)
                 .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
-            fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
+                fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
                 var fbid = getID(jsondata)
                 var lnid = getID(jsondata2)

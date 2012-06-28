@@ -66,16 +66,16 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
 
 //        val employerAndFriends = userIdGroupedFriends.joinWithLarger('uId -> 'listofworkers, employerGroupedEmployeeUserIds).project('uId, 'emp, 'listoffriends).write(TextLine(EandF))
 
-        val findFriendSonarId = (serviceIdsInput.map(('line) ->('friendUserId, 'fbId, 'lnId)) {
+        val findFriendSonarId = (serviceIdsInput.map(('line) ->('row_keyfrnd, 'fbId, 'lnId)) {
             line: String => {
                 line match {
                     case ExtractIds(userId, fbId, lnId) => (userId, fbId, lnId)
                     case _ => ("None","None", "None")
                 }
             }
-        }).project('friendUserId, 'fbId, 'lnId)
+        }).project('row_keyfrnd, 'fbId, 'lnId)
 
-        val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'listoffriends, userIdGroupedFriends).mapTo(('uId, 'friendUserId, 'fbId, 'lnId)  -> ('originalUserId, 'friendUId, 'fbookId, 'linkedinId)) {
+        val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'listoffriends, userIdGroupedFriends).mapTo(('uId, 'row_keyfrnd, 'fbId, 'lnId)  -> ('originalUserId, 'friendUId, 'fbookId, 'linkedinId)) {
             fields : (String, String, String, String) =>
                 val (originalUserId, friendUId, fbookId, linkedinId ) = fields
                 val originalUId = originalUserId
@@ -85,56 +85,51 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 (originalUId, frId, faceId, linkedId)
         }
 
-        val facebookFriendEmployers = facebookFriends.joinWithLarger('friendUId -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'originalUserId) -> ('emplyer, 'fboriginalUId)) {
+        val facebookFriendEmployers = facebookFriends.joinWithLarger('friendUId -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'originalUserId) -> ('emplyer, 'row_keyfbuser)) {
             fields : (String, String) =>
                 val (emplyer, fbUserId) = fields
                 val emplyr = emplyer
                 val facebookUserId = fbUserId
                 (emplyr, facebookUserId)
-        }.project('fboriginalUId, 'friendUId, 'emplyer).unique('fboriginalUId, 'friendUId, 'emplyer)
+        }.project('row_keyfbuser, 'friendUId, 'emplyer).unique('row_keyfbuser, 'friendUId, 'emplyer)
 
 
-        val facebookCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'fboriginalUId, facebookFriendEmployers).filter('emp, 'emplyer) {
+        val facebookCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'row_keyfbuser, facebookFriendEmployers).filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
                 originalEmployer.equalsIgnoreCase(friendsEmployer)
             }
-        }.project('fboriginalUId, 'friendUId, 'emplyer).unique('fboriginalUId, 'friendUId, 'emplyer)
+        }.project('row_keyfbuser, 'friendUId, 'emplyer).unique('row_keyfbuser, 'friendUId, 'emplyer)
 
-        val linkedinFriends = findFriendSonarId.joinWithLarger('lnId -> 'listoffriends, userIdGroupedFriends).project('uId, 'friendUserId, 'fbId, 'lnId)
+        val linkedinFriends = findFriendSonarId.joinWithLarger('lnId -> 'listoffriends, userIdGroupedFriends).project('uId, 'row_keyfrnd, 'fbId, 'lnId)
 
-        val linkedinFriendEmployers = linkedinFriends.joinWithLarger('friendUserId -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'uId) -> ('emplyer, 'lnoriginalUId)) {
+        val linkedinFriendEmployers = linkedinFriends.joinWithLarger('row_keyfrnd -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'uId) -> ('emplyer, 'row_keylnuser)) {
             fields : (String, String) =>
                 val (emplyer, lnUserId) = fields
                 val emplyr = emplyer
                 val linkedUserId = lnUserId
                 (emplyr, linkedUserId)
-        }.project('lnoriginalUId, 'friendUserId, 'emplyer).unique('lnoriginalUId, 'friendUserId, 'emplyer)
+        }.project('row_keylnuser, 'row_keyfrnd, 'emplyer).unique('row_keylnuser, 'row_keyfrnd, 'emplyer)
 
 
-        val linkedinCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'lnoriginalUId, linkedinFriendEmployers).filter('emp, 'emplyer) {
+        val linkedinCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'row_keylnuser, linkedinFriendEmployers).filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
                 originalEmployer.equalsIgnoreCase(friendsEmployer)
             }
-        }.project('lnoriginalUId, 'friendUserId, 'emp).unique('lnoriginalUId, 'friendUserId, 'emp)
+        }.project('row_keylnuser, 'row_keyfrnd, 'emp).unique('row_keylnuser, 'row_keyfrnd, 'emp)
 
-        val mergedCoWorkers = linkedinCoworkers.joinWithSmaller(('lnoriginalUId, 'friendUserId, 'emp)  -> ('fboriginalUId, 'friendUId, 'emplyer), facebookCoworkers, joiner = new OuterJoin).project('lnoriginalUId, 'friendUserId, 'emp, 'fboriginalUId, 'friendUId, 'emplyer)
+        val mergedCoWorkers = linkedinCoworkers.joinWithSmaller(('row_keylnuser, 'row_keyfrnd, 'emp)  -> ('row_keyfbuser, 'friendUId, 'emplyer), facebookCoworkers, joiner = new OuterJoin).project('row_keylnuser, 'row_keyfrnd, 'emp, 'row_keyfbuser, 'friendUId, 'emplyer)
 
         mergedCoWorkers
     }
 
-    def findCoworkerCheckins(serviceProfileInput : RichPipe, friendsInput : RichPipe, serviceIdsInput : RichPipe, checkinsInput : RichPipe): RichPipe = {
+    def findCoworkerCheckins(serviceProfileInput : RichPipe, friendsInput : RichPipe, serviceIdsInput : RichPipe, PipeCheckIns:RichPipe)  : RichPipe = {
 
-        val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
-            line: String => {
-                line match {
-                    case ExtractFromList(employer, workers) => (employer, workers)
-                    case _ => ("None","None")
-                }
-            }
-        }).project('employer, 'workers).map('employer, 'emp) {
-            fields : (String) =>
+        val employerGroupedEmployeeUserIds = (serviceProfileInput.rename(('key, 'worked)->('workers, 'employer))
+
+                .project('employer, 'workers).map('employer, 'emp) {
+                fields : (String) =>
                 val (employer) = fields
                 val emp = employer.trim
                 val empMetaphone = new StemAndMetaphoneEmployer
@@ -145,7 +140,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 val (workerString) = fields
                 val employees = workerString.trim.split(", ")
                 employees
-        }.project('emp, 'listofworkers)
+        }.project('emp, 'listofworkers))
 
         //        val userIdGroupedCheckins = (checkinsInput.map(('line) ->('userkey, 'checkin)) {
         //            line: String => {
@@ -157,8 +152,6 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         //        }).project('userkey, 'checkin)
 
         val checkinGrouper = new CheckinGrouperFunction(args)
-
-
         val userIdGroupedFriends = (friendsInput.map(('line) ->('userId, 'friends)) {
             line: String => {
                 line match {
@@ -180,16 +173,17 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
 
         //        val employerAndFriends = userIdGroupedFriends.joinWithLarger('uId -> 'listofworkers, employerGroupedEmployeeUserIds).project('uId, 'emp, 'listoffriends).write(TextLine(EandF))
 
-        val findFriendSonarId = (serviceIdsInput.map(('line) ->('friendUserId, 'fbId, 'lnId)) {
+        val findFriendSonarId =serviceIdsInput
+        /*(serviceIdsInput.map(('line) ->('row_keyfrnd, 'fbId, 'lnId)) {
             line: String => {
                 line match {
                     case ExtractIds(userId, fbId, lnId) => (userId, fbId, lnId)
                     case _ => ("None","None", "None")
                 }
             }
-        }).project('friendUserId, 'fbId, 'lnId)
+        }).project('row_keyfrnd, 'fbId, 'lnId)  */
 
-        val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'listoffriends, userIdGroupedFriends).mapTo(('uId, 'friendUserId, 'fbId, 'lnId)  -> ('originalUserId, 'friendUId, 'fbookId, 'linkedinId)) {
+        /*val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'listoffriends, userIdGroupedFriends).mapTo(('uId, 'row_keyfrnd, 'fbId, 'lnId)  -> ('originalUserId, 'friendUId, 'fbookId, 'linkedinId)) {
             fields : (String, String, String, String) =>
                 val (originalUserId, friendUId, fbookId, linkedinId ) = fields
                 val originalUId = originalUserId
@@ -199,55 +193,61 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 (originalUId, frId, faceId, linkedId)
         }
 
-        val facebookFriendEmployers = facebookFriends.joinWithLarger('friendUId -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'originalUserId) -> ('emplyer, 'fboriginalUId)) {
+        val facebookFriendEmployers = facebookFriends.joinWithLarger('friendUId -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'originalUserId) -> ('emplyer, 'row_keyfbuser)) {
             fields : (String, String) =>
                 val (emplyer, fbUserId) = fields
                 val emplyr = emplyer
                 val facebookUserId = fbUserId
                 (emplyr, facebookUserId)
-        }.project('fboriginalUId, 'friendUId, 'emplyer).unique('fboriginalUId, 'friendUId, 'emplyer)
+        }.project('row_keyfbuser, 'friendUId, 'emplyer).unique('row_keyfbuser, 'friendUId, 'emplyer)
 
 
-        val facebookCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'fboriginalUId, facebookFriendEmployers).filter('emp, 'emplyer) {
+        val facebookCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'row_keyfbuser, facebookFriendEmployers).filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
                 originalEmployer.equalsIgnoreCase(friendsEmployer)
             }
-        }.project('fboriginalUId, 'friendUId, 'emplyer).unique('fboriginalUId, 'friendUId, 'emplyer)
+        }.project('row_keyfbuser, 'friendUId, 'emplyer).unique('row_keyfbuser, 'friendUId, 'emplyer)
+        */
+        val linkedinFriends = findFriendSonarId.joinWithLarger('lnId -> 'listoffriends, userIdGroupedFriends).project('uId, 'row_keyfrnd, 'fbId, 'lnId)
 
-        val linkedinFriends = findFriendSonarId.joinWithLarger('lnId -> 'listoffriends, userIdGroupedFriends).project('uId, 'friendUserId, 'fbId, 'lnId)
-
-        val linkedinFriendEmployers = linkedinFriends.joinWithLarger('friendUserId -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'uId) -> ('emplyer, 'lnoriginalUId)) {
+        val linkedinFriendEmployers = linkedinFriends.joinWithLarger('row_keyfrnd -> 'listofworkers, employerGroupedEmployeeUserIds).map(('emp, 'uId) -> ('emplyer, 'row_keylnuser)) {
             fields : (String, String) =>
                 val (emplyer, lnUserId) = fields
                 val emplyr = emplyer
                 val linkedUserId = lnUserId
                 (emplyr, linkedUserId)
-        }.project('lnoriginalUId, 'friendUserId, 'emplyer).unique('lnoriginalUId, 'friendUserId, 'emplyer)
+        }.project('row_keylnuser, 'row_keyfrnd, 'emplyer).unique('row_keylnuser, 'row_keyfrnd, 'emplyer)
 
 
-        val linkedinCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'lnoriginalUId, linkedinFriendEmployers).filter('emp, 'emplyer) {
+        val linkedinCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('listofworkers -> 'row_keylnuser, linkedinFriendEmployers).filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
                 originalEmployer.equalsIgnoreCase(friendsEmployer)
             }
-        }.project('lnoriginalUId, 'friendUserId, 'emp).unique('lnoriginalUId, 'friendUserId, 'emp)
+        }.project('row_keylnuser, 'row_keyfrnd, 'emp).unique('row_keylnuser, 'row_keyfrnd, 'emp)
 
-        val mergedCoWorkers = linkedinCoworkers.joinWithSmaller(('lnoriginalUId, 'friendUserId, 'emp)  -> ('fboriginalUId, 'friendUId, 'emplyer), facebookCoworkers, joiner = new OuterJoin).project('lnoriginalUId, 'friendUserId, 'emp, 'fboriginalUId, 'friendUId, 'emplyer)
+        //val mergedCoWorkers = linkedinCoworkers.joinWithSmaller(('row_keylnuser, 'row_keyfrnd, 'emp)  -> ('row_keyfbuser, 'friendUId, 'emplyer), facebookCoworkers, joiner = new OuterJoin).project('row_keylnuser, 'row_keyfrnd, 'emp, 'row_keyfbuser, 'friendUId, 'emplyer)
 
-        val lnCoworkerCheckins = linkedinCoworkers.joinWithSmaller('friendUserId -> 'keyid, checkinGrouper.groupCheckins(checkinsInput)).project('lnoriginalUId, 'friendUserId, 'emp, 'venName, 'loc)
+        //val lnCoworkerCheckins = linkedinCoworkers.joinWithSmaller('row_keyfrnd -> 'keyid, checkinGrouper.groupCheckins(checkinsInput)).project('row_keylnuser, 'row_keyfrnd, 'emp, 'venName, 'loc)
+        //val lnCoworkerCheckins = linkedinCoworkers.joinWithSmaller('row_keyfrnd -> 'keyid, checkinGrouper.groupCheckins(checkinsInput)).project('row_keylnuser, 'row_keyfrnd)
 
-        val fbCoworkerCheckins = facebookCoworkers.joinWithSmaller('friendUId -> 'keyid, checkinGrouper.groupCheckins(checkinsInput)).map(('venName, 'loc) -> ('fbvenName, 'fbloc)) {
+        /*val fbCoworkerCheckins = facebookCoworkers.joinWithSmaller('friendUId -> 'keyid, checkinGrouper.groupCheckins(checkinsInput)).map(('venName, 'loc) -> ('fbvenName, 'fbloc)) {
             fields : (String, String) =>
                 val (venName, loc) = fields
                 val fbvenName = venName
                 val fbloc = loc
                 (fbvenName, fbloc)
-        }.project('fboriginalUId, 'friendUId, 'emplyer, 'fbvenName, 'fbloc)
+        }.project('row_keyfbuser, 'friendUId, 'emplyer, 'fbvenName, 'fbloc)*/
 
-        val mergedCoworkerCheckins = lnCoworkerCheckins.joinWithSmaller(('lnoriginalUId, 'friendUserId, 'emp, 'venName, 'loc) -> ('fboriginalUId, 'friendUId, 'emplyer, 'fbvenName, 'fbloc), fbCoworkerCheckins, joiner = new OuterJoin).project('lnoriginalUId, 'friendUserId, 'emp, 'venName, 'loc, 'fboriginalUId, 'friendUId, 'emplyer, 'fbvenName, 'fbloc)
+        //val mergedCoworkerCheckins = lnCoworkerCheckins.++(fbCoworkerCheckins)
+        val mergedCoworkerCheckins =  linkedinCoworkers.joinWithLarger('row_keyfrnd->'keyid, PipeCheckIns).project('row_keyfrnd,'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+        .rename('row_keyfrnd->'key)
+        .project('key,'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
         mergedCoworkerCheckins
+
+        //'key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc
     }
 
 }

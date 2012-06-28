@@ -83,6 +83,25 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         citypipe
     }
 
+    def findClusteroidofUserFromChkins(chkins: RichPipe): RichPipe = {
+        val citypipe = chkins.groupBy('key) {
+            println("test")
+            _
+                    //.mapReduceMap('key->'key1), todo understand mapreducemap api
+                    .toList[String]('loc -> 'locList)
+
+        }.mapTo(('key, 'locList) ->('key1, 'centroid)) {
+                fields: (String, List[String]) =>
+                val (key, chkinlist) = fields
+                val chkcity = findCityFromChkins(chkinlist)
+                println(chkcity)
+                (key,chkcity)
+
+        }.project('key1, 'centroid)
+
+        citypipe
+    }
+
     def findCityFromChkins(chkinlist: List[String]): String = {
         var centroid = Array(0.toDouble, 0.toDouble)
         chkinlist foreach {

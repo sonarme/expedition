@@ -27,19 +27,19 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
 
 
         val data = input
-                .mapTo('line -> ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'message, 'dayOfWeek, 'hour)) {
+                .mapTo('line -> ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
             line: String => {
                 line match {
-                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, mess) => {
+                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
                         val timeFilter = Calendar.getInstance()
                         val parsedCheckinTime = checkinTime.replaceFirst("T","").reverse.replaceFirst(":","").reverse
                         val checkinDate = CheckinTimeFilter.parseDateTime(parsedCheckinTime)
                         timeFilter.setTime(checkinDate)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE)/60.0
-                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, mess, dayOfWeek, time)
+                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, dayOfWeek, time)
                     }
-                    case _ => ("None","None","None","None","None","None","None","None","None","None","None", 1, 0.0)
+                    case _ => ("None","None","None","None","None","None","None","None","None","None", 1, 0.0)
                 }
             }
         }
@@ -72,7 +72,7 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
 }
 
 object CheckinGrouperFunction {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::([\d]*)::([\.\d\-]*)::([\.\d\-]*)::(.*)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::([\d]*)::([\.\d\-]*)::([\.\d\-]*)""".r
 }
 
 
