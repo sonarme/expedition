@@ -68,6 +68,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
 
+
 //    val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
 //    val friendsInput = "/tmp/userGroupedFriends.txt"
 //    val serviceIdsInput = "/tmp/serviceIds.txt"
@@ -105,8 +106,10 @@ class DataAnalyser(args: Args) extends Job(args) {
         worked : String => !worked.trim.equals("")
     }.project('worked, 'employeeData)
     val serviceIds = joinedProfiles.project('key, 'fbid, 'lnid)
-    val friendsForCoworker = friendGrouper.groupFriends(TextLine(finp).read)
-    val coworkerCheckins = coworkerPipe.findCoworkerCheckins(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, TextLine(chkininputData).read).write(TextLine("/tmp/sanityCheck.txt"))
+    val friendData = TextLine(finp).read.project('line)
+    val friendsForCoworker = friendGrouper.groupFriends(friendData)
+    val checkinData = TextLine(chkininputData).read.project('line)
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckins(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, checkinData).write(TextLine("/tmp/sanityCheck.txt"))
 
     //companies with city names from checkin information if not present in profile
     val tmpcompanies = findcityfromchkins.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
