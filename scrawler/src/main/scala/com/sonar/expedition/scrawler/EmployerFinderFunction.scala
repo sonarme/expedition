@@ -84,22 +84,23 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
         }.project(('employer, 'listofworkers))
 
 
-        val userIdGroupedCheckins = checkinInput.rename('userProfileId -> 'userId)
+        ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+        val userIdGroupedCheckins = checkinInput.rename('keyid -> 'userId).rename('venName -> 'venueName)
 
 
 
         val joined = userIdGroupedCheckins.joinWithSmaller('userId -> 'listofworkers, employerGroupedEmployeeUserIds)
-                .mapTo(('userId, 'venueName, 'employer, 'latitude, 'longitude) -> ('numberId, 'venueName, 'employer, 'latitude, 'longitude)){
-            fields : (String, String, String, String, String) =>
-                val (userId, venue, workplace, lat, lng) = fields
+                .map(('userId, 'venueName, 'employer, 'loc) -> ('numberId, 'venueName1, 'employer1, 'loc1)){
+            fields : (String, String, String, String) =>
+                val (userId, venue, workplace, loc) = fields
                 val matcher = new EmployerCheckinMatch
                 val matchedName = matcher.checkMetaphone(workplace, venue)
-                var result = ("","","","","")
+                var result = ("","","","")
                 if(matchedName ==  true){
-                    result = (userId, workplace, venue, lat, lng)}
+                    result = (userId, workplace, venue, loc)}
                 result
         }
-                .filter('numberId){id : String => !id.matches("")}
+                .filter('numberId){id : String => !id.matches("")}.project(('numberId, 'venueName1, 'employer1, 'loc1))
 
         joined
 
