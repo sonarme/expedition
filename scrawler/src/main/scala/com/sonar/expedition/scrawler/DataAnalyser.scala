@@ -44,7 +44,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val out = "/tmp/results7.txt"
     val out2 = TextLine("/tmp/data123.txt")
     val finp = "/tmp/friendData.txt"
-    val frout = "/tmp/userGroupedFriends.txt"
+    val frout = "/tmp/userGroupedFriends2.txt"
     val chkininputData = "/tmp/checkinDatatest.txt"
     val chkinout = "/tmp/hasheduserGroupedCheckins.txt"
     val sanitycheck = "/tmp/sanityCheck.txt"
@@ -65,6 +65,8 @@ class DataAnalyser(args: Args) extends Job(args) {
     val checkinInfoPipe = new CheckinInfoPipe(args)
     val apiCalls = new APICalls(args)
     val metaphoner = new StemAndMetaphoneEmployer
+    val coworkerPipe = new CoworkerFinderFunction((args))
+    val friendGrouper = new FriendGrouperFunction(args)
 
 //    val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
 //    val friendsInput = "/tmp/userGroupedFriends.txt"
@@ -80,7 +82,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             val (worked) = fields
             val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
             mtphnWorked
-    }.project('mtphnWorked, 'employeeData).write(TextLine(sanitycheck))
+    }.project('mtphnWorked, 'employeeData)
 
     val filteredProfiles = joinedProfiles .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle).map('worked -> 'mtphnWorked) {
         fields: String =>
@@ -107,6 +109,10 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val writechkin = findcityfromchkins.write(TextLine("/tmp/chkindata.txt"))
 
+    val serviceIds = joinedProfiles.project('key, 'fbid, 'lnid)
+
+    val friendsForCoworker = friendGrouper.groupFriends(finp)
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckins(serviceProfilePipe, friendsForCoworker, serviceIds, TextLine(chkininputData).read)
 
     //companies with city names from checkin information if not present in profile
     val tmpcompanies = findcityfromchkins.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)

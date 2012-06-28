@@ -31,17 +31,22 @@ class FriendGrouperFunction(args : Args) extends Job(args) {
                 }
             }
         }
-        .pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
-            group => group.toList[FriendObjects]('friend,'friendData)
-        }.map(Fields.ALL -> ('ProfileId, 'friendProfileId)){
-            fields : (String,List[FriendObjects]) =>
-                val (userid, friends) = fields
-                val friendProfileId = friends.map(_.getServiceProfileId)
-                (userid, friendProfileId)
-        }.project(('ProfileId, 'friendProfileId))
+//        .pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
+//            group => group.toList[FriendObjects]('friend,'friendData)
+//        }.map(Fields.ALL -> ('ProfileId, 'friendProfileId)){
+//            fields : (String,List[FriendObjects]) =>
+//                val (userid, friends) = fields
+//                val friendProfileId = friends.map(_.getServiceProfileId)
+//                (userid, friendProfileId)
+//        }
+        .project(('userProfileId, 'serviceProfileId)).groupBy('userProfileId) {
+            group => group.toList[String]('serviceProfileId, 'serviceProfileIdList)
+        }.project('userProfileId, 'serviceProfileIdList)
 
         data
     }
+
+
 
 }
 

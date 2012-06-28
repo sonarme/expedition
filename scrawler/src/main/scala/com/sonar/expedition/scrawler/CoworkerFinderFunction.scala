@@ -10,7 +10,7 @@ import cascading.pipe.joiner._
 
 class CoworkerFinderFunction(args: Args) extends Job(args) {
 
-    def findCoworkers(serviceProfileInput : RichPipe, friendsInput : RichPipe, serviceIdsInput : RichPipe): RichPipe = {
+    def findCoworkerCheckins(serviceProfileInput : RichPipe, friendsInput : RichPipe, serviceIdsInput : RichPipe, checkinsInput : RichPipe): RichPipe = {
 
         val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
             line: String => {
@@ -32,6 +32,17 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 val employees = workerString.trim.split(", ")
                 employees
         }.project('emp, 'listofworkers)
+
+//        val userIdGroupedCheckins = (checkinsInput.map(('line) ->('userkey, 'checkin)) {
+//            line: String => {
+//                line match {
+//                    case ExtractFromCheckin(userkey, checkin) => (userkey, checkin)
+//                    case _ => ("None","None")
+//                }
+//            }
+//        }).project('userkey, 'checkin)
+
+        val checkinGrouper = new CheckinGrouperFunction(args)
 
 
         val userIdGroupedFriends = (friendsInput.map(('line) ->('userId, 'friends)) {
@@ -110,8 +121,17 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
 
         val mergedCoWorkers = linkedinCoworkers.joinWithSmaller(('lnoriginalUId, 'friendUserId, 'emp)  -> ('fboriginalUId, 'friendUId, 'emplyer), facebookCoworkers, joiner = new OuterJoin).project('lnoriginalUId, 'friendUserId, 'emp, 'fboriginalUId, 'friendUId, 'emplyer)
 
+        val lnCoworkerCheckins = linkedinCoworkers.joinWithSmaller('friendUserId -> 'keyid, checkinGrouper.groupCheckins(checkinsInput)).project('lnoriginalUId, 'friendUserId, 'emp, 'venName, 'loc)
 
+        val fbCoworkerCheckins = facebookCoworkers.joinWithSmaller('friendUId -> 'keyid, checkinGrouper.groupCheckins(checkinsInput)).map(('venName, 'loc) -> ('fbvenName, 'fbloc)) {
+            fields : (String, String) =>
+                val (venName, loc) = fields
+                val fbvenName = venName
+                val fbloc = loc
+                (fbvenName, fbloc)
+        }.project('fboriginalUId, 'friendUId, 'emplyer, 'fbvenName, 'fbloc)
 
+        val mergedCoworkerCheckins = lnCoworkerCheckins.joinWithSmaller(('lnoriginalUId, 'friendUserId, 'emp, 'venName, 'loc) -> ('fboriginalUId, 'friendUId, 'emplyer, 'fbvenName, 'fbloc), fbCoworkerCheckins, joiner = new OuterJoin).project('lnoriginalUId, 'friendUserId, 'emp, 'venName, 'loc, 'fboriginalUId, 'friendUId, 'emplyer, 'fbvenName, 'fbloc)
         //    val allFriends = linkedinFriends.joinWithLarger('uId -> 'originalUserId, facebookFriends, joiner = new RightJoin).project('uId, 'friendUserId, 'fbId, 'lnId, 'originalUserId, 'friendUId, 'fbookId, 'linkedinId).unique('uId, 'friendUserId, 'fbId, 'lnId, 'originalUserId, 'friendUId, 'fbookId, 'linkedinId).write(TextLine(allfriends))
         //    val friendsEmploymer = linkedinFriends.
         //        .flatMap('workers -> ('listofworkers)) {
@@ -128,8 +148,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         //                .toList[String]('json -> 'jsonList)
         //    }.project('userProfileId, 'serviceTypelist, 'jsonList)
 
-        mergedCoWorkers
 
+        mergedCoworkerCheckins
     }
 
 }
