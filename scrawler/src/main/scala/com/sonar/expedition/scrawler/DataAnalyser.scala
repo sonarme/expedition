@@ -40,7 +40,7 @@ output : the file to which the non visited profile links will be written to
  */
 class DataAnalyser(args: Args) extends Job(args) {
 
-    val inputData = "/tmp/serviceProfileData.txt"
+    val inputData = "/tmp/dataAnalyseerrorwithtime.txt"
     val out = "/tmp/results7.txt"
     val out2 = TextLine("/tmp/data123.txt")
     val finp = "/tmp/friendData.txt"
@@ -65,6 +65,10 @@ class DataAnalyser(args: Args) extends Job(args) {
     val checkinInfoPipe = new CheckinInfoPipe(args)
     val apiCalls = new APICalls(args)
     val metaphoner = new StemAndMetaphoneEmployer
+
+//    val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
+//    val friendsInput = "/tmp/userGroupedFriends.txt"
+//    val serviceIdsInput = "/tmp/serviceIds.txt"
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
     val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project('key, 'worked).groupBy('worked) {
@@ -136,7 +140,7 @@ class DataAnalyser(args: Args) extends Job(args) {
 
 
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
+    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r
 
