@@ -40,12 +40,12 @@ output : the file to which the non visited profile links will be written to
  */
 class DataAnalyser(args: Args) extends Job(args) {
 
-    val inputData = "/tmp/serviceProfileData.txt"
+    val inputData = args("serInput")
     val out = "/tmp/results7.txt"
     val out2 = TextLine("/tmp/data123.txt")
-    val finp = "/tmp/friendData.txt"
+    val finp = args("friInput")
     val frout = "/tmp/userGroupedFriends2.txt"
-    val chkininputData = "/tmp/checkinDatatest.txt"
+    val chkininputData = args("chkInput")
     val chkinout = "/tmp/hasheduserGroupedCheckins.txt"
     val sanitycheck = "/tmp/sanityCheck.txt"
 
