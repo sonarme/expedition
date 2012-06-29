@@ -114,6 +114,7 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val coworkerCheckins = coworkerPipe.findCoworkerCheckins(employerGroupedServiceProfiles, friendData, serviceIds, chkindata)
 
+
     //coworkerCheckins.write(TextLine("/tmp/test2.txt"))
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
