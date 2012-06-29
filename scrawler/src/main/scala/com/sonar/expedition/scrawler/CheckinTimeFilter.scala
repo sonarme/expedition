@@ -1,5 +1,7 @@
 package com.sonar.expedition.scrawler
 
+;
+
 import cascading.tuple.Fields
 import util.matching.Regex
 import com.sonar.expedition.scrawler.StemAndMetaphoneEmployer
@@ -21,10 +23,10 @@ class CheckinTimeFilter {
 
     /* Takes a string that includes the date and full time and returns just the hour as an int */
 
-    def getTimeFromString(timeString : String): Int = {
+    def getTimeFromString(timeString: String): Int = {
         val timeHour = {
             timeString match {
-                case ExtractTime(other,hour) => (hour.toInt)
+                case ExtractTime(other, hour) => (hour.toInt)
                 case _ => -1
             }
         }
@@ -33,17 +35,12 @@ class CheckinTimeFilter {
 
 }
 
-object CheckinTimeFilter{
+object CheckinTimeFilter {
     val ExtractTime: Regex = """(.*)T(\d\d).*""".r
 
-    def parseDateTime(timestamp:String):util.Date = {
-        try{
+    def parseDateTime(timestamp: String): util.Date = {
         val simpleDateFormat = new SimpleDateFormat("yyyy-MM-ddhh:mm:ss.SSSZ")
-        //println(timestamp)
         val parsedDate = simpleDateFormat.parse(timestamp)
         parsedDate
-        }catch {
-            case e => val simpleDateFormat = new SimpleDateFormat("yyyy-MM-ddhh:mm:ss.SSSZ"); simpleDateFormat.parse("2012-04-26T09:15:58.000-04:00")
-        }
     }
 }

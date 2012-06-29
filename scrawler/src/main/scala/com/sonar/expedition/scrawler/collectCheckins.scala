@@ -7,15 +7,15 @@ import collectCheckins._
 import java.util._
 
 class collectCheckins(args: Args) extends Job(args) {
-
     val chkininputData = TextLine(args("input"))
-    val output = TextLine(args("output1"))
-    val output1 = TextLine(args("output2"))
-    val output2 = TextLine(args("output3"))
+    val output = TextLine(args("output"))
+    val output1 = TextLine(args("output1"))
+    val output2 = TextLine(args("output2"))
 
     val chkins = new CheckinInfoPipe(args)
 
     //rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
+
 
     val chkres1 = chkins.getCheckinsDataPipeCollectinLatLon(chkininputData.read).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
             .groupBy(Fields.ALL) {

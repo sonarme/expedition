@@ -1,5 +1,7 @@
 package com.sonar.expedition.scrawler
 
+;
+
 import com.twitter.scalding.{Job, Args}
 import cascading.tuple.Fields
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
@@ -43,7 +45,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
                 (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
 
-        }  //rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
+        } //rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
 
                 .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location)
                 .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)) {
@@ -65,20 +67,20 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val chkindata = (checkinInput.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
             line: String => {
                 line match {
-                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet, mess) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
                     case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
                 }
             }
         })
                 .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)
-                .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat,'lng) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt,'ln)) {
-            fields: (String, String, String, String, String, String, String, String, String,String) =>
-                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat,lon) = fields
+                .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)) {
+            fields: (String, String, String, String, String, String, String, String, String, String) =>
+                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lon) = fields
                 val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
                 //val hashedServiceID = serviceID
-                (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat,lon)
+                (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lon)
         }
-        .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt,'ln)
+                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
         chkindata
 
     }
@@ -145,5 +147,5 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
 }
 
 object CheckinInfoPipe {
-    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::([\d\-]*)::([\d\.\-]*)::([\d\.\-]*)::(.*)""".r
 }
