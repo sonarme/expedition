@@ -7,7 +7,7 @@ import org.apache.commons.codec.language._
 class EmployerCheckinMatch {
     val metaphoner = new StemAndMetaphoneEmployer
     val levver = new Levenshtein
-    metaphoner.setMaxCodeLen(5)
+    metaphoner.setMaxCodeLen(6)
     val maxDistance = 1
 
     /* checks if the employer stem matches the venueName stem and returns a boolean */

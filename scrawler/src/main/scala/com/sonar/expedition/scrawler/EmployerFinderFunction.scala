@@ -10,7 +10,7 @@ import com.twitter.scalding._
 
 class EmployerFinderFunction(args: Args) extends Job(args) {
 
-    def findEmployees(serviceProfileInput : RichPipe, checkinInput : RichPipe) : RichPipe = {
+    def findEmployeesFromText(serviceProfileInput : RichPipe, checkinInput : RichPipe) : RichPipe = {
 
 
 
@@ -65,7 +65,7 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
 
     }
 
-    def findEmployeesFromPipe(serviceProfileInput : RichPipe, checkinInput : RichPipe) : RichPipe = {
+    def findEmployees(serviceProfileInput : RichPipe, checkinInput : RichPipe) : RichPipe = {
 
 
 

@@ -15,6 +15,6 @@ class EmployerFinderFunctionTest(args: Args) extends Job(args) {
 
     val pipe1 = TextLine(serviceProfileInput).read.project('line)
     val pipe2 = TextLine(checkinInput).read.project('line)
-    val pipeout = empFuncTest.findEmployees(pipe1, pipe2).write(TextLine(out))
+    val pipeout = empFuncTest.findEmployeesFromText(pipe1, pipe2).write(TextLine(out))
 
 }

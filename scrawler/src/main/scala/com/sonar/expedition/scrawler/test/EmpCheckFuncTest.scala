@@ -8,8 +8,8 @@ import com.sonar.expedition.scrawler.{EmployerFinderFunction, CheckinGrouperFunc
 class EmpCheckFuncTest(args: Args) extends Job(args) {
 
     val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
-    var checkinInput = "/tmp/tcheckinData.txt"
-    val out = "/tmp/locationMatchSmallFilt.txt"
+    var checkinInput = "/tmp/checkinDatatest.txt"
+    val out = "/tmp/locationMatchSmallFilttest.txt"
 
     val groupFuncTest = new CheckinGrouperFunction(args)
     val empFuncTest = new EmployerFinderFunction(args)
@@ -17,6 +17,6 @@ class EmpCheckFuncTest(args: Args) extends Job(args) {
 
     val pipeserv = TextLine(serviceProfileInput).read.project('line)
     val pipecheck = groupFuncTest.groupCheckins(TextLine(checkinInput).read.project('line))
-    val pipeout = empFuncTest.findEmployeesFromPipe(pipeserv, pipecheck).write(TextLine(out))
+    val pipeout = empFuncTest.findEmployees(pipeserv, pipecheck).write(TextLine(out))
 
 }
