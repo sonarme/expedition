@@ -8,10 +8,10 @@ import java.util._
 
 class collectCheckins(args: Args) extends Job(args) {
 
-    val chkininputData = TextLine("/tmp/checkin101.txt")
-    val output = TextLine("/tmp/output.txt")
-    val output1 = TextLine("/tmp/output1.txt")
-    val output2 = TextLine("/tmp/output2.txt")
+    val chkininputData = TextLine(args("input"))
+    val output = TextLine(args("output1"))
+    val output1 = TextLine(args("output2"))
+    val output2 = TextLine(args("output3"))
 
     val chkins = new CheckinInfoPipe(args)
 
