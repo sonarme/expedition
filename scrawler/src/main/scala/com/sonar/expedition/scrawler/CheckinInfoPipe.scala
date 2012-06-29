@@ -58,6 +58,29 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
 
     }
 
+    def getCheckinsDataPipeCollectinLatLon(checkinInput: RichPipe): RichPipe = {
+
+        val chkindata = (checkinInput.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
+            line: String => {
+                line match {
+                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                    case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
+                }
+            }
+        })
+                .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)
+                .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat,'lng) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt,'ln)) {
+            fields: (String, String, String, String, String, String, String, String, String,String) =>
+                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat,lon) = fields
+                val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
+                //val hashedServiceID = serviceID
+                (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat,lon)
+        }
+                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt,'ln)
+        chkindata
+
+    }
+
     def findCityofUserFromChkins(chkins: RichPipe): RichPipe = {
         val citypipe = chkins.groupBy('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle) {
             _
@@ -120,9 +143,20 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val clusters = 3;
         // chnage no of clustures required
         val chkins: java.util.List[String] = ListBuffer(chkinlist: _*)
-        val res = km.cluster(chkins, clusters)
+        val res = km.clusterKMeans(chkins, clusters)
         return res;
 
+    }
+
+    def md5SumString(bytes: Array[Byte]): String = {
+        val md5 = MessageDigest.getInstance("MD5")
+        md5.reset()
+        md5.update(bytes)
+        md5.digest().map(0xFF & _).map {
+            "%02x".format(_)
+        }.foldLeft("") {
+            _ + _
+        }
     }
 
 }

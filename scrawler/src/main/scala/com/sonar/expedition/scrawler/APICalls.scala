@@ -21,8 +21,8 @@ class APICalls(args: Args) extends Job(args) {
 
     def fourSquareCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
         val resp = new HttpClientRest()
-        //val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
-        val location = "0:0:0"
+        val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
+        //val location = "0:0:0"
         location
     }
 
