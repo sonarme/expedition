@@ -15,19 +15,6 @@ import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import APICalls._
-import com.factual.driver.Circle;
-import com.factual.driver.Factual;
-import com.factual.driver.Query;
-import com.factual.driver.ReadResponse;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 
 
 class APICalls(args: Args) extends Job(args) {
@@ -41,7 +28,7 @@ class APICalls(args: Args) extends Job(args) {
 
 
     def fsqAPIFindLatLongFromCompAndCity(unq_cmp_city: RichPipe): RichPipe = {
-        val locationFromCoandCity = unq_cmp_city.unique('worked, 'city).mapTo(Fields.ALL ->('work, 'cname, 'lat, 'long)) {
+        val locationFromCoandCity = unq_cmp_city.unique('mtphnWorked, 'city).mapTo(Fields.ALL ->('work, 'cname, 'lat, 'long)) {
             fields: (String, String) =>
                 val (work, city) = fields
                 val location = getLatLongCity(city)
@@ -55,8 +42,7 @@ class APICalls(args: Args) extends Job(args) {
 
                     (work, city, "", "", "")
                 } else {
-                    val locationworkplace = factualCall(work, lat, long)
-                    // val locationworkplace = fourSquareCall(work, lat, long)
+                    val locationworkplace = fourSquareCall(work, lat, long)
                     val locationofficeregex(lati, longi, pincode) = locationworkplace
                     (work, city, lati, longi, pincode)
                 }
@@ -76,11 +62,6 @@ class APICalls(args: Args) extends Job(args) {
 
     }
 
-    def factualCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
-        val resp = new HttpClientRest()
-        val location = resp.getFactualWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
-        location
-    }
 
 }
 

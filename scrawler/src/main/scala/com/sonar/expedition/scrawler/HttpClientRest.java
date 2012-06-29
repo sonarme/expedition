@@ -1,5 +1,6 @@
 package com.sonar.expedition.scrawler;
 
+import com.factual.driver.*;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -8,11 +9,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
-
-import com.factual.driver.Circle;
-import com.factual.driver.Factual;
-import com.factual.driver.Query;
-import com.factual.driver.ReadResponse;
 
 import java.io.File;
 import java.io.IOException;
@@ -73,24 +69,22 @@ public class HttpClientRest {
 
 
     public String getFSQWorkplaceLatLongWithKeys(String workplace, String citylocationLat, String citylocationLong) {
-        workplace = workplace.replaceAll(" ", "%20");
-        String url = "https://api.foursquare.com/v2/venues/search?ll=" + citylocationLat + "," + citylocationLong + "&query=" + workplace + "&client_id=NB45JIY4HBP3VY232KO12XGDAZGF4O3DKUOBRTGZ5REY50E1&client_secret=5NCZW0FWUCHCJ5VS35YDG20AYHGBC2H5Z1W2OIG13IUEDHNK&v=20120621";
-        JSONObject jsonObject = new JSONObject();
         String latitude = "-1";
         String longitute = "-1";
         String postcode = "-1";
         String getresp = "";
+
         try {
-            //System.out.println(url);
+            if(workplace==null)
+                return latitude + ":" + longitute + ":" + postcode;
+            workplace = workplace.replaceAll(" ", "%20");
+            String url = "https://api.foursquare.com/v2/venues/search?ll=" + citylocationLat + "," + citylocationLong + "&query=" + workplace + "&client_id=NB45JIY4HBP3VY232KO12XGDAZGF4O3DKUOBRTGZ5REY50E1&client_secret=5NCZW0FWUCHCJ5VS35YDG20AYHGBC2H5Z1W2OIG13IUEDHNK&v=20120621";
+            JSONObject jsonObject = new JSONObject();
             getresp = getresponse(url);
             jsonObject = new JSONObject(getresp);
-            //System.out.println("fs1" + jsonObject);
             JSONObject foursqRespList = jsonObject.getJSONObject("response");
-            //JSONObject latitude = ((JSONArray)jsonObject.get("results")).getJSONObject(0).getJSONObject("geometry").getJSONObject("location").getDouble("lat");
-            //System.out.println("fs2" + foursqRespList);
             for (int i = 0; i < foursqRespList.length(); i++) {
                 JSONArray loc = foursqRespList.getJSONArray("venues");
-                //System.out.println("fs3" + loc);
                 for (int j = 0; j < loc.length(); j++) {  // **line 2**
                     JSONObject childJSONObject = loc.getJSONObject(i);
                     String chkname = childJSONObject.getString("name");
@@ -108,12 +102,10 @@ public class HttpClientRest {
         } catch (JSONException e) {
             // TODO Auto-generated catch block
             System.out.println(getresp);
+            //e.printStackTrace();
+            return latitude + ":" + longitute + ":" + postcode;
+       }
 
-            e.printStackTrace();
-
-
-        }
-        return latitude + ":" + longitute + ":" + postcode;
 
     }
 
@@ -155,39 +147,57 @@ public class HttpClientRest {
 
     public String getFactualLocsFrmZip(String zip) {
         Factual factual = new Factual("xxFiqmh1H26jMWUXmmVrexYbwIIL3RE269Dk8hUx", "mFEshzJuARYclNyoBPmeOZr9wyduWGq9LTm5aQpT");
+        int iter=1;
+        String results="";
+        String factualResp="";
+        ReadResponse resp=null;
+        int maxRequests=0;
 
-        ReadResponse resp = factual.fetch("places", new Query().field("postcode").equal(zip).limit(50));
-        String factualResp = resp.getJson();
-        System.out.println(factualResp);
-        return getListOfLocations(factualResp);
+        resp = factual.fetch("places", new Query().field("postcode").equal(zip).limit(50).includeRowCount(true));
+        factualResp = resp.getJson();
+        maxRequests=getMaxRows(factualResp);
+        results+=getListOfLocations(factualResp);
 
+        System.out.print(maxRequests);
+        for(int i=1;i<maxRequests;i++){
+            try{
+                resp = factual.fetch("places", new Query().field("postcode").equal(zip).limit(50).offset(50*i));
+                factualResp = resp.getJson();
+                results+=getListOfLocations(factualResp);
+
+            }catch (Exception e){
+                return results;
+            }
+        }
+
+        return results;
     }
 
-    private static String getListOfLocations(String factualResp) {
-        String latitude = "-1";
-        String longitute = "-1";
-        String postcode = "-1";
+    private static int getMaxRows(String factualResp) {
+        JsonFactory factory = new JsonFactory();
+        ObjectMapper mapper = new ObjectMapper(factory);
+        int maxrows=0;
+        try {
+            FactualMapper o = mapper.readValue(factualResp, FactualMapper.class);
+            maxrows = o.getFactualresp().getTotal_row_count();
+        }catch(IOException e){
+
+        }
+        return maxrows%50==0?maxrows/50:maxrows/50 + 1 ;
+    }
+
+    private static String getListOfLocations(String factualResp){
+
         String RESULTS = "";
         JsonFactory factory = new JsonFactory();
         ObjectMapper mapper = new ObjectMapper(factory);
+        FactualMapper o = null;
         try {
-            FactualMapper o = mapper.readValue(factualResp, FactualMapper.class);
-
+            o = mapper.readValue(factualResp, FactualMapper.class);
+            int maxrows = o.getFactualresp().getTotal_row_count();
             int len = o.getFactualresp().getData().size();
             for (int i = 0; i < len; i++) {
-
-                /*String address;
-                String factual_id;
-                String country;
-                String latitude;
-                String longitude;
-                String postcode;
-                String name;
-                String region;
-                String tel;
-
-                */
-                RESULTS += o.getFactualresp().getData().get(i).getAddress() + "\t"
+                RESULTS    += o.getFactualresp().getData().get(i).getAddress() + "\t"
                         + o.getFactualresp().getData().get(i).getFactual_id() + "\t"
                         + o.getFactualresp().getData().get(i).getCountry() + "\t"
                         + o.getFactualresp().getData().get(i).getLatitude() + "\t"
@@ -199,8 +209,10 @@ public class HttpClientRest {
                         + "\n";
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
+
+
         return RESULTS;
 
     }
