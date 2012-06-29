@@ -43,8 +43,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
                 (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
 
-        }  //rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
-
+        }
                 .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location)
                 .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)) {
             fields: (String, String, String, String, String, String, String, String, String) =>
@@ -58,7 +57,6 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         chkindata
 
     }
-
 
     def getCheckinsDataPipeCollectinLatLon(checkinInput: RichPipe): RichPipe = {
 
@@ -78,7 +76,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 //val hashedServiceID = serviceID
                 (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat,lon)
         }
-        .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt,'ln)
+                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt,'ln)
         chkindata
 
     }
