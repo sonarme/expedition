@@ -9,7 +9,7 @@ class JobClassification(args: Args) extends Job(args) {
     val output1 = TextLine("/tmp/jobcla.txt")
 
     val metaphoner1 = new StemAndMetaphoneEmployer
-    val data1 = (chkininputData1.read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+    var data1 = (chkininputData1.read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
                 case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
@@ -19,14 +19,29 @@ class JobClassification(args: Args) extends Job(args) {
     }).project('id, 'serviceType, 'jsondata)
 
     val dtoProfileGetPipe1 = new DTOProfileInfoPipe(args)
-    val joinedProfiles1 = dtoProfileGetPipe1.getDTOWrkDescInfoInTuples(data1)
+    val joinedProfiles1 = dtoProfileGetPipe1.getWrkDescProfileTuples(data1)
 
     val filteredProfiles1 = joinedProfiles1.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc).map('worktitle -> 'mtpworktitle) {
         fields: String =>
             val (worktitle) = fields
-            val mtpworktitle = metaphoner1.getStemmedMetaphone(worktitle)
+            val mtpworktitle = metaphoner1.getMetaphone(worktitle)
             mtpworktitle
-    }.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'mtpworktitle, 'workdesc)
+    }.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'mtpworktitle, 'worktitle, 'workdesc)
+
+            /*.groupBy('mtpworktitle){
+               _
+               .toList[String]('key,'keys)
+               .toList[String]('uname,'unames)
+               .toList[String]('city,'cities)
+               .toList[String]('educ,'educs)
+               .toList[String]('worktitle,'worktitles)
+
+           }
+           .project('mtpworktitle,'worktitles,'keys,'unames,'cities,'educs)
+            */
+
+
+
             .write(output1)
 
 

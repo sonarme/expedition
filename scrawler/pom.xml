@@ -306,6 +306,13 @@
             <version>1.2.16</version>
         </dependency>
 
+
+        <dependency>
+            <groupId>org.apache.mahout</groupId>
+            <artifactId>mahout-core</artifactId>
+            <version>0.8-SNAPSHOT</version>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.mahout</groupId>
             <artifactId>mahout-core</artifactId>

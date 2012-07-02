@@ -91,7 +91,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     }
 
 
-    def getDTOWrkDescInfoInTuples(datahandle: RichPipe): RichPipe = {
+    def getWrkDescProfileTuples(datahandle: RichPipe): RichPipe = {
         val numProfiles = datahandle.groupBy('id) {
             _.size
         }.rename('size -> 'numProfiles)
