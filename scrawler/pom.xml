@@ -263,11 +263,6 @@
             <version>1.6</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.nlp2rdf</groupId>
-            <artifactId>lingpipe-webservice</artifactId>
-            <version>1.1-SNAPSHOT</version>
-        </dependency>
 
         <!--dependency>
             <groupId>net.liftweb</groupId>
@@ -488,10 +483,7 @@
             <name>elasticsearch repo</name>
             <url>http://elasticsearch.googlecode.com/svn/maven</url>
         </repository>
-        <repository>
-            <id>lingpipe</id>
-            <url>http://maven.aksw.org/repository/</url>
-        </repository>
+
     </repositories>
 
 </project>

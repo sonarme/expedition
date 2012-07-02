@@ -1,5 +1,3 @@
-package com.sonar.expedition.scrawler
-
 import cascading.tuple.Fields
 import com.restfb.types.User.Education
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer

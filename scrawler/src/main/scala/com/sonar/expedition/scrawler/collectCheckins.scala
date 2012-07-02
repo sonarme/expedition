@@ -1,5 +1,3 @@
-package com.sonar.expedition.scrawler
-
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.{CheckinTimeFilter, CheckinInfoPipe}
 import com.twitter.scalding.{GroupBuilder, TextLine, Job, Args}
