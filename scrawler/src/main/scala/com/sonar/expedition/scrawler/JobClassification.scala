@@ -1,10 +1,9 @@
-
 import com.sonar.expedition.scrawler.{StemAndMetaphoneEmployer, EmployerCheckinMatch, DTOProfileInfoPipe}
 import com.twitter.scalding.{TextLine, Job, Args}
 import util.matching.Regex
 import JobClassification._
 
-class JobClassification (args: Args) extends Job(args) {
+class JobClassification(args: Args) extends Job(args) {
 
     val chkininputData1 = TextLine("/tmp/dataAnalyse.txt")
     val output1 = TextLine("/tmp/jobcla.txt")
@@ -20,17 +19,15 @@ class JobClassification (args: Args) extends Job(args) {
     }).project('id, 'serviceType, 'jsondata)
 
     val dtoProfileGetPipe1 = new DTOProfileInfoPipe(args)
-    val joinedProfiles1 = dtoProfileGetPipe1.getDTOWrkDescInfoInTuples(data1).write(output1)
+    val joinedProfiles1 = dtoProfileGetPipe1.getDTOWrkDescInfoInTuples(data1)
 
-   /* val filteredProfiles1 = joinedProfiles1 .project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle,'workdesc).map('worktitle -> 'mtpworktitle) {
+    val filteredProfiles1 = joinedProfiles1.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc).map('worktitle -> 'mtpworktitle) {
         fields: String =>
             val (worktitle) = fields
-            val mtpworktitle = metaphoner.getStemmedMetaphone(worktitle)
+            val mtpworktitle = metaphoner1.getStemmedMetaphone(worktitle)
             mtpworktitle
-    }.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'mtpworktitle,'workdesc)
-    .write(output)
-*/
-
+    }.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'mtpworktitle, 'workdesc)
+            .write(output1)
 
 
 }
