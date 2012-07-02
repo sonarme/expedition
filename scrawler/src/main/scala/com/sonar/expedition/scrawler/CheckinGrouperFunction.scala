@@ -18,9 +18,13 @@ import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import com.sonar.dossier.dto.{Checkin, ServiceProfileDTO}
 import java.util.Calendar
 
+
 class CheckinGrouperFunction(args : Args) extends Job(args) {
 
+
+
     def groupCheckins(input : RichPipe): RichPipe = {
+
 
         val data = input
                 .mapTo('line -> ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
@@ -49,12 +53,24 @@ class CheckinGrouperFunction(args : Args) extends Job(args) {
                 val loc = lat + ":" + lng
                 (loc)
         }
-        .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+
+//                .pack[CheckinObjects](('serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
+//                .groupBy('userProfileId) {
+//            group => group.toList[CheckinObjects]('checkin,'checkindata)
+//        }.map(Fields.ALL -> ('ProfileId, 'venue)){
+//            fields : (String,List[CheckinObjects]) =>
+//                val (userid ,checkin) = fields
+//                val venue = checkin.map(_.getVenueName)
+//                (userid,venue)
+//        }.project('ProfileId,'venue)
+
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+
         data
     }
 
 }
 
 object CheckinGrouperFunction {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::([\d]*)::([\.\d\-]*)::([\.\d\-]*)""".r
 }

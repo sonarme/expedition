@@ -28,7 +28,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         val dtoProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
                 .mapTo(Fields.ALL -> Fields.ALL) {
-                fields: (String, String, String, String, String) =>
+            fields: (String, String, String, String, String) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
                 var value2 = getFBId(serviceType, serviceType2)
                 var value3 = getFBJson(serviceType, serviceType2, jsondata)
@@ -36,15 +36,15 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 var value5 = getLNKDINJson(serviceType, serviceType2, jsondata2)
                 (fields._1, value2, value3, value4, value5)
         }
-        .mapTo(Fields.ALL -> Fields.ALL) {
-               fields: (String, String, Option[String], String, Option[String]) =>
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
                 var fbid = getID(jsondata)
                 var lnid = getID(jsondata2)
                 (id, fbid, jsondata, lnid, jsondata2)
-        }
-         .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
-                fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
+        } //.write(out2)
+                .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
+            fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
                 var fbid = getID(jsondata)
                 var lnid = getID(jsondata2)
@@ -56,18 +56,23 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 var fbcity = getCity(jsondata)
                 var lncity = getCity(jsondata2)
                 var city = formCityList(fbcity, lncity)
+                //var currwork = getWork(jsondata,jsondata2)
+                //var currcity = getCity(jsondata,jsondata2)
+                //var name
+                //var worktitle
+                //var workhistory = getWorkHistory(jsondata,jsondata2)
+                //var locationhistory
                 (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
-        }
-        .map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
-                fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
+        }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
+            fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
                 val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
                 val edulist = formEducationlist(fbedu, lnedu)
                 val worklist = formWorkHistoryList(fbwork, lnwork)
                 (rowkey, fbname, fbid, lnid, edulist, worklist, city)
         }
-        .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
-        .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
-                fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
+                .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
+                .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
+            fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
                 val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
                 val educationschool = getFirstEdu(edu)
                 val edudegree = getFirstEduDegree(edu)
@@ -78,7 +83,83 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val ccity = getcurrCity(city)
                 //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
                 (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString)
+            //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
         }
+
+        dtoProfiles
+
+    }
+
+
+    def getDTOWrkDescInfoInTuples(datahandle: RichPipe): RichPipe = {
+        val numProfiles = datahandle.groupBy('id) {
+            _.size
+        }.rename('size -> 'numProfiles)
+
+        val profiles = datahandle.joinWithSmaller('id -> 'id, numProfiles)
+
+        val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+
+        val dtoProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, String, String, String) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                var value2 = getFBId(serviceType, serviceType2)
+                var value3 = getFBJson(serviceType, serviceType2, jsondata)
+                var value4 = getLinkedInId(serviceType, serviceType2)
+                var value5 = getLNKDINJson(serviceType, serviceType2, jsondata2)
+                (fields._1, value2, value3, value4, value5)
+        }
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, Option[String], String, Option[String]) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                var fbid = getID(jsondata)
+                var lnid = getID(jsondata2)
+                (id, fbid, jsondata, lnid, jsondata2)
+        } //.write(out2)
+                .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
+            fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                var fbid = getID(jsondata)
+                var lnid = getID(jsondata2)
+                var fbedu = getEducation(jsondata)
+                var lnedu = getEducation(jsondata2)
+                var fbwork = getWork(jsondata)
+                var lnwork = getWork(jsondata2)
+                var fbusername = getUserName(jsondata)
+                var fbcity = getCity(jsondata)
+                var lncity = getCity(jsondata2)
+                var city = formCityList(fbcity, lncity)
+                //var currwork = getWork(jsondata,jsondata2)
+                //var currcity = getCity(jsondata,jsondata2)
+                //var name
+                //var worktitle
+                //var workhistory = getWorkHistory(jsondata,jsondata2)
+                //var locationhistory
+                (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
+        }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
+            fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
+                val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
+                val edulist = formEducationlist(fbedu, lnedu)
+                val worklist = formWorkHistoryList(fbwork, lnwork)
+                (rowkey, fbname, fbid, lnid, edulist, worklist, city)
+        }
+                .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
+                .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
+            fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
+                val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
+                val educationschool = getFirstEdu(edu)
+                val edudegree = getFirstEduDegree(edu)
+                var eduyear = getFirstEduDegreeYear(edu)
+                val workcomp = getFirstWork(work)
+                val worktitle = getWorkTitle(work)
+                val workdesc = getWorkSummary(work)
+                val ccity = getcurrCity(city)
+                //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+                (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
+            //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+        }
+
         dtoProfiles
 
     }

@@ -2,8 +2,8 @@ package com.sonar.expedition.scrawler;
 
 public class CheckinObjects {
     String serviceType = "";
-    String serviceProfileID = "";
-    String serviceCheckinID = "";
+    String serviceProfileId = "";
+    String serviceCheckinId = "";
     String venueName = "";
     String venueAddress = "";
     String checkinTime;
@@ -20,20 +20,20 @@ public class CheckinObjects {
         this.serviceType = serviceType;
     }
 
-    public String getServiceProfileID() {
-        return serviceProfileID;
+    public String getServiceProfileId() {
+        return serviceProfileId;
     }
 
-    public void setServiceProfileID(String serviceProfileID) {
-        this.serviceProfileID = serviceProfileID;
+    public void setServiceProfileId(String serviceProfileId) {
+        this.serviceProfileId = serviceProfileId;
     }
 
-    public String getServiceCheckinID() {
-        return serviceCheckinID;
+    public String getServiceCheckinId() {
+        return serviceCheckinId;
     }
 
-    public void setServiceCheckinID(String serviceCheckinID) {
-        this.serviceCheckinID = serviceCheckinID;
+    public void setServiceCheckinId(String serviceCheckinId) {
+        this.serviceCheckinId = serviceCheckinId;
     }
 
     public String getVenueName() {

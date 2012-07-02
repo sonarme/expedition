@@ -19,32 +19,33 @@ class CheckinGrouper(args: Args) extends Job(args) {
 
 
     // reads in checkin data then packs them into checkinobjects, grouped by sonar id. objects will need to be joined with service profile data and friend data
-    var inputData = "/tmp/tcheckinData.txt"
+    var inputData = "/tmp/checkinData.txt"
     var out = "/tmp/userGroupedCheckins.txt"
-    var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
+    var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
         line: String => {
             line match {
-                case DataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
                 case _ => ("None","None","None","None","None","None","None","None","None","None")
             }
         }
-    }).pack[CheckinObjects](('serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin).groupBy('userProfileID) {
+    })/*.pack[CheckinObjects](('serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin).groupBy('userProfileId) {
         group => group.toList[CheckinObjects]('checkin,'checkindata)
-    }.map(Fields.ALL -> ('ProfileID, 'venue)){
+    }.map(Fields.ALL -> ('ProfileId, 'venue)){
         fields : (String,List[CheckinObjects]) =>
             val (userid ,checkin) = fields
             val venue = checkin.map(_.getVenueName)
             (userid,venue)
-    }.project('ProfileID,'venue).write(TextLine(out))
+    }.project('ProfileId,'venue).write(TextLine(out))*/
+            .project(('userProfileId,'venueName,'latitude,'longitude)).write(TextLine(out))
 
 
 
-//     .project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileID, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)){
+//     .project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileId, 'serType, 'serProfileId, 'serCheckinId, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)){
 //        fields : (String, String, String, String, String, String, String, String, String, String) =>
-//            val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)    = fields
-//            val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
-//            (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-//    }.project('ProfileID, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng).write(TextLine(out))
+//            val (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)    = fields
+//            val hashedServiceId = md5SumString(serviceId.getBytes("UTF-8"))
+//            (id, serviceType, hashedServiceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+//    }.project('ProfileId, 'serType, 'serProfileId, 'serCheckinId, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng).write(TextLine(out))
 //
 //
 //    def md5SumString(bytes : Array[Byte]) : String = {

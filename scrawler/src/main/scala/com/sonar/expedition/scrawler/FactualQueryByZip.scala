@@ -39,8 +39,8 @@ class FactualQueryByZip(args: Args) extends Job(args) {
 
     def getFactualRes(zip:String):String = {
         val hp = new HttpClientRest()
-        hp.getFactualLocsFrmZip(zip);
-
+//        hp.getFactualLocsFrmZip(zip);
+         "none"
     }
 
 }

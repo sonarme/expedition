@@ -74,14 +74,14 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.filter('worked){
         worked : String => !worked.trim.equals("")
     }
-    .map('worked -> 'mtphnWorked) {
+            .map('worked -> 'mtphnWorked) {
         fields: String =>
             val (worked) = fields
             val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
             mtphnWorked
     }.project('mtphnWorked, 'employeeData)
 
-    .write(TextLine(sanitycheck))
+            .write(TextLine(sanitycheck))
 
     val filteredProfiles = joinedProfiles .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle).map('worked -> 'mtphnWorked) {
         fields: String =>
@@ -89,17 +89,17 @@ class DataAnalyser(args: Args) extends Job(args) {
             val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
             mtphnWorked
     }
-    .project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle)
+            .project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle)
 
     /*
     if city is not filled up find city form chekcins and friends checkin
      */
     var friends             = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
-                              friends.write(TextLine(frout))
+    friends.write(TextLine(frout))
 
 
     val chkindata           =   checkinInfoPipe.getCheckinsDataPipe(TextLine(chkininputData).read)
-        //checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+    //checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
     val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
@@ -118,22 +118,22 @@ class DataAnalyser(args: Args) extends Job(args) {
     val coandcity_latlong   = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city).project('workname, 'placename, 'lati, 'longi, 'street_address)
 
     val work_loc            = coandcity_latlong
-                              .filter('lati, 'longi, 'street_address) {
-                              fields: (String, String, String) =>
-                              val (lat, lng, addr)    = fields
-                              (!lat.toString.equalsIgnoreCase("-1")) && (!lng.toString.equalsIgnoreCase("-1")) && (!addr.toString.equalsIgnoreCase("-1"))
-                              }.write(TextLine("/tmp/work_place.txt"))
+            .filter('lati, 'longi, 'street_address) {
+        fields: (String, String, String) =>
+            val (lat, lng, addr)    = fields
+            (!lat.toString.equalsIgnoreCase("-1")) && (!lng.toString.equalsIgnoreCase("-1")) && (!addr.toString.equalsIgnoreCase("-1"))
+    }.write(TextLine("/tmp/work_place.txt"))
 
     val joinedwork_location = tmpcompanies.joinWithSmaller('city -> 'placename, coandcity_latlong)
             .project('mtphnWorked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'fbid, 'lnid)
             .unique('mtphnWorked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'fbid, 'lnid)
             .filter('lati, 'longi, 'street_address) {
-            fields: (String, String, String) =>
+        fields: (String, String, String) =>
             val (lat, lng, addr) = fields
             (!lat.toString.equalsIgnoreCase("-1")) && (!lng.toString.equalsIgnoreCase("-1")) && (!addr.toString.equalsIgnoreCase("-1"))
 
     }
-    .write(outwrklocation)
+            .write(outwrklocation)
 }
 
 

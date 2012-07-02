@@ -1,6 +1,10 @@
 package com.sonar.expedition.scrawler;
 
-import com.factual.driver.*;
+//import com.factual.driver.*;
+import com.factual.driver.Circle;
+import com.factual.driver.Factual;
+import com.factual.driver.Query;
+import com.factual.driver.ReadResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
