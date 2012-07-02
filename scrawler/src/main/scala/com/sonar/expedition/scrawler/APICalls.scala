@@ -21,14 +21,14 @@ class APICalls(args: Args) extends Job(args) {
 
     def fourSquareCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
         val resp = new HttpClientRest()
-        //val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
-        val location = "0:0:0"
+        val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
+        //val location = "0:0:0"
         location
     }
 
 
     def fsqAPIFindLatLongFromCompAndCity(unq_cmp_city: RichPipe): RichPipe = {
-        val locationFromCoandCity = unq_cmp_city.unique('worked, 'city).mapTo(Fields.ALL ->('work, 'cname, 'lat, 'long)) {
+        val locationFromCoandCity = unq_cmp_city.unique('mtphnWorked, 'city).mapTo(Fields.ALL ->('work, 'cname, 'lat, 'long)) {
             fields: (String, String) =>
                 val (work, city) = fields
                 val location = getLatLongCity(city)

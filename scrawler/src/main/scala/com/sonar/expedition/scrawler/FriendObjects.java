@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler;
 
 public class FriendObjects {
     String serviceType ="";
-    String serviceProfileID="";
+    String serviceProfileId="";
     String friendName="";
 
     public String getServiceType() {
@@ -14,11 +14,11 @@ public class FriendObjects {
     }
 
     public String getServiceProfileId() {
-        return serviceProfileID;
+        return serviceProfileId;
     }
 
     public void setServiceProfileId(String serviceProfileId) {
-        this.serviceProfileID = serviceProfileId;
+        this.serviceProfileId = serviceProfileId;
     }
 
 
@@ -26,8 +26,10 @@ public class FriendObjects {
         return friendName;
     }
 
-    public void setFriendName(String venueName) {
-        this.friendName = venueName;
+    public void setFriendName(String friendName) {
+        this.friendName = friendName;
     }
+
+
 
 }
