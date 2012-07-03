@@ -1,11 +1,13 @@
+package com.sonar.expedition.scrawler
+
+
 import cascading.tuple.Fields
-import com.sonar.expedition.scrawler.CheckinInfoPipe
+import com.sonar.expedition.scrawler.{CollectCheckins, CheckinInfoPipe, CheckinTimeFilter}
 import com.twitter.scalding.{Job, Args, TextLine}
 import cascading.tuple.Fields
-import com.sonar.expedition.scrawler.{CheckinTimeFilter, CheckinInfoPipe}
 import com.twitter.scalding.{GroupBuilder, TextLine, Job, Args}
 import util.matching.Regex
-import collectCheckins._
+import CollectCheckins._
 
 import java.util._
 

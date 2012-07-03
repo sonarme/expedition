@@ -2,11 +2,11 @@ import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.{CheckinTimeFilter, CheckinInfoPipe}
 import com.twitter.scalding.{GroupBuilder, TextLine, Job, Args}
 import util.matching.Regex
-import collectCheckins._
+import CollectCheckins._
 
 import java.util._
 
-class collectCheckins(args: Args) extends Job(args) {
+class CollectCheckins(args: Args) extends Job(args) {
     val chkininputData = TextLine(args("input"))
     val output = TextLine(args("output"))
     val output1 = TextLine(args("output1"))
@@ -117,7 +117,7 @@ class collectCheckins(args: Args) extends Job(args) {
 
 // rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
 
-object collectCheckins {
+object CollectCheckins {
     val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r

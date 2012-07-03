@@ -263,7 +263,12 @@
             <version>1.6</version>
         </dependency>
 
-
+       <!-- <dependency>
+            <groupId>org.nlp2rdf</groupId>
+            <artifactId>lingpipe-webservice</artifactId>
+            <version>1.1-SNAPSHOT</version>
+        </dependency>
+-->
         <!--dependency>
             <groupId>net.liftweb</groupId>
             <artifactId>lift-json</artifactId>
@@ -460,6 +465,19 @@
                                             <resource>META-INF/spring.schemas</resource>
                                         </transformer>
                                     </transformers>
+
+                                    <!--Need this to filter out signed manifests that will trip up Hadoop-->
+                                    <filters>
+                                        <filter>
+                                            <artifact>*:*</artifact>
+                                            <excludes>
+                                                <exclude>META-INF/*.SF</exclude>
+                                                <exclude>META-INF/*.DSA</exclude>
+                                                <exclude>META-INF/*.RSA</exclude>
+                                            </excludes>
+                                        </filter>
+                                    </filters>
+
                                 </configuration>
                             </execution>
                         </executions>

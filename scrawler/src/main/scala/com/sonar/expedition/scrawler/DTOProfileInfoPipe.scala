@@ -2,7 +2,6 @@ package com.sonar.expedition.scrawler
 
 import cascading.tuple.Fields
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
-import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO, Checkin}
 import java.security.MessageDigest
 import cascading.pipe.{Each, Pipe}
 import com.twitter.scalding.TextLine
@@ -13,6 +12,7 @@ import util.matching.Regex
 import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
+import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO, Checkin}
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
