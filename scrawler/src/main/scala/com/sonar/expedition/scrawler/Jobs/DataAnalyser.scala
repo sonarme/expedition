@@ -120,7 +120,7 @@ worked : String => !worked.trim.equals("")
     //findcityfromchkins.write(TextLine("/tmp/data123.txt"))
 
     filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid)
-            .write(TextLine("/tmp/data123.txt"))
+            .write(TextLine(args("output")))
     /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
 
     val work_loc = coandcity_latlong
@@ -147,7 +147,7 @@ worked : String => !worked.trim.equals("")
 
 
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
+    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r
 
