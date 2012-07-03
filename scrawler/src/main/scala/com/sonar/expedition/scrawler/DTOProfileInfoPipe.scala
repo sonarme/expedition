@@ -9,6 +9,7 @@ import com.twitter.scalding.TextLine
 import cascading.flow.FlowDef
 import com.twitter.scalding._
 import java.nio.ByteBuffer
+import json.JacksonObjectMapper
 import util.matching.Regex
 import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
@@ -30,38 +31,32 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, String, String, String) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-                var value2 = getFBId(serviceType, serviceType2)
-                var value3 = getFBJson(serviceType, serviceType2, jsondata)
-                var value4 = getLinkedInId(serviceType, serviceType2)
-                var value5 = getLNKDINJson(serviceType, serviceType2, jsondata2)
-                (fields._1, value2, value3, value4, value5)
+//                val fbId = getFBId(serviceType, serviceType2)
+                val fbJson = getFBJson(serviceType, serviceType2, jsondata)
+//                val lnId = getLinkedInId(serviceType, serviceType2)
+                val lnJson = getLNKDINJson(serviceType, serviceType2, jsondata2)
+                (fields._1, serviceType, fbJson, serviceType2, lnJson)
         }
-        .mapTo(Fields.ALL -> Fields.ALL) {
-                fields: (String, String, Option[String], String, Option[String]) =>
-                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-                var fbid = getID(jsondata)
-                var lnid = getID(jsondata2)
-                (id, fbid, jsondata, lnid, jsondata2)
-        } //.write(out2)
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, Option[String], String, Option[String]) =>
+                val (id, serviceType, fbJson, serviceType2, lnJson) = fields
+                val fbServiceProfile = parseJson(fbJson)
+                val lnServiceProfile = parseJson(lnJson)
+                val fbid = getID(fbServiceProfile)
+                val lnid = getID(lnServiceProfile)
+                (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
+        }
                 .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
-                fields: (String, Option[String], Option[String], Option[String], Option[String]) =>
-                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-                var fbid = getID(jsondata)
-                var lnid = getID(jsondata2)
-                var fbedu = getEducation(jsondata)
-                var lnedu = getEducation(jsondata2)
-                var fbwork = getWork(jsondata)
-                var lnwork = getWork(jsondata2)
-                var fbusername = getUserName(jsondata)
-                var fbcity = getCity(jsondata)
-                var lncity = getCity(jsondata2)
-                var city = formCityList(fbcity, lncity)
-                //var currwork = getWork(jsondata,jsondata2)
-                //var currcity = getCity(jsondata,jsondata2)
-                //var name
-                //var worktitle
-                //var workhistory = getWorkHistory(jsondata,jsondata2)
-                //var locationhistory
+            fields: (String, Option[String], Option[ServiceProfileDTO], Option[String], Option[ServiceProfileDTO]) =>
+                val (id, fbid, fbJson, lnid, lnJson) = fields
+                val fbedu = getEducation(fbJson)
+                val lnedu = getEducation(lnJson)
+                val fbwork = getWork(fbJson)
+                val lnwork = getWork(lnJson)
+                val fbusername = getUserName(fbJson)
+                val fbcity = getCity(fbJson)
+                val lncity = getCity(lnJson)
+                val city = formCityList(fbcity, lncity)
                 (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
         }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
             fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
@@ -72,17 +67,16 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         }
                 .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
                 .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
-            fields: (String, Option[String], Option[String], Option[String], scala.collection.immutable.List[UserEducation], scala.collection.immutable.List[UserEmployment], List[String]) =>
+            fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEmployment], List[String]) =>
                 val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
                 val educationschool = getFirstEdu(edu)
                 val edudegree = getFirstEduDegree(edu)
                 var eduyear = getFirstEduDegreeYear(edu)
                 val workcomp = getFirstWork(work)
                 val worktitle = getWorkTitle(work)
-                val workdesc = getWorkSummary(work)
                 val ccity = getcurrCity(city)
                 //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
-                (rowkey, fbname.mkString, fbid.mkString, lnid.mkString, educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString)
+                (rowkey, fbname.getOrElse(None), fbid.mkString, lnid.mkString, educationschool, workcomp, ccity, edudegree, eduyear, worktitle)
             //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
         }
 
@@ -94,41 +88,41 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         city.headOption.mkString
     }
 
-    def getFirstEdu(edu: scala.collection.immutable.List[UserEducation]): String = {
+    def getFirstEdu(edu: List[UserEducation]): String = {
         edu.headOption.map(_.getSchoolName()).mkString
     }
 
 
-    def getFirstEduDegree(edu: scala.collection.immutable.List[UserEducation]): String = {
+    def getFirstEduDegree(edu: List[UserEducation]): String = {
         edu.headOption.map(_.getDegree()).mkString
     }
 
 
-    def getFirstEduDegreeYear(edu: scala.collection.immutable.List[UserEducation]): String = {
+    def getFirstEduDegreeYear(edu: List[UserEducation]): String = {
         edu.headOption.map(_.getYear()).mkString
     }
 
-    def getFirstWork(work: scala.collection.immutable.List[UserEmployment]): String = {
+    def getFirstWork(work: List[UserEmployment]): String = {
         work.headOption.map(_.getCompanyName()).mkString
     }
 
-    def getWorkSummary(work: scala.collection.immutable.List[UserEmployment]): String = {
+    def getWorkSummary(work: List[UserEmployment]): String = {
         work.headOption.map(_.getSummary()).mkString
     }
 
-    def getWorkTitle(work: scala.collection.immutable.List[UserEmployment]): String = {
+    def getWorkTitle(work: List[UserEmployment]): String = {
         work.headOption.map(_.getTitle()).mkString
     }
 
     def getLatitute(checkins: List[CheckinObjects]): String = {
-        checkins.map(_.getLatitude).toString
+        checkins.map(_.getLatitude).toString()
     }
 
     def formCityList(fbcitydata: Option[String], lnkdcitydata: Option[String]): List[String] = {
         fbcitydata.toList ++ lnkdcitydata.toList
     }
 
-    def formWorkHistoryList(fbworkdata: scala.collection.immutable.List[UserEmployment], lnkdworkdata: scala.collection.immutable.List[UserEmployment]): scala.collection.immutable.List[UserEmployment] = {
+    def formWorkHistoryList(fbworkdata: List[UserEmployment], lnkdworkdata: List[UserEmployment]): List[UserEmployment] = {
         fbworkdata.toList ++ lnkdworkdata.toList
     }
 
@@ -136,31 +130,20 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         fbedulist ++ lnedulist
     }
 
-    def getWork(workJson: Option[String]): List[UserEmployment] = {
-        val resultantJson = workJson.mkString;
-        val fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        Option(fbdata).map(_.getWork().toList).getOrElse(List[UserEmployment]())
+    def getWork(serviceProfile: Option[ServiceProfileDTO]): List[UserEmployment] = {
+        serviceProfile.map(_.getWork().toList).getOrElse(List[UserEmployment]())
     }
 
-    def getEducation(educationJson: Option[String]): List[UserEducation] = {
-        val resultantJson = educationJson.mkString;
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        Option(fbdata).map(_.getEducation().toList).getOrElse(List[UserEducation]())
-
+    def getEducation(serviceProfile: Option[ServiceProfileDTO]): List[UserEducation] = {
+        serviceProfile.map(_.getEducation().toList).getOrElse(List[UserEducation]())
     }
 
-    def getUserName(fbJson: Option[String]): Option[String] = {
-        val resultantJson = fbJson.mkString;
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        var res4 = Option(fbdata)
-        res4.map(_.getFullName())
+    def getUserName(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
+        serviceProfile.map(_.getFullName())
     }
 
-    def getCity(fbJson: Option[String]): Option[String] = {
-        val resultantJson = fbJson.mkString;
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        var res4 = Option(fbdata)
-        res4.map(_.getLocation())
+    def getCity(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
+        serviceProfile.map(_.getLocation())
     }
 
     def getFBId(serviceTypeFB: String, serviceTypeLn: String): Option[String] = {
@@ -175,9 +158,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     }
 
     def getLinkedInId(serviceTypeFB: String, serviceTypeLn: String): Option[String] = {
-        if (serviceTypeFB == null)
+        if (serviceTypeLn == null)
             None
-        if ((serviceTypeFB == serviceTypeLn) && serviceTypeFB.trim == "fb") {
+        if ((serviceTypeFB == serviceTypeLn) && serviceTypeLn.trim == "fb") {
             None
         }
         else {
@@ -197,9 +180,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     }
 
     def getLNKDINJson(serviceTypeFB: String, serviceTypeLn: String, jsonString: String): Option[String] = {
-        if (serviceTypeFB == null)
+        if (serviceTypeLn == null)
             None
-        if (serviceTypeFB == serviceTypeLn && serviceTypeFB.trim == "fb") {
+        if (serviceTypeFB == serviceTypeLn && serviceTypeLn.trim == "fb") {
             None
         }
         else {
@@ -207,11 +190,16 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         }
     }
 
-    def getID(jsonString: Option[String]): Option[String] = {
-        val resultantJson = jsonString.mkString;
-        var fbdata = JsonSerializer.get[ServiceProfileDTO]().fromByteBuffer(ByteBuffer.wrap(resultantJson.getBytes("UTF-8")));
-        var res4 = Option(fbdata)
-        res4.map(_.getUserId())
+    def parseJson(jsonStringOption: Option[String]): Option[ServiceProfileDTO] = {
+        jsonStringOption map {
+            jsonString =>
+                JacksonObjectMapper.objectMapper.readValue(jsonString, classOf[ServiceProfileDTO])
+        }
+    }
+
+
+    def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
+        serviceProfile.map(_.getUserId())
     }
 
     def prettyPrint(foo: Option[String]): String = foo match {
