@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding._
-import com.sonar.expedition.scrawler.{EmployerFinderFunction, CheckinGrouperFunction}
+import com.sonar.expedition.scrawler.pipes.{EmployerFinderFunction, CheckinGrouperFunction}
 
 // pipes from grouper to employer finder and gets result
 
