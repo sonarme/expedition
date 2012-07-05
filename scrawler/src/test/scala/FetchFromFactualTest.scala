@@ -1,4 +1,4 @@
-import com.sonar.expedition.scrawler.HttpClientRest
+import com.sonar.expedition.scrawler.apis.HttpClientRest
 import org.testng.annotations.Test
 
 class FetchFromFactualTest {

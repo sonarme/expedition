@@ -17,7 +17,6 @@
         <org.springframework.security-version>3.1.0.RELEASE</org.springframework.security-version>
         <org.springframework.social-version>1.0.2.RELEASE</org.springframework.social-version>
         <org.springframework.integration-version>2.1.1.RELEASE</org.springframework.integration-version>
-        <hadoop.version>0.20.204.1-dse1</hadoop.version>
         <!-- DSE cluster version: 0.20.204.1-dse1 -->
         <camel.version>2.9.2</camel.version>
         <scala.version>2.9.2</scala.version>
@@ -36,48 +35,7 @@
             <artifactId>scalding_2.9.1</artifactId>
             <version>0.5.1</version>
         </dependency>
-        <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>0.20.0.Beta1-SNAPSHOT</version>
 
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-core</artifactId>
-            <version>${lucene.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-analyzers</artifactId>
-            <version>${lucene.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-queries</artifactId>
-            <version>${lucene.version}</version>
-            <scope>compile</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>jakarta-regexp</groupId>
-                    <artifactId>jakarta-regexp</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-memory</artifactId>
-            <version>${lucene.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.lucene</groupId>
-            <artifactId>lucene-highlighter</artifactId>
-            <version>${lucene.version}</version>
-            <scope>compile</scope>
-        </dependency>
 
         <!-- START: dependencies that are shaded -->
         <dependency>
@@ -93,27 +51,6 @@
             </exclusions>
         </dependency>
 
-        <dependency>
-            <groupId>net.sf.trove4j</groupId>
-            <artifactId>trove4j</artifactId>
-            <version>3.0.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <!-- joda 2.0 moved to using volatile fields for datetime -->
-            <!-- When updating to a new version, make sure to update our copy of BaseDateTime -->
-            <version>2.1</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mvel</groupId>
-            <artifactId>mvel2</artifactId>
-            <version>2.1.Beta8</version>
-            <scope>compile</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
@@ -122,12 +59,6 @@
             <scope>compile</scope>
         </dependency>
 
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-smile</artifactId>
-            <version>1.9.7</version>
-            <scope>compile</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.yaml</groupId>
@@ -136,19 +67,7 @@
             <scope>compile</scope>
         </dependency>
 
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty</artifactId>
-            <version>3.5.1.Final</version>
-            <scope>compile</scope>
-        </dependency>
 
-        <dependency>
-            <groupId>com.ning</groupId>
-            <artifactId>compress-lzf</artifactId>
-            <version>0.9.5</version>
-            <scope>compile</scope>
-        </dependency>
         <!-- END: dependencies that are shaded -->
 
         <dependency>
@@ -159,29 +78,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.6.2</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
-            <version>3.3.0</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.fusesource</groupId>
-            <artifactId>sigar</artifactId>
-            <version>1.6.4</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
         <!-- We don't use this since the publish pom is then messed up -->
         <!--
@@ -195,26 +91,7 @@
         </dependency>
         -->
 
-        <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>6.3.1</version>
-            <scope>test</scope>
-        </dependency>
 
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-core</artifactId>
-            <version>1.3.RC2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-library</artifactId>
-            <version>1.3.RC2</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>commons-logging</groupId>
             <artifactId>commons-logging</artifactId>
@@ -335,36 +212,6 @@
             </exclusions>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-core</artifactId>
-            <version>0.20.2</version>
-            <!--<scope>provided</scope>-->
-
-            <exclusions>
-                <exclusion>
-                    <artifactId>jetty</artifactId>
-                    <groupId>org.mortbay.jetty</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>jetty-util</artifactId>
-                    <groupId>org.mortbay.jetty</groupId>
-                </exclusion>
-
-                <exclusion>
-                    <artifactId>httpclient</artifactId>
-                    <groupId>org.apache.httpcomponents</groupId>
-                </exclusion>
-
-
-                <exclusion>
-                    <artifactId>commons-httpclient</artifactId>
-                    <groupId>commons-httpclient</groupId>
-                </exclusion>
-
-
-            </exclusions>
-        </dependency>
 
         <dependency>
             <!-- jsoup HTML parser library @ http://jsoup.org/ -->
@@ -416,6 +263,12 @@
             <version>1.6</version>
         </dependency>
 
+        <!-- <dependency>
+                    <groupId>org.nlp2rdf</groupId>
+                    <artifactId>lingpipe-webservice</artifactId>
+                    <version>1.1-SNAPSHOT</version>
+                </dependency>
+        -->
         <!--dependency>
             <groupId>net.liftweb</groupId>
             <artifactId>lift-json</artifactId>
@@ -451,6 +304,13 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>1.2.16</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.apache.mahout</groupId>
+            <artifactId>mahout-core</artifactId>
+            <version>0.8-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -571,6 +431,65 @@
         </plugins>
 
     </build>
+
+    <profiles>
+        <profile>
+            <id>app</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-shade-plugin</artifactId>
+                        <version>1.5</version>
+                        <executions>
+                            <execution>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>shade</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactSet>
+                                        <excludes>
+                                            <exclude>org.scala-lang:scala-compiler</exclude>
+                                            <exclude>org.scala-lang:scalap</exclude>
+                                            <exclude>junit:junit</exclude>
+                                            <exclude>ch.qos.logback:logback-classic</exclude>
+                                            <exclude>org.slf4j:slf4j-log4j12</exclude>
+                                            <exclude>org.slf4j:jcl-over-slf4j</exclude>
+                                        </excludes>
+                                    </artifactSet>
+                                    <transformers>
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                            <resource>META-INF/spring.handlers</resource>
+                                        </transformer>
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                            <resource>META-INF/spring.schemas</resource>
+                                        </transformer>
+                                    </transformers>
+
+                                    <!--Need this to filter out signed manifests that will trip up Hadoop-->
+                                    <filters>
+                                        <filter>
+                                            <artifact>*:*</artifact>
+                                            <excludes>
+                                                <exclude>META-INF/*.SF</exclude>
+                                                <exclude>META-INF/*.DSA</exclude>
+                                                <exclude>META-INF/*.RSA</exclude>
+                                            </excludes>
+                                        </filter>
+                                    </filters>
+
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <repositories>
         <repository>
             <id>repo.codahale.com</id>
@@ -585,6 +504,7 @@
             <name>elasticsearch repo</name>
             <url>http://elasticsearch.googlecode.com/svn/maven</url>
         </repository>
+
     </repositories>
 
 </project>
