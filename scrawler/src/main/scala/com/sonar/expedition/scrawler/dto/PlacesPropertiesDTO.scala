@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler
+package com.sonar.expedition.scrawler.dto
 
 import reflect.BeanProperty
 import annotation.target.field
@@ -27,6 +27,6 @@ case class PlacesPropertiesDTO(@BeanProperty
                                @BeanProperty
                                var postcode: String) {
 
-//    def this() = this(0, 0)
+    //    def this() = this(0, 0)
 
 }

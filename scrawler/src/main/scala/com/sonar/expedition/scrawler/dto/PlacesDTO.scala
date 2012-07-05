@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler
+package com.sonar.expedition.scrawler.dto
 
 import reflect.BeanProperty
 import annotation.target.field
@@ -15,6 +15,6 @@ case class PlacesDTO(@BeanProperty
                      @BeanProperty
                      var properties: PlacesPropertiesDTO) {
 
-//    def this() = this(0, 0)
+    //    def this() = this(0, 0)
 
 }

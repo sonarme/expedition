@@ -7,7 +7,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 public class FactualJsonData {
     String address;
     String ca;
-    String factual_id;
+    String factualId;
     String country;
     String latitude;
     String longitude;
@@ -26,13 +26,13 @@ public class FactualJsonData {
         this.address = address;
     }
 
-    @JsonProperty("factual_id")
-    public String getFactual_id() {
-        return factual_id;
+    @JsonProperty("factualId")
+    public String getFactualId() {
+        return factualId;
     }
 
-    public void setFactual_id(String factual_id) {
-        this.factual_id = factual_id;
+    public void setFactualId(String factualId) {
+        this.factualId = factualId;
     }
 
     @JsonProperty("country")

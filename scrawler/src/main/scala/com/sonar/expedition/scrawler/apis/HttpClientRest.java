@@ -6,7 +6,6 @@ import com.factual.driver.Circle;
 import com.factual.driver.Factual;
 import com.factual.driver.Query;
 import com.factual.driver.ReadResponse;
-import com.sonar.expedition.scrawler.apis.FactualMapper;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -199,7 +198,7 @@ public class HttpClientRest {
             int len = o.getFactualresp().getData().size();
             for (int i = 0; i < len; i++) {
                 RESULTS += o.getFactualresp().getData().get(i).getAddress() + "\t"
-                        + o.getFactualresp().getData().get(i).getFactual_id() + "\t"
+                        + o.getFactualresp().getData().get(i).getFactualId() + "\t"
                         + o.getFactualresp().getData().get(i).getCountry() + "\t"
                         + o.getFactualresp().getData().get(i).getLatitude() + "\t"
                         + o.getFactualresp().getData().get(i).getLongitude() + "\t"
