@@ -10,7 +10,7 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
     def getPlacesInfo(placesData: RichPipe): RichPipe = {
 
         val parsedPlaces = placesData.map('line -> ('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                                         /*'classifiersCategory, 'classifiersType, 'classifiersSubcategory,*/ 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)) {
+                                          'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)) {
             fields: (String) =>
                 val (data) = fields
                 val placesJson = parseJson(Option(data))
@@ -24,9 +24,9 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                 val propertiesName = getPropertiesName(placesJson)
                 val propertiesTags = getPropertiesTags(placesJson)
                 val propertiesCountry = getPropertiesCountry(placesJson)
-//                val classifiersCategory = getClassifiersCategory(placesJson)
-//                val classifiersType = getClassifiersType(placesJson)
-//                val classifiersSubcategory = getClassifiersSubcategory(placesJson)
+                val classifiersCategory = getClassifiers(placesJson).map(_.getCategory())
+                val classifiersType = getClassifiers(placesJson).map(_.getType())
+                val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory())
                 val propertiesPhone = getPropertiesPhone(placesJson)
                 val propertiesHref = getPropertiesHref(placesJson)
                 val propertiesAddress = getPropertiesAddress(placesJson)
@@ -34,9 +34,9 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                 val propertiesPostcode = getPropertiesPostcode(placesJson)
 
                 (geometryType, geometryLatitude, geometryLongitude, placeType, id, propertiesProvince, propertiesCity, propertiesName, propertiesTags, propertiesCountry,
-                 /*classifiersCategory, classifiersType, classifiersSubcategory,*/ propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode)
+                 classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode)
         }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                /*'classifiersCategory, 'classifiersType, 'classifiersSubcategory,*/ 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
+                  'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
             parsedPlaces
     }
 
@@ -83,17 +83,9 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
         placesData.map(_.getProperties.getCountry()).getOrElse("None")
     }
 
-//    def getClassifiersCategory(placesData: Option[PlacesDTO]): Option = {
-//        placesData.map(_.getProperties.getClassifiers)
-//    }
-//
-//    def getClassifiersType(placesData: Option[PlacesDTO]): String = {
-//        placesData.map(_.getProperties.getClassifiers.getType()).getOrElse("None")
-//    }
-//
-//    def getClassifiersSubcategory(placesData: Option[PlacesDTO]): String = {
-//        placesData.map(_.getProperties.getClassifiers.getSubcategory()).getOrElse("None")
-//    }
+    def getClassifiers(placesData: Option[PlacesDTO]): List[PlacesClassifiersDTO] = {
+        placesData.map(_.getProperties.getClassifiers.toList).getOrElse(List[PlacesClassifiersDTO]())
+    }
 
     def getPropertiesPhone(placesData: Option[PlacesDTO]): String = {
         placesData.map(_.getProperties.getPhone()).getOrElse("None")
