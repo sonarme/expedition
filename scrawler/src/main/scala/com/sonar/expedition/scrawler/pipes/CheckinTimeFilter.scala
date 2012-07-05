@@ -33,11 +33,12 @@ class CheckinTimeFilter {
 object CheckinTimeFilter {
     val ExtractTime: Regex = """(.*)T(\d\d).*""".r
 
-    val TimezoneColon = """([\d\-\:T]+\.[\d+][\+\-][\d]+):([\d]+)""".r
+    val TimezoneColon = """([\d\-:T]+\.[\d]+[\+\-][\d]+):([\d]+)""".r
 
     def parseDateTime(timestamp: String): Date = {
+        val parsedTimestamp = removeTrailingTimezoneColon(timestamp)
         val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSZ")
-        val parsedDate = simpleDateFormat.parse(timestamp)
+        val parsedDate = simpleDateFormat.parse(parsedTimestamp)
         parsedDate
     }
 

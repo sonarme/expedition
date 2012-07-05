@@ -1,10 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
-import cascading.pipe.{Each, Pipe}
 import com.twitter.scalding._
-import java.nio.ByteBuffer
 import util.matching.Regex
-import grizzled.slf4j.Logging
 import java.util.Calendar
 import com.sonar.expedition.scrawler.pipes.CheckinGrouper._
 
@@ -21,8 +18,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 line match {
                     case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
                         val timeFilter = Calendar.getInstance()
-                        val parsedCheckinTime = checkinTime.replaceFirst("T", "").reverse.replaceFirst(":", "").reverse
-                        val checkinDate = CheckinTimeFilter.parseDateTime(parsedCheckinTime)
+                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         timeFilter.setTime(checkinDate)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
