@@ -22,11 +22,11 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                 val propertiesProvince = getPropertiesProvince(placesJson)
                 val propertiesCity = getPropertiesCity(placesJson)
                 val propertiesName = getPropertiesName(placesJson)
-                val propertiesTags = getPropertiesTags(placesJson)
+                val propertiesTags = getPropertiesTags(placesJson).mkString("", ",", "")
                 val propertiesCountry = getPropertiesCountry(placesJson)
-                val classifiersCategory = getClassifiers(placesJson).map(_.getCategory())
-                val classifiersType = getClassifiers(placesJson).map(_.getType())
-                val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory())
+                val classifiersCategory = getClassifiers(placesJson).map(_.getCategory()).head
+                val classifiersType = getClassifiers(placesJson).map(_.getType()).head
+                val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory()).head
                 val propertiesPhone = getPropertiesPhone(placesJson)
                 val propertiesHref = getPropertiesHref(placesJson)
                 val propertiesAddress = getPropertiesAddress(placesJson)
