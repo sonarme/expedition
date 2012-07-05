@@ -1,3 +1,4 @@
+import com.sonar.expedition.scrawler.apis.HttpClientRest
 import com.sonar.expedition.scrawler.HttpClientRest
 import org.testng.annotations.Test
 
