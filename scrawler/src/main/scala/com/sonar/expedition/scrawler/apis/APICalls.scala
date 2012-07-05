@@ -15,7 +15,6 @@ import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import APICalls._
-import com.sonar.expedition.scrawler.apis.HttpClientRest
 
 
 class APICalls(args: Args) extends Job(args) {

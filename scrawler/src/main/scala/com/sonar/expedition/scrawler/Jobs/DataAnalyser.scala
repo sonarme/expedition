@@ -29,9 +29,10 @@ class DataAnalyser(args: Args) extends Job(args) {
         val chkinout = "/tmp/hasheduserGroupedCheckins.txt"
         val sanitycheck = "/tmp/sanityCheck.txt"
     */
-    val inputData = args("serInput")
-    val finp = args("friInput")
-    val chkininputData = args("chkInput")
+    val inputData = args("serviceProfileData")
+    val finp = args("friendData")
+    val chkininputData = args("checkinData")
+    val jobOutput = args("output")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -113,7 +114,7 @@ worked : String => !worked.trim.equals("")
     //findcityfromchkins.write(TextLine("/tmp/data123.txt"))
 
     filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid)
-            .write(TextLine(args("output")))
+            .write(TextLine(jobOutput))
     /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
 
     val work_loc = coandcity_latlong
