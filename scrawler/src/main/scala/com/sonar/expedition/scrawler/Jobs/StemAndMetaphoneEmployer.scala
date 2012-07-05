@@ -2,8 +2,9 @@ package com.sonar.expedition.scrawler.Jobs
 
 import org.apache.commons.codec.language._
 
-class StemAndMetaphoneEmployer {
-  val metaphoner = new DoubleMetaphone
+class StemAndMetaphoneEmployer(defaultMetaphoner:DoubleMetaphone = null) {
+
+  val metaphoner = if (Option(defaultMetaphoner).isDefined) defaultMetaphoner else new DoubleMetaphone
 
   /* changes max code length of metaphoner */
   def setMaxCodeLen(length: Int) {

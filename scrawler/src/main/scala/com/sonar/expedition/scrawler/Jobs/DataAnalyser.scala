@@ -49,7 +49,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
     val checkinInfoPipe = new CheckinInfoPipe(args)
     val apiCalls = new APICalls(args)
-    val metaphoner = new StemAndMetaphoneEmployer
+    val metaphoner = new StemAndMetaphoneEmployer()
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
 
