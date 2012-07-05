@@ -1,10 +1,10 @@
 package com.sonar.expedition.scrawler.pipes
 
-import util.matching.Regex
 import com.sonar.expedition.scrawler.objs.CheckinObjects
 import CheckinTimeFilter._
 import java.text.SimpleDateFormat
-import java.util
+import java.util.Date
+import scala.util.matching.Regex
 
 class CheckinTimeFilter {
 
@@ -33,9 +33,23 @@ class CheckinTimeFilter {
 object CheckinTimeFilter {
     val ExtractTime: Regex = """(.*)T(\d\d).*""".r
 
-    def parseDateTime(timestamp: String): util.Date = {
-        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-ddhh:mm:ss.SSSZ")
+    val TimezoneColon = """([\d\-\:T]+\.[\d+][\+\-][\d]+):([\d]+)""".r
+
+    def parseDateTime(timestamp: String): Date = {
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSZ")
         val parsedDate = simpleDateFormat.parse(timestamp)
         parsedDate
+    }
+
+    /**
+     * There seems to be a non-standard colon that gets embedded into the timestamp, so we need to remove this
+     * so that we can parse using simpleDateFormat
+     * @param timestamp
+     */
+    def removeTrailingTimezoneColon(timestamp: String):String = {
+        TimezoneColon findFirstIn timestamp match {
+            case Some(TimezoneColon(dateTime, remainingTimeZone)) => dateTime + remainingTimeZone
+            case None => timestamp
+        }
     }
 }
