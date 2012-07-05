@@ -1,9 +1,6 @@
 package com.sonar.expedition.scrawler.dto
 
 import reflect.BeanProperty
-import annotation.target.field
-import org.codehaus.jackson.map.annotate.JsonDeserialize
-import com.sonar.dossier.service.PrecomputationSettings
 import org.codehaus.jackson.annotate.JsonIgnoreProperties
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -36,7 +33,7 @@ case class PlacesPropertiesDTO(@BeanProperty
                                @BeanProperty
                                var name: String = null,
                                @BeanProperty
-                               var tags: Array[String] = null,
+                               var tags: java.util.List[String] = null,
                                @BeanProperty
                                var country: String = null,
                                @BeanProperty

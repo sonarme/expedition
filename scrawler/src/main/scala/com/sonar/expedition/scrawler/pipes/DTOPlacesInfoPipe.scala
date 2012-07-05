@@ -75,8 +75,8 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
         placesData.map(_.getProperties.getName()).getOrElse("None")
     }
 
-    def getPropertiesTags(placesData: Option[PlacesDTO]): Array[String] = {
-        placesData.map(_.getProperties.getTags()).getOrElse(Array("None","None"))
+    def getPropertiesTags(placesData: Option[PlacesDTO]): List[String] = {
+        placesData.map(_.getProperties.getTags().toList).getOrElse(List[String]())
     }
 
     def getPropertiesCountry(placesData: Option[PlacesDTO]): String = {
