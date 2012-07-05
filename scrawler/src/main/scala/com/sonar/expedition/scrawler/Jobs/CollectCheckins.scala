@@ -83,8 +83,8 @@ class CollectCheckins(args: Args) extends Job(args) {
             .filter('chknTime, 'chknTime2) {
         fields: (String, String) =>
             val (chkintime1, chkintime2) = fields
-            val parsedCheckinTime1 = chkintime1.replaceFirst("T", "").reverse.replaceFirst(":", "").reverse
-            val parsedCheckinTime2 = chkintime2.replaceFirst("T", "").reverse.replaceFirst(":", "").reverse
+            val parsedCheckinTime1 = CheckinTimeFilter.removeTrailingTimezoneColon(chkintime1)
+            val parsedCheckinTime2 = CheckinTimeFilter.removeTrailingTimezoneColon(chkintime2)
             val checkinDate1 = CheckinTimeFilter.parseDateTime(parsedCheckinTime1)
             val checkinDate2 = CheckinTimeFilter.parseDateTime(parsedCheckinTime2)
             //println("d1 : " + checkinDate1.getTime())
