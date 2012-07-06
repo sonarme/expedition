@@ -24,9 +24,9 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                 val propertiesName = getPropertiesName(placesJson)
                 val propertiesTags = getPropertiesTags(placesJson).mkString("", ",", "")
                 val propertiesCountry = getPropertiesCountry(placesJson)
-                val classifiersCategory = getClassifiers(placesJson).map(_.getCategory()).head
-                val classifiersType = getClassifiers(placesJson).map(_.getType()).head
-                val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory()).head
+                val classifiersCategory = getClassifiers(placesJson).map(_.getCategory()).mkString("", ",", "")
+                val classifiersType = getClassifiers(placesJson).map(_.getType()).mkString("", ",", "")
+                val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory()).mkString("", ",", "")
                 val propertiesPhone = getPropertiesPhone(placesJson)
                 val propertiesHref = getPropertiesHref(placesJson)
                 val propertiesAddress = getPropertiesAddress(placesJson)
@@ -37,7 +37,12 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                  classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode)
         }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
                   'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
-            parsedPlaces
+        .filter('propertiesProvince) {
+            state: String => state == "NY"
+        }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+                  'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
+
+        parsedPlaces
     }
 
     def parseJson(jsonStringOption: Option[String]): Option[PlacesDTO] = {
