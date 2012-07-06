@@ -1,4 +1,5 @@
 package com.sonar.expedition.scrawler.jobs
+
 import com.twitter.scalding.{RichPipe, TextLine, Job, Args}
 
 import util.matching.Regex
@@ -46,57 +47,56 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
          .project('jobtype)).write(output2)
 
     lucene.closeObjects()*/
-     /*var classifier = new Classify(new NaiveBayesMultinomialUpdateable)
-     val categories = codes.project(Fields.ALL).mapTo(('matrixocccode,'matrixocctitle,'cpscode,'cpsocctite) -> ('matrixocccode1,'matrixocctitle1,'cpscode1,'cpsocctite1)) {
-         fields: (String,String,String, String) =>
-         val (matrixocccode,matrixocctitle,cpscode,cpsocctite) = fields
-         classifier.addCategory(cpsocctite.mkString)
-         (matrixocccode,matrixocctitle,cpscode,cpsocctite)
-     }.project('matrixocccode1,'matrixocctitle1,'cpscode1,'cpsocctite1)
+    /*var classifier = new Classify(new NaiveBayesMultinomialUpdateable)
+    val categories = codes.project(Fields.ALL).mapTo(('matrixocccode,'matrixocctitle,'cpscode,'cpsocctite) -> ('matrixocccode1,'matrixocctitle1,'cpscode1,'cpsocctite1)) {
+        fields: (String,String,String, String) =>
+        val (matrixocccode,matrixocctitle,cpscode,cpsocctite) = fields
+        classifier.addCategory(cpsocctite.mkString)
+        (matrixocccode,matrixocctitle,cpscode,cpsocctite)
+    }.project('matrixocccode1,'matrixocctitle1,'cpscode1,'cpsocctite1)
 
-     classifier.setupAfterCategorysAdded();
+    classifier.setupAfterCategorysAdded();
 
-     val categoriesAndData = codes.project('matrixocctitle, 'cpsocctite).mapTo(('matrixocctitle, 'cpsocctite) ->('title, 'category)) {
-         fields: (String, String) =>
-             val (title, category) = fields
-             classifier.addData(title.mkString, category.mkString)
-             (title, category)
-     }.write(output2)
+    val categoriesAndData = codes.project('matrixocctitle, 'cpsocctite).mapTo(('matrixocctitle, 'cpsocctite) ->('title, 'category)) {
+        fields: (String, String) =>
+            val (title, category) = fields
+            classifier.addData(title.mkString, category.mkString)
+            (title, category)
+    }.write(output2)
 
-     val categorise = types.project('key, 'uname, 'worktitle).mapTo(('key, 'uname, 'worktitle) ->('key1, 'uname1, 'worktitle1)) {
-         fields: (String, String, String) =>
-             val (key, uname, worktitle) = fields
-             val category = classifier.classifyMessage(worktitle.mkString)
-             (key, uname, category)
-     }.write(output1)
-     */
+    val categorise = types.project('key, 'uname, 'worktitle).mapTo(('key, 'uname, 'worktitle) ->('key1, 'uname1, 'worktitle1)) {
+        fields: (String, String, String) =>
+            val (key, uname, worktitle) = fields
+            val category = classifier.classifyMessage(worktitle.mkString)
+            (key, uname, category)
+    }.write(output1)
+    */
 
 
-     /*def getJobTypePipes(path:RichPipe): RichPipe ={
-         //val chkininputData1 = TextLine(path)
-         var data1 = (path.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-             line: String => {
-                 line match {
-                     case ExtractLine(userProfileId, serviceType, json) => List(userProfileId, serviceType, json)
-                     case _ => List.empty
+    /*def getJobTypePipes(path:RichPipe): RichPipe ={
+             //val chkininputData1 = TextLine(path)
+             var data1 = (path.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+                 line: String => {
+                     line match {
+                         case ExtractLine(userProfileId, serviceType, json) => List(userProfileId, serviceType, json)
+                         case _ => List.empty
+                     }
                  }
-             }
-         }).project('id, 'serviceType, 'jsondata)
+             }).project('id, 'serviceType, 'jsondata)
 
-         val dtoProfileGetPipe1 = new DTOProfileInfoPipe(args)
-         val joinedProfiles1 = dtoProfileGetPipe1.getWrkDescProfileTuples(data1)
-         val filteredProfiles1 = joinedProfiles1.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
-         filteredProfiles1
+             val dtoProfileGetPipe1 = new DTOProfileInfoPipe(args)
+             val joinedProfiles1 = dtoProfileGetPipe1.getWrkDescProfileTuples(data1)
+             val filteredProfiles1 = joinedProfiles1.project('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+             filteredProfiles1
 
-     }
-*/
-
+         }
+    */
 
 
 }
 
-object CategoriseJobTypeMain{
+object CategoriseJobTypeMain {
     val Profile = """([a-zA-Z\d\- ]+)\t(ln|fb|tw)\t([a-zA-Z\d\- ]+)""".r
-    val Occupation: Regex ="""([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)\t([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)""".r
+    val Occupation: Regex = """([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)\t([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)""".r
 
 }
