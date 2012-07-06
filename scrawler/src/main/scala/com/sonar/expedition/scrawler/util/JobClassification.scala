@@ -1,8 +1,6 @@
 package com.sonar.expedition.scrawler.util
 
-import com.sonar.expedition.scrawler.Jobs.StemAndMetaphoneEmployer
-import com.sonar.expedition.scrawler.Jobs.{StemAndMetaphoneEmployer}
-import com.sonar.expedition.scrawler.pipes.{EmployerCheckinMatch, DTOProfileInfoPipe}
+import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
 import com.twitter.scalding.{RichPipe, TextLine, Job, Args}
 import util.matching.Regex
 import JobClassification._

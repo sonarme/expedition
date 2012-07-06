@@ -1,9 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
-import util.matching.Regex
-import com.sonar.expedition.scrawler.Jobs.StemAndMetaphoneEmployer
+import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.sonar.expedition.scrawler.clustering.Levenshtein
-import org.apache.commons.codec.language._
 
 class EmployerCheckinMatch {
     val metaphoner = new StemAndMetaphoneEmployer
