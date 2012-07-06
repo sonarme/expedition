@@ -1,12 +1,9 @@
 package com.sonar.expedition.scrawler.pipes
 
-import cascading.tuple.Fields
 import util.matching.Regex
 import com.sonar.expedition.scrawler.pipes.CoworkerFinderFunction._
-import com.sonar.expedition.scrawler.Jobs.StemAndMetaphoneEmployer
-import org.apache.commons.codec.language._
-import CheckinTimeFilter._
-import com.twitter.scalding.{RichPipe, Job, Args, TextLine}
+import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
+import com.twitter.scalding.{RichPipe, Job, Args}
 import cascading.pipe.joiner._
 
 class CoworkerFinderFunction(args: Args) extends Job(args) {
@@ -20,7 +17,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                     case _ => ("None","None")
                 }
             }
-        }).project('employer, 'workers).map('employer, 'emp) {
+        }).project('employer, 'workers).map('employer -> 'emp) {
             fields : (String) =>
                 val (employer) = fields
                 val emp = employer.trim
@@ -129,7 +126,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
 
         val employerGroupedEmployeeUserIds = (serviceProfileInput.rename(('key, 'worked)->('workers, 'employer))
 
-                .project('employer, 'workers).map('employer, 'emp) {
+                .project('employer, 'workers).map('employer -> 'emp) {
                 fields : (String) =>
                 val (employer) = fields
                 val emp = employer.trim
