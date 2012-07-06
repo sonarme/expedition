@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.batchjobs
 
 import com.sonar.expedition.scrawler.pipes.{CheckinTimeFilter, CheckinInfoPipe}
 import com.twitter.scalding.{Job, Args, TextLine}

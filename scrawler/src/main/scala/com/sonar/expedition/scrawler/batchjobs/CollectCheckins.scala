@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.batchjobs
 
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.pipes.{CheckinTimeFilter, CheckinInfoPipe}

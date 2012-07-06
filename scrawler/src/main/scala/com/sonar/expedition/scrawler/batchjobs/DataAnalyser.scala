@@ -1,11 +1,11 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.batchjobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding._
-import com.sonar.expedition.scrawler.jobs
-import jobs.DataAnalyser
-import com.sonar.expedition.scrawler.jobs.DataAnalyser._
+import com.sonar.expedition.scrawler.batchjobs
+import batchjobs.DataAnalyser
+import com.sonar.expedition.scrawler.batchjobs.DataAnalyser._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import com.twitter.scalding.TextLine
