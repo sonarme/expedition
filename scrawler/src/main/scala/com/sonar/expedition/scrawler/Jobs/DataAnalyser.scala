@@ -1,7 +1,7 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.Jobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
-import com.sonar.expedition.scrawler.Jobs.StemAndMetaphoneEmployer
+import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding._
 import DataAnalyser._
 import com.sonar.expedition.scrawler.pipes._

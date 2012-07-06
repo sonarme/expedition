@@ -28,7 +28,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
 
-        val dtoProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
+        val dtoProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, String, String, String) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
@@ -54,21 +54,21 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val lnedu = getEducation(lnJson)
                 val fbwork = getWork(fbJson)
                 val lnwork = getWork(lnJson)
-                val fbusername = getUserName(fbJson)
+                val fbusername = getUserName(fbJson).getOrElse(getUserName(lnJson).getOrElse(None))
                 val fbcity = getCity(fbJson)
                 val lncity = getCity(lnJson)
                 val city = formCityList(fbcity, lncity)
                 (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
         }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
-            fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
+            fields: (String, String, Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
                 val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
                 val edulist = formEducationlist(fbedu, lnedu)
                 val worklist = formWorkHistoryList(fbwork, lnwork)
                 (rowkey, fbname, fbid, lnid, edulist, worklist, city)
         }
                 .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
-                .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
-            fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEmployment], List[String]) =>
+                .mapTo(Fields.ALL ->('keyid, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
+            fields: (String, String, Option[String], Option[String], List[UserEducation], List[UserEmployment], List[String]) =>
                 val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
                 val educationschool = getFirstEdu(edu)
                 val edudegree = getFirstEduDegree(edu)
@@ -77,9 +77,47 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val worktitle = getWorkTitle(work)
                 val ccity = getcurrCity(city)
                 //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
-                (rowkey, fbname.getOrElse(None), fbid.mkString, lnid.mkString, educationschool, workcomp, ccity, edudegree, eduyear, worktitle)
+                (rowkey, fbname, fbid.mkString, lnid.mkString, educationschool, workcomp, ccity, edudegree, eduyear, worktitle)
             //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
 
+        }
+                .groupBy('keyid) {
+            group => group
+                    .toList[String]('uname, 'uname).sortBy('uname)
+                    .toList[String]('fbid, 'first).sortBy('fbid)
+                    .toList[String]('lnid, 'second).sortBy('lnid)
+                    .toList[String]('educ, 'educ).sortBy('educ)
+                    .toList[String]('worked, 'worked).sortBy('worked)
+                    .toList[String]('city, 'city).sortBy('city)
+                    .toList[String]('edegree, 'edegree).sortBy('edegree)
+                    .toList[String]('eyear, 'eyear).sortBy('eyear)
+                    .toList[String]('worktitle, 'worktitle).sortBy('worktitle)
+
+        }
+                .map(('keyid, 'first, 'second) ->('key, 'fbid, 'lnid)) {
+            fields: (String, List[String], List[String]) =>
+                val (user, first, second) = fields
+                val filterFirst = first.filter {
+                    fi: String => isNumeric(fi)
+                }
+                var headFirst = filterFirst.headOption.getOrElse("")
+                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty){
+                    headFirst = filterFirst.tail.head
+                }
+
+
+
+                val filterSecond = second.filter {
+                    fi: String => !isNumeric(fi)
+                }
+                val headSecond = filterSecond.headOption.getOrElse("")
+
+                (user, headFirst, headSecond)
+        }
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)){
+            fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String]) =>
+            val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle) = fields
+            (key, uname.head, fbid, lnid, educ.head, worked.head, city.head, edegree.head, eyear.head, worktitle.head)
         }
 
         dtoProfiles
@@ -95,7 +133,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
 
-        val dtoProfilesWithDesc = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2)
+        val dtoProfilesWithDesc = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, String, String, String) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
@@ -121,7 +159,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val lnedu = getEducation(lnJson)
                 val fbwork = getWork(fbJson)
                 val lnwork = getWork(lnJson)
-                val fbusername = getUserName(fbJson)
+                val fbusername = getUserName(fbJson).getOrElse(getUserName(lnJson).getOrElse(None))
                 val fbcity = getCity(fbJson)
                 val lncity = getCity(lnJson)
                 val city = formCityList(fbcity, lncity)
@@ -144,14 +182,56 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val worktitle = getWorkTitle(work)
                 val ccity = getcurrCity(city)
                 //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
-                (rowkey, fbname.getOrElse(None), fbid.mkString, lnid.mkString, educationschool, workcomp, ccity, edudegree, eduyear, worktitle)
+                (rowkey, fbname, fbid.mkString, lnid.mkString, educationschool, workcomp, ccity, edudegree, eduyear, worktitle)
             //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
 
-        }.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+        }.project(('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc))
+                .groupBy('keyid) {
+            group => group
+                    .toList[String]('uname, 'uname).sortBy('uname)
+                    .toList[String]('fbid, 'first).sortBy('fbid)
+                    .toList[String]('lnid, 'second).sortBy('lnid)
+                    .toList[String]('educ, 'educ).sortBy('educ)
+                    .toList[String]('worked, 'worked).sortBy('worked)
+                    .toList[String]('city, 'city).sortBy('city)
+                    .toList[String]('edegree, 'edegree).sortBy('edegree)
+                    .toList[String]('eyear, 'eyear).sortBy('eyear)
+                    .toList[String]('worktitle, 'worktitle).sortBy('worktitle)
+                    .toList[String]('workdesc, 'workdesc).sortBy('workdesc)
+
+        }
+                .map(('keyid, 'first, 'second) ->('key, 'fbid, 'lnid)) {
+            fields: (String, List[String], List[String]) =>
+                val (user, first, second) = fields
+                val filterFirst = first.filter {
+                    fi: String => isNumeric(fi)
+                }
+                var headFirst = filterFirst.headOption.getOrElse("")
+                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty){
+                    headFirst = filterFirst.tail.head
+                }
+
+
+
+                val filterSecond = second.filter {
+                    fi: String => !isNumeric(fi)
+                }
+                val headSecond = filterSecond.headOption.getOrElse("")
+
+                (user, headFirst, headSecond)
+        }
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)){
+            fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String], List[String]) =>
+                val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, workdesc) = fields
+                (key, uname.head, fbid, lnid, educ.head, worked.head, city.head, edegree.head, eyear.head, worktitle.head, workdesc.head)
+        }
+
 
         dtoProfilesWithDesc
 
     }
+
+    def isNumeric(input: String): Boolean = input.forall(_.isDigit)
 
     def getcurrCity(city: List[String]): String = {
         city.headOption.mkString
