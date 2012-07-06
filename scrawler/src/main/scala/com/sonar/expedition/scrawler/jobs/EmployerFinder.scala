@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.batchjobs
+package com.sonar.expedition.scrawler.jobs
 
 import util.matching.Regex
 import EmployerFinder._

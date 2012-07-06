@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.batchjobs
+package com.sonar.expedition.scrawler.jobs
 
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.objs.FriendObjects

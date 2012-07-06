@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.batchjobs
+package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
 import java.nio.ByteBuffer
