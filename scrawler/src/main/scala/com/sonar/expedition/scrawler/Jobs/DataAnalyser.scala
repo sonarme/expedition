@@ -21,19 +21,11 @@ output : the file to which the non visited profile links will be written to
 
 class DataAnalyser(args: Args) extends Job(args) {
 
-    /* val inputData = args("serInput")
-        val out2 = TextLine("/tmp/data123.txt")
-        val finp = args("friInput")
-        val frout = "/tmp/userGroupedFriends2.txt"
-        val chkininputData = args("chkInput")
-        val chkinout = "/tmp/hasheduserGroupedCheckins.txt"
-        val sanitycheck = "/tmp/sanityCheck.txt"
-    */
     val inputData = args("serviceProfileData")
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
-    val placesData = args("placesData")
+//    val placesData = args("placesData")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -53,7 +45,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val metaphoner = new StemAndMetaphoneEmployer()
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
-    val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
+//    val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
@@ -65,10 +57,9 @@ class DataAnalyser(args: Args) extends Job(args) {
             mtphnWorked
     }.project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle))
 
-    val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
+//    val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
 
-    //filteredProfiles.write(TextLine("/tmp/test5.txt"))
-    //val tmpcompanies = filteredProfiles.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
+
 
     //find companies with uqniue coname and city
     //val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
@@ -89,12 +80,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     //    val writechkin = findcityfromchkins.write(TextLine("/tmp/chkindata.txt"))
 
     val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project(('key, 'worked))
-    /*.groupBy('worked) {
-group => group.toList[String]('key,'employeeData)
-}.filter('worked){
-worked : String => !worked.trim.equals("")
-}.project('worked, 'employeeData)
-    */
+
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val friendData = TextLine(finp).read.project('line)
 
@@ -107,15 +93,6 @@ worked : String => !worked.trim.equals("")
     //coworkerCheckins.write(TextLine("/tmp/test2.txt"))
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
-    //findcityfromchkins.write(TextLine("/tmp/test.txt"))
-    //companies with city names from checkin information if not present in profile
-    /*val tmpcompanies = findcityfromchkins.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
-
-    //find companies with uqniue coname and city
-    val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
-    */
-
-    //findcityfromchkins.write(TextLine("/tmp/data123.txt"))
 
     filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid))
             .write(TextLine(jobOutput))
