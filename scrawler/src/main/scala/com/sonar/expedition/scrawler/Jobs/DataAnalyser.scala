@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.Jobs
+package com.sonar.expedition.scrawler.jobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
@@ -41,7 +41,7 @@ class DataAnalyser(args: Args) extends Job(args) {
                 case _ => List.empty
             }
         }
-    }).project('id, 'serviceType, 'jsondata)
+    }).project(('id, 'serviceType, 'jsondata))
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val employerGroupedServiceProfilePipe = new DTOProfileInfoPipe(args)
@@ -56,12 +56,12 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
 
-    val filteredProfiles = joinedProfiles.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle).map('worked -> 'mtphnWorked) {
+    val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle)).map('worked -> 'mtphnWorked) {
         fields: String =>
             val (worked) = fields
             val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
             mtphnWorked
-    }.project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle)
+    }.project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle))
 
     //filteredProfiles.write(TextLine("/tmp/test5.txt"))
     //val tmpcompanies = filteredProfiles.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
@@ -79,19 +79,19 @@ class DataAnalyser(args: Args) extends Job(args) {
     //chkindata.write(TextLine("/tmp/test4.txt"))
     //val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
-    val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
     //profilesAndCheckins.write(TextLine("/tmp/test3.txt"))
     //    val writechkin = findcityfromchkins.write(TextLine("/tmp/chkindata.txt"))
 
-    val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project('key, 'worked)
+    val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project(('key, 'worked))
     /*.groupBy('worked) {
 group => group.toList[String]('key,'employeeData)
 }.filter('worked){
 worked : String => !worked.trim.equals("")
 }.project('worked, 'employeeData)
     */
-    val serviceIds = joinedProfiles.project('key, 'fbid, 'lnid).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
+    val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val friendData = TextLine(finp).read.project('line)
 
     val friendsForCoworker = friendGrouper.groupFriends(friendData)
@@ -113,7 +113,7 @@ worked : String => !worked.trim.equals("")
 
     //findcityfromchkins.write(TextLine("/tmp/data123.txt"))
 
-    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid)
+    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid))
             .write(TextLine(jobOutput))
     /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
 

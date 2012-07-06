@@ -37,7 +37,7 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
 
      lucene.closeWriter();
 
-     val data = (TextLine("/tmp/jobs.txt").read.project('line).mapTo(('line) ->('jobtype)) {
+     val data = (TextLine("/tmp/job.txt").read.project('line).mapTo(('line) ->('jobtype)) {
             fields: (String) =>
             val (job) = fields
             val jobtype= lucene.search(job.mkString.trim)
