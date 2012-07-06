@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.newjobs
 
 import com.twitter.scalding.{RichPipe, TextLine, Job, Args}
 
