@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.newjobs
+package com.sonar.expedition.scrawler.jobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
@@ -25,7 +25,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
-//    val placesData = args("placesData")
+    //    val placesData = args("placesData")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -45,7 +45,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val metaphoner = new StemAndMetaphoneEmployer()
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
-//    val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
+    //    val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
@@ -57,8 +57,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             mtphnWorked
     }.project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle))
 
-//    val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
-
+    //    val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
 
 
     //find companies with uqniue coname and city
