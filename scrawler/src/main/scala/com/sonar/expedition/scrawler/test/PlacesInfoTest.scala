@@ -5,8 +5,9 @@ import com.sonar.expedition.scrawler.pipes.DTOPlacesInfoPipe
 
 class PlacesInfoTest(args: Args) extends Job(args) {
 
-    var in = "/tmp/placesData.txt"
-    var out = "/tmp/parsedPlaces.txt"
+    val placesData = args("placesData")
+    val jobOutput = args("output")
+
     val placesTest = new DTOPlacesInfoPipe(args)
 
     val pipe1 = TextLine(in).read.project('line)

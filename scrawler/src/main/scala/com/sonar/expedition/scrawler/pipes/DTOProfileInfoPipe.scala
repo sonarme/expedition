@@ -117,7 +117,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)){
             fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String]) =>
             val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle) = fields
-            (key, uname.head, fbid, lnid, educ.head, worked.head, city.head, edegree.head, eyear.head, worktitle.head)
+            (key, getFirstNonNull(uname), fbid, lnid, getFirstNonNull(educ), getFirstNonNull(worked), getFirstNonNull(city), getFirstNonNull(edegree), getFirstNonNull(eyear), getFirstNonNull(worktitle))
         }
 
         dtoProfiles
@@ -229,6 +229,13 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         dtoProfilesWithDesc
 
+    }
+
+    def getFirstNonNull(input: List[String]): String = {
+        val filtered = input.filter {
+            st: String => !st.equals("") && !st.isNone && !st.equals("null")
+        }
+        filtered.headOption.getOrElse("")
     }
 
     def isNumeric(input: String): Boolean = input.forall(_.isDigit)
