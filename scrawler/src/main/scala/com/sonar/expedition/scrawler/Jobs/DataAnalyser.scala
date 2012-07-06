@@ -33,6 +33,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
+    val placesData = args("placesData")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -52,6 +53,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val metaphoner = new StemAndMetaphoneEmployer()
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
+    val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
@@ -62,6 +64,8 @@ class DataAnalyser(args: Args) extends Job(args) {
             val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
             mtphnWorked
     }.project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle))
+
+    val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
 
     //filteredProfiles.write(TextLine("/tmp/test5.txt"))
     //val tmpcompanies = filteredProfiles.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
