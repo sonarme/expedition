@@ -9,6 +9,7 @@ import scala.util.matching.Regex
 import com.twitter.scalding.TextLine
 import cascading.pipe.joiner._
 import com.sonar.expedition.scrawler.clustering.Levenshtein
+import com.sonar.expedition.scrawler.util.Haversine
 
 
 /*
@@ -46,6 +47,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val apiCalls = new APICalls(args)
     val metaphoner = new StemAndMetaphoneEmployer()
     val levenshteiner = new Levenshtein()
+    val haversiner = new Haversine
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
@@ -113,12 +115,25 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'centroid))
             .joinWithSmaller('mtphnWorked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude)
-//            .filter('stemmedWorked, 'stemmedName) {
-//        fields: (String, String) =>
-//            var (stemmedWork, stemmedPlace) = fields
-//            val diff = levenshteiner.compareInt(stemmedWork, stemmedPlace)
-//            diff <= 5
-//    }
+            .map('centroid -> ('lat, 'long)) {
+        fields: String =>
+            val (centroid) = fields
+            val latLongArray = centroid.split(":")
+            val lat = latLongArray.head
+            val long = latLongArray.last
+            (lat, long)
+    }
+            .filter('lat, 'long, 'geometryLatitude, 'geometryLongitude) {
+        fields: (String, String, String, String) =>
+            var (lat, long, placeLat, placeLong) = fields
+            if (placeLat == (null) || placeLat == ("") || placeLat == ("null")) {
+                placeLat = "-999"
+                placeLong = "-999"
+            }
+            val distance = haversiner.haversine(lat.toDouble, long.toDouble, placeLat.toDouble, placeLong.toDouble)
+            distance <= 100
+    }
+            .project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude)
             .write(TextLine(jobOutput))
     /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
 
