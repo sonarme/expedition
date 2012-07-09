@@ -56,29 +56,29 @@ class DataAnalyser(args: Args) extends Job(args) {
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
-            .map('worked -> ('stemmedWorked, 'mtphnWorked)) {
+            .map('worked ->('stemmedWorked, 'mtphnWorked)) {
         fields: String =>
             val (worked) = fields
             val stemmedWorked = metaphoner.getStemmed(worked)
-            val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
+            val mtphnWorked = metaphoner.getStemmed(worked)
             (stemmedWorked, mtphnWorked)
     }.project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle))
 
     val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
             .project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
-             .map('propertiesName -> ('stemmedName, 'mtphnName)) {
+            .map('propertiesName ->('stemmedName, 'mtphnName)) {
         fields: String =>
             val (placeName) = fields
             val stemmedName = metaphoner.getStemmed(placeName)
-            val mtphnName = metaphoner.getStemmedMetaphone(placeName)
+            val mtphnName = metaphoner.getStemmed(placeName)
             (stemmedName, mtphnName)
     }.project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'stemmedName, 'mtphnName, 'propertiesTags, 'propertiesCountry,
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
 
-//    val checkSimilarity = joinedProfiles.project()
+    //    val checkSimilarity = joinedProfiles.project()
 
-//    val diff = levenshteiner.compareInt(filteredProfiles.project('mtphnWorked).toString, placesPipe.project('mtphnName).toString)
+    //    val diff = levenshteiner.compareInt(filteredProfiles.project('mtphnWorked).toString, placesPipe.project('mtphnName).toString)
 
     //find companies with uqniue coname and city
     //val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
@@ -113,9 +113,15 @@ class DataAnalyser(args: Args) extends Job(args) {
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
 
-    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'centroid))
-            .joinWithSmaller('mtphnWorked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude)
-            .map('centroid -> ('lat, 'long)) {
+    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid))
+            .map('mtphnWorked -> 'worked) {
+        fields: (String) =>
+            var (mtphnWorked) = fields
+            if (mtphnWorked == null || mtphnWorked == "") { mtphnWorked = " "}
+            mtphnWorked
+    }
+            .joinWithSmaller('worked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude)
+            .map('centroid ->('lat, 'long)) {
         fields: String =>
             val (centroid) = fields
             val latLongArray = centroid.split(":")
@@ -123,17 +129,23 @@ class DataAnalyser(args: Args) extends Job(args) {
             val long = latLongArray.last
             (lat, long)
     }
-            .filter('lat, 'long, 'geometryLatitude, 'geometryLongitude) {
-        fields: (String, String, String, String) =>
-            var (lat, long, placeLat, placeLong) = fields
-            if (placeLat == (null) || placeLat == ("") || placeLat == ("null")) {
-                placeLat = "-999"
-                placeLong = "-999"
+            .filter('lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked) {
+        fields: (String, String, String, String, String) =>
+            val (lat, long, placeLat, placeLong, mtphnWork) = fields
+            if (placeLat == null) {
+                lat != null
             }
-            val distance = haversiner.haversine(lat.toDouble, long.toDouble, placeLat.toDouble, placeLong.toDouble)
-            distance <= 100
+            else if (mtphnWork == " ") {
+                lat != null
+            }
+            else {
+                val distance = haversiner.haversine(lat.toDouble, long.toDouble, placeLat.toDouble, placeLong.toDouble)
+                distance <= 2
+            }
+
     }
-            .project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude)
+//            .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'lat, 'long, 'placeLat, 'placeLong)
+            .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude)
             .write(TextLine(jobOutput))
     /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
 
