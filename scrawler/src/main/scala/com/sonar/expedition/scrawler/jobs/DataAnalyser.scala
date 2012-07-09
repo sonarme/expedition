@@ -7,6 +7,8 @@ import DataAnalyser._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import com.twitter.scalding.TextLine
+import cascading.pipe.joiner._
+import com.sonar.expedition.scrawler.clustering.Levenshtein
 
 
 /*
@@ -25,7 +27,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
-    //    val placesData = args("placesData")
+    val placesData = args("placesData")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -43,22 +45,38 @@ class DataAnalyser(args: Args) extends Job(args) {
     val checkinInfoPipe = new CheckinInfoPipe(args)
     val apiCalls = new APICalls(args)
     val metaphoner = new StemAndMetaphoneEmployer()
+    val levenshteiner = new Levenshtein()
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
-    //    val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
+    val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
 
-    val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle)).map('worked -> 'mtphnWorked) {
+    val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
+            .map('worked -> ('stemmedWorked, 'mtphnWorked)) {
         fields: String =>
             val (worked) = fields
+            val stemmedWorked = metaphoner.getStemmed(worked)
             val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
-            mtphnWorked
-    }.project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle))
+            (stemmedWorked, mtphnWorked)
+    }.project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle))
 
-    //    val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
+    val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
+            .project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+            'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
+             .map('propertiesName -> ('stemmedName, 'mtphnName)) {
+        fields: String =>
+            val (placeName) = fields
+            val stemmedName = metaphoner.getStemmed(placeName)
+            val mtphnName = metaphoner.getStemmedMetaphone(placeName)
+            (stemmedName, mtphnName)
+    }.project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'stemmedName, 'mtphnName, 'propertiesTags, 'propertiesCountry,
+            'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
 
+//    val checkSimilarity = joinedProfiles.project()
+
+//    val diff = levenshteiner.compareInt(filteredProfiles.project('mtphnWorked).toString, placesPipe.project('mtphnName).toString)
 
     //find companies with uqniue coname and city
     //val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
@@ -93,7 +111,14 @@ class DataAnalyser(args: Args) extends Job(args) {
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
 
-    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid))
+    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'centroid))
+            .joinWithSmaller('mtphnWorked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude)
+//            .filter('stemmedWorked, 'stemmedName) {
+//        fields: (String, String) =>
+//            var (stemmedWork, stemmedPlace) = fields
+//            val diff = levenshteiner.compareInt(stemmedWork, stemmedPlace)
+//            diff <= 5
+//    }
             .write(TextLine(jobOutput))
     /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
 
