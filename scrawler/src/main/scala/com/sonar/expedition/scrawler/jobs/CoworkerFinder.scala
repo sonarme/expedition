@@ -4,6 +4,8 @@ import util.matching.Regex
 import com.twitter.scalding.{Job, Args, TextLine}
 import cascading.pipe.joiner.OuterJoin
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
+import com.sonar.expedition.scrawler.jobs
+import jobs.CoworkerFinder
 import com.sonar.expedition.scrawler.jobs.CoworkerFinder._
 
 class CoworkerFinder(args: Args) extends Job(args) {
