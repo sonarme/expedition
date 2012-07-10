@@ -1,7 +1,6 @@
 package com.sonar.expedition.scrawler.json
 
 import com.fasterxml.jackson.core.JsonFactory
-import com.sonar.
 import org.codehaus.jackson.map.annotate.JsonSerialize
 import org.codehaus.jackson.map.{DeserializationConfig, PropertyNamingStrategy, ObjectMapper}
 
