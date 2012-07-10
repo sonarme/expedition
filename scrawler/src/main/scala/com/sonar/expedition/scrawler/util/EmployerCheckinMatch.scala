@@ -1,13 +1,10 @@
-package com.sonar.expedition.scrawler.pipes
+package com.sonar.expedition.scrawler.util
 
-import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
-import com.sonar.expedition.scrawler.clustering.Levenshtein
 
 class EmployerCheckinMatch {
     val metaphoner = new StemAndMetaphoneEmployer
     val levver = new Levenshtein
     //metaphoner.setMaxCodeLen(6)
-    val maxDistance = 1
 
     /* checks if the employer stem matches the venueName stem and returns a boolean */
 
@@ -48,7 +45,7 @@ class EmployerCheckinMatch {
     }
 
     /* checks if the employer and venue stems are within a Levenshtein distance of one. will return false for null strings */
-    def checkLevenshtein(employer: String, venueName: String): Boolean = {
+    def checkLevenshtein(employer: String, venueName: String, maxDistance: Int): Boolean = {
         val emp = metaphoner.removeStopWords(employer)
         val ven = metaphoner.removeStopWords(venueName)
 

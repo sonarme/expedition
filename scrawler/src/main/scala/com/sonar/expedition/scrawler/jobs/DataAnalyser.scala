@@ -1,15 +1,13 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
-import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
+import com.sonar.expedition.scrawler.util.{EmployerCheckinMatch, Levenshtein, StemAndMetaphoneEmployer, Haversine}
 import com.twitter.scalding._
 import DataAnalyser._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import com.twitter.scalding.TextLine
 import cascading.pipe.joiner._
-import com.sonar.expedition.scrawler.clustering.Levenshtein
-import com.sonar.expedition.scrawler.util.Haversine
 
 
 /*
@@ -47,6 +45,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val apiCalls = new APICalls(args)
     val metaphoner = new StemAndMetaphoneEmployer()
     val levenshteiner = new Levenshtein()
+    val checker = new EmployerCheckinMatch
     val haversiner = new Haversine
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
@@ -60,7 +59,7 @@ class DataAnalyser(args: Args) extends Job(args) {
         fields: String =>
             val (worked) = fields
             val stemmedWorked = metaphoner.getStemmed(worked)
-            val mtphnWorked = metaphoner.getStemmed(worked)
+            val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
             (stemmedWorked, mtphnWorked)
     }.project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle))
 
@@ -71,7 +70,7 @@ class DataAnalyser(args: Args) extends Job(args) {
         fields: String =>
             val (placeName) = fields
             val stemmedName = metaphoner.getStemmed(placeName)
-            val mtphnName = metaphoner.getStemmed(placeName)
+            val mtphnName = metaphoner.getStemmedMetaphone(placeName)
             (stemmedName, mtphnName)
     }.project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'stemmedName, 'mtphnName, 'propertiesTags, 'propertiesCountry,
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
@@ -85,7 +84,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     /*
     if city is not filled up find city form chekcins and friends checkin
      */
-    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
+//    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
     //friends.write(TextLine(frout))
 
     val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
@@ -103,7 +102,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val friendData = TextLine(finp).read.project('line)
 
-    val friendsForCoworker = friendGrouper.groupFriends(friendData)
+//    val friendsForCoworker = friendGrouper.groupFriends(friendData)
     //val checkinData = TextLine(chkininputData).read.project('line)
 
     val coworkerCheckins = coworkerPipe.findCoworkerCheckins(employerGroupedServiceProfiles, friendData, serviceIds, chkindata)
@@ -113,14 +112,14 @@ class DataAnalyser(args: Args) extends Job(args) {
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
 
-    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid))
+    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
             .map('mtphnWorked -> 'worked) {
         fields: (String) =>
             var (mtphnWorked) = fields
             if (mtphnWorked == null || mtphnWorked == "") { mtphnWorked = " "}
             mtphnWorked
     }
-            .joinWithSmaller('worked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude)
+            .joinWithSmaller('worked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude, 'stemmedName, 'stemmedWorked))
             .map('centroid ->('lat, 'long)) {
         fields: String =>
             val (centroid) = fields
@@ -129,9 +128,9 @@ class DataAnalyser(args: Args) extends Job(args) {
             val long = latLongArray.last
             (lat, long)
     }
-            .filter('lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked) {
-        fields: (String, String, String, String, String) =>
-            val (lat, long, placeLat, placeLong, mtphnWork) = fields
+            .filter(('lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName)) {
+        fields: (String, String, String, String, String, String, String) =>
+            val (lat, long, placeLat, placeLong, mtphnWork, workName, placeName) = fields
             if (placeLat == null) {
                 lat != null
             }
@@ -140,12 +139,11 @@ class DataAnalyser(args: Args) extends Job(args) {
             }
             else {
                 val distance = haversiner.haversine(lat.toDouble, long.toDouble, placeLat.toDouble, placeLong.toDouble)
-                distance <= 2
+                distance <= 2 && checker.checkLevenshtein(workName, placeName, 2)
             }
 
     }
-//            .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'lat, 'long, 'placeLat, 'placeLong)
-            .project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude)
+            .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedName, 'stemmedWorked))
             .write(TextLine(jobOutput))
     /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
 

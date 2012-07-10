@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.clustering;
+package com.sonar.expedition.scrawler.util;
 
 
 // code copied from the interwebs with modifications for integer distance

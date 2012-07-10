@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.pipes
 import util.matching.Regex
 import EmployerFinderFunction._
 import com.twitter.scalding._
+import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
 

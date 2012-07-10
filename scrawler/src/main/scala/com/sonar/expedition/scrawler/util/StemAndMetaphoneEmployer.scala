@@ -13,7 +13,12 @@ class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) {
 
     /* removes stop words, punctuation and extra whitespace from a employer string */
 
-    def removeStopWords(employer: String): String = employer.replaceAll( """\.[a-zA-Z][a-zA-Z][a-zA-Z]?(?= |$)""", "").replaceAll( """\p{P}""", "").replaceAll( """(^|(?<= ))(?i)(a|an|and|are|as|at|be|but|by|for|if|in|into|is|it|no|not|of|on|or|such|that|the|their|then|there|these|they|this|to|was|will|with|inc|incorporated|co|ltd|llc|group|corp|corporation|company|limited|hq)(?= |$)""", "").replaceAll( """\s+""", " ").replaceFirst( """\s*""", "").replaceFirst(" $", "").toLowerCase
+    def removeStopWords(employer: String): String = {
+        if (employer == null)
+            ""
+        else
+            employer.replaceAll( """\.[a-zA-Z][a-zA-Z][a-zA-Z]?(?= |$)""", "").replaceAll( """\p{P}""", "").replaceAll( """(^|(?<= ))(?i)(a|an|and|are|as|at|be|but|by|for|if|in|into|is|it|no|not|of|on|or|such|that|the|their|then|there|these|they|this|to|was|will|with|inc|incorporated|co|ltd|llc|group|corp|corporation|company|limited|hq)(?= |$)""", "").replaceAll( """\s+""", " ").replaceFirst( """\s*""", "").replaceFirst(" $", "").toLowerCase
+    }
 
     /* outputs the metaphone encoding of an employer string */
 
