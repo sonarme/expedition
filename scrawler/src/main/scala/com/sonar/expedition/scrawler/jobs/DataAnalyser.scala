@@ -75,40 +75,26 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'stemmedName, 'mtphnName, 'propertiesTags, 'propertiesCountry,
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
 
-    //    val checkSimilarity = joinedProfiles.project()
-
-    //    val diff = levenshteiner.compareInt(filteredProfiles.project('mtphnWorked).toString, placesPipe.project('mtphnName).toString)
-
     //find companies with uqniue coname and city
     //val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
     /*
     if city is not filled up find city form chekcins and friends checkin
      */
-//    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
-    //friends.write(TextLine(frout))
+    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
+    val friendData = TextLine(finp).read.project('line)
 
     val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
 
-    //chkindata.write(TextLine("/tmp/test4.txt"))
-    //val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'serType, 'serProfileID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
-
     val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-
-    //profilesAndCheckins.write(TextLine("/tmp/test3.txt"))
-    //    val writechkin = findcityfromchkins.write(TextLine("/tmp/chkindata.txt"))
 
     val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project(('key, 'worked))
 
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
-    val friendData = TextLine(finp).read.project('line)
 
-//    val friendsForCoworker = friendGrouper.groupFriends(friendData)
-    //val checkinData = TextLine(chkininputData).read.project('line)
+    val friendsForCoworker = friendGrouper.groupFriends(friendData)
 
-    val coworkerCheckins = coworkerPipe.findCoworkerCheckins(employerGroupedServiceProfiles, friendData, serviceIds, chkindata)
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
-
-    //coworkerCheckins.write(TextLine("/tmp/test2.txt"))
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
 
