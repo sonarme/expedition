@@ -126,7 +126,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             else {
                 val distance = haversiner.haversine(lat.toDouble, long.toDouble, placeLat.toDouble, placeLong.toDouble)
                 distance <= 2 && checker.checkLevenshtein(workName, placeName, 2)
-            }
+    }
 
     }
             .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedName, 'stemmedWorked))

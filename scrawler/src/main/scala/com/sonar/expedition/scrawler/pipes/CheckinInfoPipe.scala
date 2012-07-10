@@ -106,7 +106,6 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 fields: (String, List[String]) =>
                 val (key, chkinlist) = fields
                 val chkcity = findCityFromChkins(chkinlist)
-                println(key, chkinlist, chkcity)
                 (key,chkcity)
         }
 
