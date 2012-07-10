@@ -29,8 +29,7 @@ class CoworkerFinder(args: Args) extends Job(args) {
         fields: (String) =>
             val (employer) = fields
             val emp = employer.trim
-            val empMetaphone = new StemAndMetaphoneEmployer()
-            val fuzzyemp = empMetaphone.getStemmedMetaphone(emp)
+            val fuzzyemp = StemAndMetaphoneEmployer.getStemmedMetaphone(emp)
             fuzzyemp
     }.flatMap('workers -> ('listofworkers)) {
         fields: (String) =>

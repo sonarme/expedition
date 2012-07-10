@@ -49,7 +49,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
     val checkinInfoPipe = new CheckinInfoPipe(args)
     val apiCalls = new APICalls(args)
-    val metaphoner = new StemAndMetaphoneEmployer()
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
 
@@ -59,8 +58,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val filteredProfiles = joinedProfiles.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle).map('worked -> 'mtphnWorked) {
         fields: String =>
             val (worked) = fields
-            val mtphnWorked = metaphoner.getStemmedMetaphone(worked)
-            mtphnWorked
+            StemAndMetaphoneEmployer.getStemmedMetaphone(worked)
     }.project('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle)
 
     //filteredProfiles.write(TextLine("/tmp/test5.txt"))

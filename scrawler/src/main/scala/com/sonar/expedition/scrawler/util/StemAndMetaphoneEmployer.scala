@@ -2,13 +2,18 @@ package com.sonar.expedition.scrawler.util
 
 import org.apache.commons.codec.language._
 
-class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) extends Serializable {
+class StemAndMetaphoneEmployer extends Serializable {
 
-    val metaphoner = if (Option(defaultMetaphoner).isDefined) defaultMetaphoner else new DoubleMetaphone
+}
 
-    /* changes max code length of metaphoner */
-    def setMaxCodeLen(length: Int) {
-        metaphoner.setMaxCodeLen(length)
+object StemAndMetaphoneEmployer extends Serializable {
+
+    @transient
+    def metaphoner(maxCodeLength:Option[Int] = None) = {
+        @transient
+        val metaphone = new DoubleMetaphone
+        maxCodeLength.map(codeLength => metaphone.setMaxCodeLen(codeLength))
+        metaphone
     }
 
     /* removes stop words, punctuation and extra whitespace from a employer string */
@@ -18,29 +23,27 @@ class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) extend
     /* outputs the metaphone encoding of an employer string */
 
     def getMetaphone(employer: String): String = {
-
-        metaphoner.setMaxCodeLen(6)
-        metaphoner.doubleMetaphone(employer)
+        metaphoner(Option(6)).doubleMetaphone(employer)
     }
 
     /* outputs the alternative metaphone encoding of an employer string */
 
     def getAlternateMetaphone(employer: String): String = {
-        metaphoner.doubleMetaphone(employer, true)
+        metaphoner().doubleMetaphone(employer, true)
     }
 
     /* outputs the stemmed metaphone encoding of an employer string */
 
     def getStemmedMetaphone(employer: String): String = {
         val stem = removeStopWords(employer)
-        metaphoner.doubleMetaphone(stem)
+        metaphoner().doubleMetaphone(stem)
     }
 
     /* outputs the alternative stemmed metaphone encoding of an employer string */
 
     def getStemmedAlternateMetaphone(employer: String): String = {
         val stem = removeStopWords(employer)
-        metaphoner.doubleMetaphone(stem, true)
+        metaphoner().doubleMetaphone(stem, true)
     }
 
     /* returns a tuple of the exact employer string, stemmed employer, and both metaphone encodings of the employer */
@@ -51,9 +54,4 @@ class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) extend
         val meta2 = getAlternateMetaphone(stem)
         (employer, stem, meta1, meta2)
     }
-
-}
-
-object StemAndMetaphoneEmployer {
-
 }

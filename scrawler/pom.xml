@@ -461,7 +461,34 @@
                                             <pattern>org.codehaus.jackson</pattern>
                                             <shadedPattern>com.sonar.jackson</shadedPattern>
                                             <includes>
-                                                <include>org.codehaus.jackson.*</include>
+                                                <include>org.codehaus.jackson.annotate.*</include>
+                                                <include>org.codehaus.jackson.format.*</include>
+                                                <include>org.codehaus.jackson.impl.*</include>
+                                                <include>org.codehaus.jackson.io.*</include>
+                                                <include>org.codehaus.jackson.schema.*</include>
+                                                <include>org.codehaus.jackson.sym.*</include>
+                                                <include>org.codehaus.jackson.type.*</include>
+                                                <include>org.codehaus.jackson.util.*</include>
+                                                <include>org.codehaus.jackson.map.annotate.*</include>
+                                                <include>org.codehaus.jackson.map.deser.*</include>
+                                                <include>org.codehaus.jackson.map.deser.std.*</include>
+                                                <include>org.codehaus.jackson.map.annotate.*</include>
+                                                <include>org.codehaus.jackson.map.*</include>
+                                                <include>org.codehaus.jackson.map.type.*</include>
+                                                <include>org.codehaus.jackson.map.util.*</include>
+                                                <include>org.codehaus.jackson.map.exc.*</include>
+                                                <include>org.codehaus.jackson.map.ext.*</include>
+                                                <include>org.codehaus.jackson.map.introspect.*</include>
+                                                <include>org.codehaus.jackson.map.jsontype.*</include>
+                                                <include>org.codehaus.jackson.map.module.*</include>
+                                                <include>org.codehaus.jackson.map.ser.*</include>
+                                                <include>org.codehaus.jackson.map.ser.impl.*</include>
+                                                <include>org.codehaus.jackson.map.ser.std.*</include>
+                                                <include>org.codehaus.jackson.map.type.*</include>
+                                                <include>org.codehaus.jackson.map.util.*</include>
+                                                <include>org.codehaus.jackson.node.*</include>
+                                                <include>org.codehaus.jackson.xc.*</include>
+
                                             </includes>
                                         </relocation>
                                     </relocations>
