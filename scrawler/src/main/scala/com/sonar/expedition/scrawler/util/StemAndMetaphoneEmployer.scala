@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.util
 
 import org.apache.commons.codec.language._
 
-class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) {
+class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) extends Serializable {
 
     val metaphoner = if (Option(defaultMetaphoner).isDefined) defaultMetaphoner else new DoubleMetaphone
 

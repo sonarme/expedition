@@ -460,7 +460,9 @@
                                         <relocation>
                                             <pattern>org.codehaus.jackson</pattern>
                                             <shadedPattern>com.sonar.jackson</shadedPattern>
-                                            <includes>org.codehaus.jackson.*</includes>
+                                            <includes>
+                                                <include>org.codehaus.jackson.*</include>
+                                            </includes>
                                         </relocation>
                                     </relocations>
                                     <!--Need this to filter out signed manifests that will trip up Hadoop-->

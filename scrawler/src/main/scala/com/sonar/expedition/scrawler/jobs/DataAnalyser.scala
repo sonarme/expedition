@@ -3,8 +3,6 @@ package com.sonar.expedition.scrawler.jobs
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding._
-import com.sonar.expedition.scrawler.jobs
-import jobs.DataAnalyser
 import com.sonar.expedition.scrawler.jobs.DataAnalyser._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
