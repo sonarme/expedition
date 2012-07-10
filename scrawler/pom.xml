@@ -52,13 +52,6 @@
         </dependency>
 
 
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-core-asl</artifactId>
-            <version>1.9.7</version>
-            <scope>compile</scope>
-        </dependency>
-
 
         <dependency>
             <groupId>org.yaml</groupId>
@@ -240,11 +233,6 @@
             <artifactId>junit</artifactId>
             <version>3.8.1</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
-            <version>1.9.7</version>
         </dependency>
         <dependency>
             <groupId>com.factual</groupId>
@@ -468,7 +456,13 @@
                                             <resource>META-INF/spring.schemas</resource>
                                         </transformer>
                                     </transformers>
-
+                                    <relocations>
+                                        <relocation>
+                                            <pattern>org.codehaus.jackson</pattern>
+                                            <shadedPattern>com.sonar.jackson</shadedPattern>
+                                            <includes>org.codehaus.jackson.*</includes>
+                                        </relocation>
+                                    </relocations>
                                     <!--Need this to filter out signed manifests that will trip up Hadoop-->
                                     <filters>
                                         <filter>
