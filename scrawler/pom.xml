@@ -472,6 +472,7 @@
                                                 <include>org.codehaus.jackson.map.annotate.*</include>
                                                 <include>org.codehaus.jackson.map.deser.*</include>
                                                 <include>org.codehaus.jackson.map.deser.std.*</include>
+                                                <include>org.codehaus.jackson.map.deser.impl.*</include>
                                                 <include>org.codehaus.jackson.map.annotate.*</include>
                                                 <include>org.codehaus.jackson.map.*</include>
                                                 <include>org.codehaus.jackson.map.type.*</include>
