@@ -10,7 +10,7 @@ class PlacesInfoTest(args: Args) extends Job(args) {
 
     val placesTest = new DTOPlacesInfoPipe(args)
 
-    val pipe1 = TextLine(in).read.project('line)
-    val pipe2 = placesTest.getPlacesInfo(pipe1).write(TextLine(out))
+    val pipe1 = TextLine(placesData).read.project('line)
+    val pipe2 = placesTest.getPlacesInfo(pipe1).write(TextLine(jobOutput))
 
 }
