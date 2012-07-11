@@ -9,7 +9,7 @@ import com.twitter.scalding.TextLine
 import cascading.flow.FlowDef
 import com.twitter.scalding._
 import java.nio.ByteBuffer
-import com.sonar.expedition.scrawler.json.JacksonObjectMapper
+import com.sonar.expedition.scrawler.json.CustomObjectMapper
 import util.matching.Regex
 import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
@@ -349,7 +349,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     def parseJson(jsonStringOption: Option[String]): Option[ServiceProfileDTO] = {
         jsonStringOption map {
             jsonString =>
-                JacksonObjectMapper.objectMapper.readValue(jsonString, classOf[ServiceProfileDTO])
+                CustomObjectMapper.getInstance().readValue(jsonString, classOf[ServiceProfileDTO])
         }
     }
 
