@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-
+    <groupId>com.sonar</groupId>
     <artifactId>scrawler</artifactId>
     <properties>
 
@@ -479,7 +479,7 @@
                                             <resource>META-INF/spring.schemas</resource>
                                         </transformer>
                                     </transformers>
-                                    <relocations>
+                                    <!--<relocations>
                                         <relocation>
                                             <pattern>org.codehaus.jackson</pattern>
                                             <shadedPattern>com.sonar.jackson</shadedPattern>
@@ -519,7 +519,7 @@
 
                                             </includes>
                                         </relocation>
-                                    </relocations>
+                                    </relocations>-->
                                     <!--Need this to filter out signed manifests that will trip up Hadoop-->
                                     <filters>
                                         <filter>
