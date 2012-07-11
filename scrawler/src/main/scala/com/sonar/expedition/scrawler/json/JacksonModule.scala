@@ -9,6 +9,8 @@ import com.sonar.dossier.dto.{Checkin, UserEducation, UserEmployment, ServicePro
 import deser.DeserializationProblemHandler
 import grizzled.slf4j.Logging
 import org.codehaus.jackson.annotate.JsonProperty
+import scala.collection.JavaConversions._
+
 
 class ScrawlerModule extends SimpleModule("scrawler", new Version(1, 0, 0, null, "com.sonar", "scrawler")) {
     override def setupModule(context: SetupContext) {
@@ -30,6 +32,12 @@ class ScrawlerObjectMapper extends ObjectMapper {
     this.getDeserializationConfig.without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
     this.getSerializationConfig.without(SerializationFeature.FAIL_ON_EMPTY_BEANS)
     this.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+    this.addMixInAnnotations(classOf[ServiceProfileDTO], classOf[IgnoreUnknownMixin])
+    this.addMixInAnnotations(classOf[UserEducation], classOf[IgnoreUnknownMixin])
+    this.addMixInAnnotations(classOf[Checkin], classOf[IgnoreUnknownMixin])
+    this.addMixInAnnotations(classOf[UserEmployment], classOf[UserEmploymentMixin])
+    this.addMixInAnnotations(classOf[ServiceProfileDTO], classOf[IgnoreUnknownMixin])
+
 }
 
 object ScrawlerObjectMapper {
@@ -46,6 +54,7 @@ object ScrawlerObjectMapper {
         module.setMixInAnnotation(classOf[UserEducation], classOf[IgnoreUnknownMixin])
         module.setMixInAnnotation(classOf[Checkin], classOf[IgnoreUnknownMixin])
         module.setMixInAnnotation(classOf[UserEmployment], classOf[UserEmploymentMixin])
+        module.setMixInAnnotation(classOf[ServiceProfileDTO], classOf[IgnoreUnknownMixin])
         // and the magic happens here when we register module with mapper:
         objectMapper.registerModule(module)
         initialized = true
@@ -65,7 +74,9 @@ object ScrawlerObjectMapper {
 @JsonIgnoreProperties(ignoreUnknown = true)
 abstract class IgnoreUnknownMixin {
 
-
+    @scala.reflect.BeanProperty
+    @JsonProperty("is_current")
+    var current:Boolean = _
 
 }
 
