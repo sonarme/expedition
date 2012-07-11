@@ -124,20 +124,20 @@ class DataAnalyser(args: Args) extends Job(args) {
             val certainty = scorer.certaintyScore(score, work, place)
             (work, workLatitude, workLongitude, place, placeLatitude, placeLongitude, score, certainty)
     }
-            .groupBy('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked) {
-        _
-                .toList[Double]('certainty -> 'certaintyList)
-    }
-            .map(('certaintyList) -> ('certaintyScore)) {
-        fields: (List[Double]) =>
-            val (certaintyList) = fields
-            val certainty = certaintyList.max
-            certainty
-    }
+//            .groupBy('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked) {
+//        _
+//                .toList[Double]('certainty -> 'certaintyList)
+//    }
+//            .map(('certaintyList) -> ('certaintyScore)) {
+//        fields: (List[Double]) =>
+//            val (certaintyList) = fields
+//            val certainty = certaintyList.max
+//            certainty
+//    }
 
 
-            //                        .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
-            .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore))
+                                    .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
+          //  .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore))
             .write(TextLine(jobOutput))
 
 }
