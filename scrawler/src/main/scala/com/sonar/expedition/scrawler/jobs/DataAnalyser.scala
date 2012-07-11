@@ -136,47 +136,9 @@ class DataAnalyser(args: Args) extends Job(args) {
     }
 
 
-            //            .rename(('work, 'workLatitude, 'workLongitude, 'place, 'placeLatitude, 'placeLongitude) -> ('stemmedWorked, 'lat, 'long, 'stemmedName, 'geometryLatitude, 'geometryLongitude))
-            //                        .filter(('lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName)) {
-            //                    fields: (String, String, String, String, String, String, String) =>
-            //                        val (lat, long, placeLat, placeLong, mtphnWork, workName, placeName) = fields
-            //                        if (placeLat == null) {
-            //                            lat != null
-            //                        }
-            //                        else if (mtphnWork == " ") {
-            //                            lat != null
-            //                        }
-            //                        else {
-            //                            val distance = haversiner.haversine(lat.toDouble, long.toDouble, placeLat.toDouble, placeLong.toDouble)
-            //                            (distance <= 2 && checker.checkLevenshtein(workName, placeName, 2))
-            //                }
-            //
-            //                }
-
-//            .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
+            //                        .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
             .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore))
             .write(TextLine(jobOutput))
-    /*val coandcity_latlong = apiCalls.fsqAPIFindLatLongFromCompAndCity(unq_cmp_city)
-
-  val work_loc = coandcity_latlong
-  .filter('lati, 'longi, 'street_address) {
-  fields: (String, String, String) =>
-  val (lat, lng, addr) = fields
-  (!lat.toString.equalsIgnoreCase("-1")) && (!lng.toString.equalsIgnoreCase("-1")) && (!addr.toString.equalsIgnoreCase("-1"))
-
-  }.write(TextLine("/tmp/work_place.txt"))
-
-  val joinedwork_location = tmpcompanies.joinWithSmaller('city -> 'placename, coandcity_latlong)
-  .project('mtphnWorked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'fbid, 'lnid)
-  .unique('mtphnWorked, 'uname, 'placename, 'lati, 'longi, 'street_address, 'worktitle, 'fbid, 'lnid)
-  .filter('lati, 'longi, 'street_address) {
-  fields: (String, String, String) =>
-  val (lat, lng, addr) = fields
-  (!lat.toString.equalsIgnoreCase("-1")) && (!lng.toString.equalsIgnoreCase("-1")) && (!addr.toString.equalsIgnoreCase("-1"))
-
-  }
-  .write(out2)  */
-
 
 }
 

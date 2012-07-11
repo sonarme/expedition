@@ -35,6 +35,20 @@ public class Levenshtein {
         return retval;
     }
 
+//    public int compareWordsInt(final String s1, final String s2) {
+//        int retval = 0;
+//        final int n = s1.split(" ").;
+//        final int m = s2.length();
+//        if (0 == n) {
+//            retval = m;
+//        } else if (0 == m) {
+//            retval = n;
+//        } else {
+//            retval = compareInt(s1, n, s2, m);
+//        }
+//        return retval;
+//    }
+
     private double compare(final String s1, final int n,
                            final String s2, final int m) {
         int matrix[][] = new int[n + 1][m + 1];
