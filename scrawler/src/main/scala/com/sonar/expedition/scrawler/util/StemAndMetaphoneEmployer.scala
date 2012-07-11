@@ -24,7 +24,7 @@ class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) {
 
     def getMetaphone(employer: String): String = {
 
-        metaphoner.setMaxCodeLen(6)
+        metaphoner.setMaxCodeLen(10)
         metaphoner.doubleMetaphone(employer)
     }
 
@@ -38,7 +38,7 @@ class StemAndMetaphoneEmployer(defaultMetaphoner: DoubleMetaphone = null) {
 
     def getStemmedMetaphone(employer: String): String = {
         val stem = removeStopWords(employer)
-        metaphoner.setMaxCodeLen(6)
+        metaphoner.setMaxCodeLen(10)
         metaphoner.doubleMetaphone(stem)
     }
 
