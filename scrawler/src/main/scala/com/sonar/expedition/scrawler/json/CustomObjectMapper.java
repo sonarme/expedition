@@ -1,9 +1,12 @@
 package com.sonar.expedition.scrawler.json;
 
-import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.PropertyNamingStrategy;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+//import org.codehaus.jackson.map.DeserializationConfig;
+//import org.codehaus.jackson.map.ObjectMapper;
+//import org.codehaus.jackson.map.PropertyNamingStrategy;
+//import org.codehaus.jackson.map.annotate.JsonSerialize;
+
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 public class CustomObjectMapper extends ObjectMapper {
 
@@ -11,8 +14,8 @@ public class CustomObjectMapper extends ObjectMapper {
 
     public CustomObjectMapper() {
         setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES);
-        setSerializationInclusion(JsonSerialize.Inclusion.NON_NULL);
-        disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES);
+        this.getDeserializationConfig().without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES);
+        this.getSerializationConfig().without(SerializationFeature.FAIL_ON_EMPTY_BEANS);
     }
 
     public static ObjectMapper getInstance() {
