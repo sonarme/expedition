@@ -2,7 +2,6 @@ package com.sonar.expedition.scrawler.clustering;
 
 import org.apache.mahout.clustering.kmeans.Cluster;
 import org.apache.mahout.clustering.kmeans.KMeansClusterer;
-
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.DenseVector;
 import org.apache.mahout.math.Vector;
@@ -22,23 +21,23 @@ public class KMeans {
         int k = clustersReq;
         List<Vector> sampleData = new ArrayList<Vector>();
         List<geopoints> points = new ArrayList<geopoints>();
+        List<Cluster> clusters = new ArrayList<Cluster>();
+        int clusterId = 0;
 
         for (String loc : chkins) {
             String[] locs = loc.split(":");
             points.add(new geopoints(locs[0], locs[1]));
         }
         for (int i = 0; i < points.size(); i++) {
+            DenseVector v = new DenseVector(new double[]{
+                    points.get(i).getLat(), points.get(i).getLon()});
+            sampleData.add(v);
+            if (i < k)
+                clusters.add(new Cluster(v, clusterId++));
+        }
 
-            sampleData.add(new DenseVector(new double[]{
-                    points.get(i).getLat(), points.get(i).getLon()}));
-        }
-        List<Cluster> clusters = new ArrayList<Cluster>();
-        int clusterId = 0;
-        for (Vector v : sampleData) {
-            clusters.add(new Cluster(v, clusterId++));
-        }
         List<List<Cluster>> finalClusters = KMeansClusterer.clusterPoints(
-                sampleData, clusters, new EuclideanDistanceMeasure(), k, 0.01);
+                sampleData, clusters, new EuclideanDistanceMeasure(), 5, 0.01);
         String loc = "0:0";
         int numOfPoints = 0;
         for (Cluster cluster : finalClusters.get(finalClusters.size() - 1)) {

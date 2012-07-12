@@ -22,13 +22,13 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
                 }
             }
         }
-                .map('serviceProfileId -> 'hashedId) {
-            id: String =>
-                val hashedServiceId = md5SumString(id.getBytes("UTF-8"))
-                hashedServiceId
-        }
-                .discard('serviceProfileId).rename('hashedId -> 'serviceProfileId)
-        //        .pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
+//                .map('serviceProfileId -> 'hashedId) {
+//            id: String =>
+//                val hashedServiceId = md5SumString(id.getBytes("UTF-8"))
+//                hashedServiceId
+//        }
+//                .discard('serviceProfileId).rename('hashedId -> 'serviceProfileId)
+//                .pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
         //            group => group.toList[FriendObjects]('friend,'friendData)
         //        }.map(Fields.ALL -> ('ProfileId, 'friendProfileId)){
         //            fields : (String,List[FriendObjects]) =>
@@ -39,6 +39,8 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
         //        .project(('userProfileId, 'serviceProfileId)).groupBy('userProfileId) {
         //            group => group.toList[String]('serviceProfileId, 'serviceProfileIdList)
         //        }.project(('userProfileId, 'serviceProfileIdList))
+
+        .project('userProfileId, 'serviceProfileId, 'friendName)
 
         data
     }

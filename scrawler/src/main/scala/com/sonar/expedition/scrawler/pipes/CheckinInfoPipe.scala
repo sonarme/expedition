@@ -1,19 +1,8 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{Job, Args}
-import cascading.tuple.Fields
-import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
-import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO, Checkin}
 import java.security.MessageDigest
-import cascading.pipe.{Each, Pipe}
-import com.twitter.scalding.TextLine
-import cascading.flow.FlowDef
 import com.twitter.scalding._
-import java.nio.ByteBuffer
 import util.matching.Regex
-import grizzled.slf4j.Logging
-import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
-import java.util.Calendar
 import CheckinInfoPipe._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
@@ -109,19 +98,16 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
 
     def findClusteroidofUserFromChkins(chkins: RichPipe): RichPipe = {
         val citypipe = chkins.groupBy('key) {
-//            println("test")
             _
                     //.mapReduceMap('key->'key1), todo understand mapreducemap api
                     .toList[String]('loc -> 'locList)
 
-        }.mapTo(('key, 'locList) ->('key1, 'centroid)) {
+        }.mapTo(('key, 'locList) -> ('key1, 'centroid)) {
                 fields: (String, List[String]) =>
                 val (key, chkinlist) = fields
                 val chkcity = findCityFromChkins(chkinlist)
-//                println(chkcity)
                 (key,chkcity)
-
-        }.project('key1, 'centroid)
+        }
 
         citypipe
     }
@@ -130,7 +116,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         var centroid = Array(0.toDouble, 0.toDouble)
         chkinlist foreach {
             chkin =>
-                centroid(0) += chkin.split(":").firstOption.mkString.toDouble
+                centroid(0) += chkin.split(":").headOption.mkString.toDouble
                 centroid(1) += chkin.split(":").lastOption.mkString.toDouble
         }
 
