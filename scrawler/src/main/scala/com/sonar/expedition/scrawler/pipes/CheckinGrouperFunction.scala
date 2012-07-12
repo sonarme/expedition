@@ -59,5 +59,5 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 }
 
 object CheckinGrouperFunction {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([\w\d\-\.@]*)::([\w\d]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-]+)::([\.\d\-]+)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([\w\d\-\.@]*)::([\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*?)::([\-\d]*)::([\.\d\-]+)::([\.\d\-]+)""".r
 }
