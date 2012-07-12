@@ -31,7 +31,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 .filter('dayOfWeek) {
             dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour) {
-            hour: Double => hour > 8.5 && hour < 18
+            hour: Double => hour > 8.5 && hour < 19
         }.map(('latitude, 'longitude) -> ('loc)) {
             fields: (String, String) =>
                 val (lat, lng) = fields
