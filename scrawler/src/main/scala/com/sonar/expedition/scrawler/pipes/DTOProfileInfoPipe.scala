@@ -9,12 +9,13 @@ import com.twitter.scalding.TextLine
 import cascading.flow.FlowDef
 import com.twitter.scalding._
 import java.nio.ByteBuffer
-import com.sonar.expedition.scrawler.json.JacksonObjectMapper
+import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import util.matching.Regex
 import grizzled.slf4j.Logging
 import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import com.sonar.expedition.scrawler.objs._
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
@@ -349,7 +350,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     def parseJson(jsonStringOption: Option[String]): Option[ServiceProfileDTO] = {
         jsonStringOption map {
             jsonString =>
-                JacksonObjectMapper.objectMapper.readValue(jsonString, classOf[ServiceProfileDTO])
+                ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[ServiceProfileDTO])
         }
     }
 
@@ -389,5 +390,11 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     def getVenue(checkins: List[CheckinObjects]): String = {
         checkins.map(_.getVenueName).toString
     }
+
+}
+
+
+@JsonIgnoreProperties
+class Foo extends ServiceProfileDTO {
 
 }

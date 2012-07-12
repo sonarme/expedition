@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Job, Args}
 import com.sonar.expedition.scrawler.dto._
-import com.sonar.expedition.scrawler.json.JacksonObjectMapper
+import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import scala.Array
 
 class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
@@ -25,7 +25,7 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                 val propertiesTags = getPropertiesTags(placesJson).mkString("", ",", "")
                 val propertiesCountry = getPropertiesCountry(placesJson)
                 val classifiersCategory = getClassifiers(placesJson).map(_.getCategory()).mkString("", ",", "")
-                val classifiersType = getClassifiers(placesJson).map(_.getType()).mkString("", ",", "")
+                val classifiersType = getClassifiers(placesJson).map(_.classifierType).mkString("", ",", "")
                 val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory()).mkString("", ",", "")
                 val propertiesPhone = getPropertiesPhone(placesJson)
                 val propertiesHref = getPropertiesHref(placesJson)
@@ -50,12 +50,12 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
     def parseJson(jsonStringOption: Option[String]): Option[PlacesDTO] = {
         jsonStringOption map {
             jsonString =>
-                JacksonObjectMapper.objectMapper.readValue(jsonString, classOf[PlacesDTO])
+                ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[PlacesDTO])
         }
     }
 
     def getGeometryType(placesData: Option[PlacesDTO]): String = {
-        placesData.map(_.getGeometry.getType()).getOrElse("None")
+        placesData.map(_.getGeometry.getGeometryType()).getOrElse("None")
     }
 
     def getGeometryCoordinates(placesData: Option[PlacesDTO]): Array[Double] = {
@@ -63,7 +63,7 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
     }
 
     def getType(placesData: Option[PlacesDTO]): String = {
-        placesData.map(_.getType()).getOrElse("None")
+        placesData.map(_.getPlaceType()).getOrElse("None")
     }
 
     def getId(placesData: Option[PlacesDTO]): String = {

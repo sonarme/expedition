@@ -1,14 +1,15 @@
 package com.sonar.expedition.scrawler.dto
 
 import reflect.BeanProperty
-import org.codehaus.jackson.annotate.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.{JsonIgnoreProperties, JsonProperty}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 case class PlacesDTO(@BeanProperty
                      @JsonProperty("geometry")
                      var geometry: PlacesGeometryDTO = PlacesGeometryDTO(),
                      @BeanProperty
-                     var `type`: String = null,
+                     @JsonProperty("type")
+                     var placeType: String = null,
                      @BeanProperty
                      @JsonProperty("id")
                      var id: String = null,
@@ -21,7 +22,8 @@ case class PlacesDTO(@BeanProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 case class PlacesGeometryDTO(@BeanProperty
-                             var `type`: String = null,
+                             @JsonProperty("type")
+                             var geometryType: String = null,
                              @BeanProperty
                              @JsonProperty("coordinates")
                              var coordinates: Array[Double] = null) {
@@ -71,7 +73,8 @@ case class PlacesClassifiersDTO(@BeanProperty
                                 @JsonProperty("category")
                                 var category: String = null,
                                 @BeanProperty
-                                var `type`: String = null,
+                                @JsonProperty("type")
+                                var classifierType: String = null,
                                 @BeanProperty
                                 @JsonProperty("subcategory")
                                 var subcategory: String = null) {
