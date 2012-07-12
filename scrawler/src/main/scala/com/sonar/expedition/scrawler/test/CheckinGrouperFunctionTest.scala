@@ -12,7 +12,7 @@ class CheckinGrouperFunctionTest(args: Args) extends Job(args) {
     //TextLine(in).read.project('line).write(TextLine(out))
 
     val pipe1 = TextLine(in).read.project('line)
-    val pipe2 = groupFuncTest.addTotalTimesCheckedIn(groupFuncTest.groupCheckins(pipe1)).write(TextLine(out))
+    val pipe2 = groupFuncTest.addTotalTimesCheckedIn(groupFuncTest.unfilteredCheckins(pipe1)).write(TextLine(out))
     //val test = TextLine(in).then{
     //  groupFuncTest.groupCheckins( _  )
     //}
