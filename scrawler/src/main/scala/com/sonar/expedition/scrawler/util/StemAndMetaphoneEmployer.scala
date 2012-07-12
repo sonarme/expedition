@@ -54,4 +54,10 @@ object StemAndMetaphoneEmployer extends Serializable {
         val meta2 = getAlternateMetaphone(stem)
         (employer, stem, meta1, meta2)
     }
+
+    def getStemmed(employer: String): String = {
+        val stem = removeStopWords(employer)
+        stem
+    }
+
 }
