@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.pipes
 import com.sonar.expedition.scrawler.objs.CheckinObjects
 import CheckinTimeFilter._
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Calendar, Date}
 import scala.util.matching.Regex
 
 class CheckinTimeFilter {
@@ -38,7 +38,16 @@ object CheckinTimeFilter {
     def parseDateTime(timestamp: String): Date = {
         val parsedTimestamp = removeTrailingTimezoneColon(timestamp)
         val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSZ")
-        val parsedDate = simpleDateFormat.parse(parsedTimestamp)
+        val parsedDate = try {
+            simpleDateFormat.parse(parsedTimestamp)
+        }
+        catch {
+            case _ => {
+                val defaultTime = Calendar.getInstance()
+                defaultTime.set(Calendar.YEAR, 1927)
+                defaultTime.getTime
+            }
+        }
         parsedDate
     }
 

@@ -5,7 +5,6 @@ import util.matching.Regex
 import java.util.Calendar
 import CheckinGrouperFunction._
 
-
 class CheckinGrouperFunction(args: Args) extends Job(args) {
 
 
@@ -60,5 +59,5 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 }
 
 object CheckinGrouperFunction {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin)::([\w\d\-\.@]*)::([\w\d]+)::(.*?)::(.*?)::([\d\-:T\+]*)::([\-\d]*)::([\.\d\-]+)::([\.\d\-]+)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin)::([\w\d\-\.@]*)::([\w\d]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-]+)::([\.\d\-]+)""".r
 }
