@@ -3,8 +3,7 @@ package com.sonar.expedition.scrawler.pipes
 import com.twitter.scalding._
 import util.matching.Regex
 import java.util.Calendar
-import com.sonar.expedition.scrawler.pipes.CheckinGrouper._
-
+import CheckinGrouperFunction._
 
 class CheckinGrouperFunction(args: Args) extends Job(args) {
 
@@ -24,7 +23,10 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
                         (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, dayOfWeek, time)
                     }
-                    case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                    case _ => {
+                        println("Coudn't extract line using regex: " + line)
+                        ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                    }
                 }
             }
         }
@@ -57,5 +59,5 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 }
 
 object CheckinGrouperFunction {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::([\d]*)::([\.\d\-]*)::([\.\d\-]*)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin)::([\w\d\-\.@]*)::([\w\d]+)::(.*?)::(.*?)::([\d\-:T\+]*)::([\-\d]*)::([\.\d\-]+)::([\.\d\-]+)""".r
 }
