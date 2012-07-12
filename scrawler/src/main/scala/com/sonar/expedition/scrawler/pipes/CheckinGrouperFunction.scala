@@ -56,8 +56,42 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
         data
     }
 
+    def unfilteredCheckins(input: RichPipe): RichPipe = {
+
+
+        val data = input
+                .mapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
+            line: String => {
+                line match {
+                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
+                        val timeFilter = Calendar.getInstance()
+                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                        timeFilter.setTime(checkinDate)
+//                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
+                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time)
+                    }
+                    case _ => {
+                        println("Coudn't extract line using regex: " + line)
+                        ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                    }
+                }
+            }
+        }.map(('latitude, 'longitude) -> ('loc)) {
+            fields: (String, String) =>
+                val (lat, lng) = fields
+                val loc = lat + ":" + lng
+                (loc)
+        }
+
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour))
+
+        data
+    }
+
 }
 
 object CheckinGrouperFunction {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin)::([\w\d\-\.@]*)::([\w\d]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-]+)::([\.\d\-]+)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([\w\d\-\.@]*)::([\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-]+)::([\.\d\-E]+)""".r
 }
