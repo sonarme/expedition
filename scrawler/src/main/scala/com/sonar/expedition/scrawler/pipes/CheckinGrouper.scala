@@ -15,7 +15,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
     var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
         line: String => {
             line match {
-                case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                case CheckinGrouperFunction.DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
                 case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
             }
         }
@@ -48,7 +48,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
 }
 
 object CheckinGrouper {
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+
 }
 
 
