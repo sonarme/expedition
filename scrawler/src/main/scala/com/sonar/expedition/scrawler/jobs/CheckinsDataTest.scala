@@ -15,13 +15,13 @@ class CheckinsDataTest(args: Args) extends Job(args) {
     val chkins = new CheckinInfoPipe(args)
 
 
-    val chkres1 = chkins.getCheckinsDataPipeCollectinLatLon(chkininputData.read).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
+    val chkres1 = chkins.getCheckinsDataPipeCollectinLatLon(chkininputData.read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
             .groupBy(Fields.ALL) {
         _.sortBy('chknTime)
     }
             .filter('venName) {
         venue: String => (venue.startsWith("Ippudo") || venue.startsWith("Totto") || venue.startsWith("momofuku") || venue.startsWith("Bobby Van"))
     }
-            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
+            .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
             .write(output)
 }

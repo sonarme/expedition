@@ -16,17 +16,17 @@ class CollectCheckins(args: Args) extends Job(args) {
     //rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
 
 
-    val chkres1 = chkins.getCheckinsDataPipeCollectinLatLon(chkininputData.read).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
+    val chkres1 = chkins.getCheckinsDataPipeCollectinLatLon(chkininputData.read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
             .groupBy(Fields.ALL) {
-        _.sortBy('keyid, 'chknTime)
+        _.sortBy(('keyid, 'chknTime))
     }
             .filter('venName) {
         venue: String => (venue.startsWith("Ippudo") || venue.startsWith("Totto") || venue.startsWith("momofuku") || venue.startsWith("Bobby Van"))
     }
-            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
+            .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
 
 
-    val userschkinsforplaces = chkres1.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
+    val userschkinsforplaces = chkres1.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
             .rename('keyid -> 'keyid2)
             .project('keyid2)
     //.write(TextLine("/tmp/ci.txt"))
@@ -37,7 +37,7 @@ class CollectCheckins(args: Args) extends Job(args) {
 
 
     val userchkdInToPlaces = chkres2.joinWithSmaller('keyid -> 'keyid2, userschkinsforplaces)
-            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
+            .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
             .write(output1)
 
     chkres1.write(output)
@@ -65,22 +65,22 @@ class CollectCheckins(args: Args) extends Job(args) {
 
     }*/
 
-    val chkres3 = chkins.getCheckinsDataPipe(chkininputData.read).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    val chkres3 = chkins.getCheckinsDataPipe(chkininputData.read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
             .groupBy(Fields.ALL) {
-        _.sortBy('keyid, 'chknTime)
+        _.sortBy(('keyid, 'chknTime))
     }
             .filter('venName) {
         venue: String => (!venue.equalsIgnoreCase(""))
-    }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
-            .project('keyid, 'venName, 'loc, 'chknTime)
+    }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+            .project(('keyid, 'venName, 'loc, 'chknTime))
 
     val chkres4 = chkres3.rename(('keyid, 'venName, 'loc, 'chknTime) ->('keyid2, 'venName2, 'loc2, 'chknTime2))
 
-    val join = chkres4.joinWithSmaller('keyid2 -> 'keyid, chkres3).filter('venName, 'venName2) {
+    val join = chkres4.joinWithSmaller('keyid2 -> 'keyid, chkres3).filter(('venName, 'venName2)) {
         venue: (String, String) => venue._1 < venue._2
     }
-            .project('keyid, 'venName, 'loc, 'chknTime, 'venName2, 'loc2, 'chknTime2)
-            .filter('chknTime, 'chknTime2) {
+            .project(('keyid, 'venName, 'loc, 'chknTime, 'venName2, 'loc2, 'chknTime2))
+            .filter(('chknTime, 'chknTime2)) {
         fields: (String, String) =>
             val (chkintime1, chkintime2) = fields
             val parsedCheckinTime1 = CheckinTimeFilter.removeTrailingTimezoneColon(chkintime1)
