@@ -131,7 +131,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             //            .map(('certaintyList) -> ('certaintyScore)) {
             //        fields: (List[Double]) =>
             //            val (certaintyList) = fields
-            //            val certainty = certaintyList.max
+            //            val certainty = certaintyList.max                           l
             //            certainty
             //    }
 
