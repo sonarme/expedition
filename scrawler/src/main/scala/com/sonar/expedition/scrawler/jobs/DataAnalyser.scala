@@ -118,27 +118,27 @@ class DataAnalyser(args: Args) extends Job(args) {
             val long = latLongArray.last
             (lat, long)
     }
-            .map(('stemmedWorked, 'lat, 'long, 'stemmedName, 'geometryLatitude, 'geometryLongitude) ->('work, 'workLatitude, 'workLongitude, 'place, 'placeLatitude, 'placeLongitude, 'score, 'certainty)) {
+            .map(('stemmedWorked, 'lat, 'long, 'stemmedName, 'geometryLatitude, 'geometryLongitude) ->('score, 'certainty)) {
         fields: (String, String, String, String, String, String) =>
             val (work, workLatitude, workLongitude, place, placeLatitude, placeLongitude) = fields
             val score = scorer.getScore(work, workLatitude, workLongitude, place, placeLatitude, placeLongitude)
             val certainty = scorer.certaintyScore(score, work, place)
-            (work, workLatitude, workLongitude, place, placeLatitude, placeLongitude, score, certainty)
+            (score, certainty)
     }
-//            .groupBy('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked) {
-//        _
-//                .toList[Double]('certainty -> 'certaintyList)
-//    }
-//            .map(('certaintyList) -> ('certaintyScore)) {
-//        fields: (List[Double]) =>
-//            val (certaintyList) = fields
-//            val certainty = certaintyList.max
-//            certainty
-//    }
+            .groupBy('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked) {
+        _
+                .toList[(Double, String, String)](('certainty, 'geometryLatitude, 'geometryLongitude) -> 'certaintyList)
+    }
+            .map(('certaintyList) -> ('certaintyScore, 'geometryLatitude, 'geometryLongitude)) {
+        fields: (List[(Double, String, String)]) =>
+            val (certaintyList) = fields
+            val certainty = certaintyList.max
+            (certainty._1, certainty._2, certainty._3)
+    }
 
 
-                                    .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
-          //  .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore))
+            //                                    .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
+            .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
             .write(TextLine(jobOutput))
 
 }
