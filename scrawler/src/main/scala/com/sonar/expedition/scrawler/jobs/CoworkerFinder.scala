@@ -5,7 +5,6 @@ import com.twitter.scalding.{Job, Args, TextLine}
 import cascading.pipe.joiner.OuterJoin
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.sonar.expedition.scrawler.jobs
-import jobs.CoworkerFinder
 import com.sonar.expedition.scrawler.jobs.CoworkerFinder._
 
 class CoworkerFinder(args: Args) extends Job(args) {
@@ -30,8 +29,7 @@ class CoworkerFinder(args: Args) extends Job(args) {
         fields: (String) =>
             val (employer) = fields
             val emp = employer.trim
-            val empMetaphone = new StemAndMetaphoneEmployer()
-            val fuzzyemp = empMetaphone.getStemmedMetaphone(emp)
+            val fuzzyemp = StemAndMetaphoneEmployer.getStemmedMetaphone(emp)
             fuzzyemp
     }.flatMap('workers -> ('listofworkers)) {
         fields: (String) =>
