@@ -71,8 +71,8 @@ class DataAnalyser(args: Args) extends Job(args) {
             .map('propertiesName ->('stemmedName, 'mtphnName)) {
         fields: String =>
             val (placeName) = fields
-            val stemmedName = metaphoner.getStemmed(placeName)
-            val mtphnName = metaphoner.getStemmedMetaphone(placeName)
+            val stemmedName = StemAndMetaphoneEmployer.getStemmed(placeName)
+            val mtphnName = StemAndMetaphoneEmployer.getStemmedMetaphone(placeName)
             (stemmedName, mtphnName)
     }.project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'stemmedName, 'mtphnName, 'propertiesTags, 'propertiesCountry,
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))

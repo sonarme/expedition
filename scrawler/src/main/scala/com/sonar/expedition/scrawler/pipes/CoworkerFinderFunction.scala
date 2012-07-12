@@ -224,8 +224,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
             fields: (String) =>
                 val (employer) = fields
                 val emp = employer.trim
-                val empMetaphone = new StemAndMetaphoneEmployer
-                val fuzzyemp = empMetaphone.getStemmed(emp)
+                val fuzzyemp = StemAndMetaphoneEmployer.getStemmed(emp)
                 fuzzyemp
         }.project('emp, 'key)
 

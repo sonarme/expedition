@@ -37,12 +37,12 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                  classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode)
         }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
                   'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
-//        .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
-//            fields : (String, String, String) =>
-//            val (state, lat, lng) = fields
-//                state == "NY" && lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8
-//
-//        }
+        .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
+            fields : (String, String, String) =>
+            val (state, lat, lng) = fields
+                state == "NY" && lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8
+
+        }
 
         parsedPlaces
     }
