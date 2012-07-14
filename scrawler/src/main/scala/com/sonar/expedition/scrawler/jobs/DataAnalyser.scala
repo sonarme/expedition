@@ -8,6 +8,7 @@ import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
+import com.sonar.expedition.scrawler.objs.serializable.{LuceneIndex, GenderFromNameProbablity}
 
 
 /*
@@ -27,6 +28,12 @@ class DataAnalyser(args: Args) extends Job(args) {
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
     val placesData = args("placesData")
+    val jobtraineddata = TextLine(args("occupationCodetsv"))
+    val malepipe = TextLine(args("male"))
+    val femalepipe = TextLine(args("female"))
+    //these two are used to complete the pipe i.e sink, while forming the luucene indexes and male/female detection resp.
+    val jobtrainedoutpipe = TextLine(args("occupationCodeTsvOutpipe"))
+    val genderoutpipe = TextLine(args("genderdataOutpipe"))
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -50,14 +57,23 @@ class DataAnalyser(args: Args) extends Job(args) {
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
+    val gendperpipe = new GenderInfoReadPipe(args)
+    val jobCodeReader = new  JobCodeReader(args)
     val scorer = new LocationScorer
+    var genderprob: GenderFromNameProbablity = new  GenderFromNameProbablity()
+    var lucene = new LuceneIndex()
+    lucene.initialise
+
+
+
+
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
             .map('worked ->('stemmedWorked, 'mtphnWorked)) {
-        fields: String =>
+            fields: String =>
             val (worked) = fields
             val stemmedWorked = StemAndMetaphoneEmployer.getStemmed(worked)
             val mtphnWorked = StemAndMetaphoneEmployer.getStemmedMetaphone(worked)
@@ -81,7 +97,53 @@ class DataAnalyser(args: Args) extends Job(args) {
     //val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
     /*
     if city is not filled up find city form chekcins and friends checkin
+
      */
+
+
+    val malegender = gendperpipe.DataPipe(malepipe.read)
+    val femalegender = gendperpipe.DataPipe(femalepipe.read)
+    val mpipe=malegender.project(('name, 'freq)).mapTo(('name, 'freq)->('name1, 'freq1)){
+        fields: (String, String) =>
+            val (name, freq) = fields
+            genderprob.addMaleItems(name.toUpperCase,freq)
+            (name,freq)
+    }
+    val fpipe = femalegender.project(('name, 'freq)).mapTo(('name, 'freq)->('name1, 'freq1)){
+        fields: (String, String) =>
+            val (name, freq) = fields
+            genderprob.addFemaleItems(name.toUpperCase,freq)
+            (name, freq)
+    }
+
+    val gpipe=mpipe.++(fpipe).mapTo(('name1, 'freq1)->
+            ('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory))
+    {
+        fields: (String, String) =>
+            val (name1, freq) = fields
+            ("-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1")
+
+    }
+
+    val jobs = jobCodeReader.readJobTypes(TextLine(args("occupationCodetsv")).read)
+                .mapTo(('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite) ->('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)) {
+                fields: (String, String, String, String) =>
+                val (matrixocccode, matrixocctitle, cpscode, cpsocctite) = fields
+                lucene.addItems(cpsocctite, matrixocctitle)
+                (matrixocccode, matrixocctitle, cpscode, cpsocctite)
+    }
+
+    val jpipe=jobs.mapTo(('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)
+            ->
+            ('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)){
+        fields: (String, String,String, String) =>
+            val (matrixocccode, matrixocctitle, cpscode, cpsocctite) = fields
+            ("-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1")
+
+    }.project('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)
+    .++(gpipe)
+
+
     var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
     val friendData = TextLine(finp).read.project('line)
 
@@ -100,9 +162,9 @@ class DataAnalyser(args: Args) extends Job(args) {
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
 
-    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
+    val pipefilteredProfiles = filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
             .map('mtphnWorked -> 'worked) {
-        fields: (String) =>
+            fields: (String) =>
             var (mtphnWorked) = fields
             if (mtphnWorked == null || mtphnWorked == "") {
                 mtphnWorked = " "
@@ -137,9 +199,33 @@ class DataAnalyser(args: Args) extends Job(args) {
 //    }
 
 
-                                    .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
-          //  .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore))
-            .write(TextLine(jobOutput))
+            .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
+            .mapTo((('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))->(('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory))){
+            fields: (String, String, String, String, String, String,String, String, String, String, String, String, String, String, String) =>
+            val (key, uname, fbid, lnid, city, worktitle, lat, long, geometryLatitude, geometryLongitude, worked, stemmedWorked, stemmedName, score, certainty) = fields
+
+            (key, uname,genderprob.getGender(uname), fbid, lnid, city, worktitle, lat, long, geometryLatitude, geometryLongitude, worked, stemmedWorked, stemmedName, score, certainty,lucene.search(worktitle))
+
+            }
+            .project(('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory))
+            .++(jpipe)
+
+    //filteredProfiles.++(gpipe).++(jpipe)
+     .write(TextLine(jobOutput))
+
+    //jpipe.write(jobtrainedoutpipe)
+
+    //.write(TextLine(jobOutput))
+
+    /*comments:
+     just need to make sure this pipes get joined with  filteredProfiles or else cascading is smart enough to separte out independent job flows in whcih case
+     it will be impossible to use  genderprob and lucene as they will initailed as part of a different job flow.
+     */
+
+    //mpipe.++(fpipe).write(jobtrainedoutpipe)
+    //jobs.write(genderoutpipe)
+
+
 
 }
 
@@ -148,5 +234,7 @@ object DataAnalyser {
     val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r
+    val Profile = """([a-zA-Z\d\- ]+)\t(ln|fb|tw)\t([a-zA-Z\d\- ]+)""".r
+
 
 }

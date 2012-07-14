@@ -41,7 +41,6 @@ public class MahoutClassify {
 
             final BufferedReader reader = new BufferedReader( new FileReader( "/tmp/classify"  ) );
             String entry = reader.readLine();
-
             while( entry != null ) {
                 List< String > document = new NGrams( entry,
                         Integer.parseInt( params.get( "gramSize" ) ) )
