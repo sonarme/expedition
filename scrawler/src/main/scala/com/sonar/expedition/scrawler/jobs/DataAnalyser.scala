@@ -101,6 +101,11 @@ class DataAnalyser(args: Args) extends Job(args) {
      */
 
 
+    /*comments:
+    just need to make sure this pipes get joined with  filteredProfiles or else cascading is smart enough to separte out independent job flows in whcih case
+    it will be impossible to use  genderprob and lucene as they will initailed as part of a different job flow.
+    */
+
     val malegender = gendperpipe.DataPipe(malepipe.read)
     val femalegender = gendperpipe.DataPipe(femalepipe.read)
     val mpipe=malegender.project(('name, 'freq)).mapTo(('name, 'freq)->('name1, 'freq1)){
@@ -210,21 +215,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             .project(('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory))
             .++(jpipe)
 
-    //filteredProfiles.++(gpipe).++(jpipe)
      .write(TextLine(jobOutput))
-
-    //jpipe.write(jobtrainedoutpipe)
-
-    //.write(TextLine(jobOutput))
-
-    /*comments:
-     just need to make sure this pipes get joined with  filteredProfiles or else cascading is smart enough to separte out independent job flows in whcih case
-     it will be impossible to use  genderprob and lucene as they will initailed as part of a different job flow.
-     */
-
-    //mpipe.++(fpipe).write(jobtrainedoutpipe)
-    //jobs.write(genderoutpipe)
-
 
 
 }
