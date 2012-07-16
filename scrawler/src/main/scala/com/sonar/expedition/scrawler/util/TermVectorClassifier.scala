@@ -51,7 +51,7 @@ object TermVectorClassifier {
 
 class WindowTermVectorMapper extends TermVectorMapper {
     def map(term: String, frequency: Int, offsets: Array[TermVectorOffsetInfo], positions: Array[Int]) {
-        var entry:WindowEntry = null
+        var entry: WindowEntry = null
         for (i <- Range(0, positions.length) if (positions(i) >= start && positions(i) < end)) {
             if (entry == null) {
                 entry = new WindowEntry(term)

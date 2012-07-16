@@ -1,16 +1,14 @@
 package com.sonar.expedition.scrawler.test
 
+import com.twitter.scalding.{TextLine, Job, Args}
 import com.sonar.expedition.scrawler.pipes._
-import com.twitter.scalding._
 import com.sonar.expedition.scrawler.jobs.DataAnalyser
-import com.twitter.scalding.TextLine
 
-class CheckinGrouperFunctionTest(args: Args) extends Job(args) {
-    val serviceProfileInput = args("serviceProfileData")
-    val friendsInput = args("friendData")
-    val checkinsInput = args("checkinData")
-    val checkinTupleExport = args("output")
-
+class FriendsAtSameVenueTest(args: Args) extends Job(args) {
+    val serviceProfileInput = "/tmp/serviceProfileData.txt"
+    val friendsInput = "/tmp/friendData.txt"
+    val checkinsInput = "/tmp/checkinDatatest.txt"
+    val matchedFriends = "/tmp/matchedFriends.txt"
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
@@ -27,9 +25,14 @@ class CheckinGrouperFunctionTest(args: Args) extends Job(args) {
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
+
+    val friendsNearby = new FriendsAtSameVenue(args)
     val friends = friendGrouper.groupFriends(TextLine(friendsInput).read)
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
-    val chkindata = checkinGrouperPipe.checkinTuple(TextLine(checkinsInput).read, friends, serviceIds)
-            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
-            .write(TextLine(checkinTupleExport))
+    val chkindata = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinsInput).read)
+
+    val findFriendsAtTheSameVenue = friendsNearby.friendsAtSameVenue(friends, chkindata, serviceIds)
+            .project(('uId, 'friendKey, 'venName, 'friendVenName, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour))
+            .write(TextLine(matchedFriends))
+
 }

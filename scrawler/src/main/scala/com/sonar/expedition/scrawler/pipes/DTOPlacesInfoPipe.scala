@@ -5,12 +5,12 @@ import com.sonar.expedition.scrawler.dto._
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import scala.Array
 
-class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
+class DTOPlacesInfoPipe(args: Args) extends Job(args) {
 
     def getPlacesInfo(placesData: RichPipe): RichPipe = {
 
-        val parsedPlaces = placesData.map('line -> ('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                                          'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)) {
+        val parsedPlaces = placesData.map('line ->('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+                'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)) {
             fields: (String) =>
                 val (data) = fields
                 val placesJson = parseJson(Option(data))
@@ -34,12 +34,12 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args)  {
                 val propertiesPostcode = getPropertiesPostcode(placesJson)
 
                 (geometryType, geometryLatitude, geometryLongitude, placeType, id, propertiesProvince, propertiesCity, propertiesName, propertiesTags, propertiesCountry,
-                 classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode)
+                        classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode)
         }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                  'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
-        .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
-            fields : (String, String, String) =>
-            val (state, lat, lng) = fields
+            'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
+                .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
+            fields: (String, String, String) =>
+                val (state, lat, lng) = fields
                 state == "NY" && lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8
 
         }
