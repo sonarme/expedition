@@ -102,7 +102,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                     fi: String => isNumeric(fi)
                 }
                 var headFirst = filterFirst.headOption.getOrElse("")
-                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty){
+                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty) {
                     headFirst = filterFirst.tail.head
                 }
 
@@ -115,10 +115,10 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 (user, headFirst, headSecond)
         }
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)){
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
             fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String]) =>
-            val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle) = fields
-            (key, getFirstNonNull(uname), fbid, lnid, getFirstNonNull(educ), getFirstNonNull(worked), getFirstNonNull(city), getFirstNonNull(edegree), getFirstNonNull(eyear), getFirstNonNull(worktitle))
+                val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle) = fields
+                (key, getFirstNonNull(uname), fbid, lnid, getFirstNonNull(educ), getFirstNonNull(worked), getFirstNonNull(city), getFirstNonNull(edegree), getFirstNonNull(eyear), getFirstNonNull(worktitle))
         }
 
         dtoProfiles
@@ -208,7 +208,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                     fi: String => isNumeric(fi)
                 }
                 var headFirst = filterFirst.headOption.getOrElse("")
-                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty){
+                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty) {
                     headFirst = filterFirst.tail.head
                 }
 
@@ -221,7 +221,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 (user, headFirst, headSecond)
         }
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)){
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
             fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String], List[String]) =>
                 val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, workdesc) = fields
                 (key, uname.head, fbid, lnid, educ.head, worked.head, city.head, edegree.head, eyear.head, worktitle.head, workdesc.head)

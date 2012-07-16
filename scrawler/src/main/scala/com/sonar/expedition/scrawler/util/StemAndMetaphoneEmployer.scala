@@ -9,7 +9,7 @@ class StemAndMetaphoneEmployer extends Serializable {
 object StemAndMetaphoneEmployer extends Serializable {
 
     @transient
-    def metaphoner(maxCodeLength:Option[Int] = None) = {
+    def metaphoner(maxCodeLength: Option[Int] = None) = {
         @transient
         val metaphone = new DoubleMetaphone
         maxCodeLength.map(codeLength => metaphone.setMaxCodeLen(codeLength))
