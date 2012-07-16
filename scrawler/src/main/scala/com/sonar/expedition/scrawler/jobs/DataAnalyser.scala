@@ -8,6 +8,7 @@ import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
+import com.lambdaworks.jacks._
 
 
 /*
@@ -36,6 +37,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             }
         }
     }).project(('id, 'serviceType, 'jsondata))
+
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val employerGroupedServiceProfilePipe = new DTOProfileInfoPipe(args)
@@ -129,7 +131,7 @@ class DataAnalyser(args: Args) extends Job(args) {
         _
                 .toList[(Double, String, String)](('certainty, 'geometryLatitude, 'geometryLongitude) -> 'certaintyList)
     }
-            .map(('certaintyList) -> ('certaintyScore, 'geometryLatitude, 'geometryLongitude)) {
+            .map(('certaintyList) ->('certaintyScore, 'geometryLatitude, 'geometryLongitude)) {
         fields: (List[(Double, String, String)]) =>
             val (certaintyList) = fields
             val certainty = certaintyList.max
@@ -139,14 +141,17 @@ class DataAnalyser(args: Args) extends Job(args) {
 
             //                                    .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
             .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
-            .write(TextLine(jobOutput))
-
+            .map(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude) -> ('json)) {
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+            val (key, uname, fbid, lnid, city, worktitle, lat, long, worked, stemmedWorked, certaintyScore, geometryLatitude, geometryLongitude) = fields
+            val json = JacksMapper.writeValueAsString(Map("key" -> key, "uname" -> uname, "Ids" -> List("fbid" -> fbid, "lnid" -> lnid), "city" -> city, "work" -> List("worktitle" -> worktitle, "lat" -> lat, "long" -> long, "worked" -> worked, "stemmedWorked" -> stemmedWorked), "certaintyScore" -> certaintyScore, "place" -> List("geometryLatitude" -> geometryLatitude, "geometryLongitude" -> geometryLongitude)))
+            json
+    }.project('json).write(TextLine(jobOutput))
 }
 
 
 object DataAnalyser {
     val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r
 
 }

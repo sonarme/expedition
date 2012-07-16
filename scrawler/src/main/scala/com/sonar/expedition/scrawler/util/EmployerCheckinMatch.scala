@@ -6,7 +6,7 @@ class EmployerCheckinMatch {
     val levver = new Levenshtein
     //metaphoner.setMaxCodeLen(6)
     val maxDistance = 1
-    
+
     /* checks if the employer stem matches the venueName stem and returns a boolean */
 
     def checkStemMatch(employer: String, venueName: String): Boolean = {

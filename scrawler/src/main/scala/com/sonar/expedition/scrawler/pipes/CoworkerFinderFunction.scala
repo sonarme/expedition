@@ -22,7 +22,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 val emp = employer.trim
                 val fuzzyemp = StemAndMetaphoneEmployer.getStemmedMetaphone(emp)
                 fuzzyemp
-                
+
         }.flatMap('workers -> ('listofworkers)) {
             fields: (String) =>
                 val (workerString) = fields
@@ -229,7 +229,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         }.project('emp, 'key)
 
         val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
-                .map(('userProfileId, 'serviceProfileId) -> ('uId, 'serviceId)) {
+                .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
                 val uIdString = userIdString.trim
@@ -243,7 +243,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .rename(('uId, 'row_keyfrnd, 'fbId, 'lnId) ->('originalUserId, 'friendUId, 'fbookId, 'linkedinId))
 
         val facebookFriendEmployers = facebookFriends.joinWithLarger('friendUId -> 'key, employerGroupedEmployeeUserIds)
-                .rename(('emp, 'originalUserId) -> ('emplyer, 'row_keyfbuser))
+                .rename(('emp, 'originalUserId) ->('emplyer, 'row_keyfbuser))
                 .project('row_keyfbuser, 'friendUId, 'emplyer).unique('row_keyfbuser, 'friendUId, 'emplyer)
 
         val facebookCoworkers = employerGroupedEmployeeUserIds.joinWithSmaller('key -> 'row_keyfbuser, facebookFriendEmployers)

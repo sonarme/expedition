@@ -7,7 +7,7 @@ class FriendsAtSameVenue(args: Args) extends Job(args) {
     def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
-                .map(('userProfileId, 'serviceProfileId) -> ('uId, 'serviceId)) {
+                .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
                 val uIdString = userIdString.trim
@@ -32,7 +32,7 @@ class FriendsAtSameVenue(args: Args) extends Job(args) {
                 .unique('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour)
 
         val matchingCheckins = checkinInput.joinWithSmaller('keyid -> 'uId, friendsCheckins)
-        .filter('venName, 'friendVenName, 'friendDayOfYear, 'dayOfYear, 'friendHour, 'hour) {
+                .filter('venName, 'friendVenName, 'friendDayOfYear, 'dayOfYear, 'friendHour, 'hour) {
             fields: (String, String, Int, Int, Double, Double) =>
                 val (originalVenue, friendVenue, friendDay, originalDay, friendHour, originalHour) = fields
                 (originalVenue.equalsIgnoreCase(friendVenue)) && (friendDay == originalDay) && (originalHour <= (friendHour + 1.5)) && (originalHour >= (friendHour - 1.5)) && (originalVenue != null) && (friendVenue != "")

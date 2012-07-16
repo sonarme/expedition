@@ -16,7 +16,7 @@ case class PlacesDTO(@BeanProperty
                      @BeanProperty
                      @JsonProperty("properties")
                      var properties: PlacesPropertiesDTO = PlacesPropertiesDTO()
-                     ) {
+                            ) {
     def this() = this(null, null)
 }
 
