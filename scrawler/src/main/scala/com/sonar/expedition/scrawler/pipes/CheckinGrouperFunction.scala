@@ -87,13 +87,13 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
                 .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour))
 
-        data
+       addTotalTimesCheckedIn(data).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'count)
     }
 
     def addTotalTimesCheckedIn(input: RichPipe): RichPipe = {
         val counter = input.groupBy('loc){
             _.size
-        }
+        }.rename('size -> 'count)
         input.joinWithSmaller('loc -> 'loc, counter)
     }
 

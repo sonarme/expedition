@@ -138,15 +138,16 @@ class DataAnalyser(args: Args) extends Job(args) {
             (certainty._1, certainty._2, certainty._3)
     }
 
-
-            //                                    .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
             .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
-            .map(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude) -> ('json)) {
-        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-            val (key, uname, fbid, lnid, city, worktitle, lat, long, worked, stemmedWorked, certaintyScore, geometryLatitude, geometryLongitude) = fields
-            val json = JacksMapper.writeValueAsString(Map("key" -> key, "uname" -> uname, "Ids" -> List("fbid" -> fbid, "lnid" -> lnid), "city" -> city, "work" -> List("worktitle" -> worktitle, "lat" -> lat, "long" -> long, "worked" -> worked, "stemmedWorked" -> stemmedWorked), "certaintyScore" -> certaintyScore, "place" -> List("geometryLatitude" -> geometryLatitude, "geometryLongitude" -> geometryLongitude)))
-            json
-    }.project('json).write(TextLine(jobOutput))
+
+    //           add this to output json lines
+
+    //          .map(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude) -> ('json)) {
+    //        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+    //            val (key, uname, fbid, lnid, city, worktitle, lat, long, worked, stemmedWorked, certaintyScore, geometryLatitude, geometryLongitude) = fields
+    //            val json = JacksMapper.writeValueAsString(Map("key" -> key, "uname" -> uname, "Ids" -> List("fbid" -> fbid, "lnid" -> lnid), "city" -> city, "work" -> List("worktitle" -> worktitle, "lat" -> lat, "long" -> long, "worked" -> worked, "stemmedWorked" -> stemmedWorked), "certaintyScore" -> certaintyScore, "place" -> List("geometryLatitude" -> geometryLatitude, "geometryLongitude" -> geometryLongitude)))
+    //            json
+    //    }.project('json).write(TextLine(jobOutput))
 }
 
 
