@@ -1,8 +1,10 @@
 package com.sonar.expedition.scrawler.util;
 
 
+import java.io.Serializable;
+
 // code copied from the interwebs with modifications for integer distance
-public class Levenshtein {
+public class Levenshtein implements Serializable {
     public Levenshtein() {
         super();
     }

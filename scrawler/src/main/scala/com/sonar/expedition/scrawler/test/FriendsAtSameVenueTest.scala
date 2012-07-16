@@ -12,7 +12,6 @@ class FriendsAtSameVenueTest(args: Args) extends Job(args) {
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
-    val checkinInfoPipe = new CheckinInfoPipe(args)
     val friendGrouper = new FriendGrouperFunction(args)
 
     val data = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
