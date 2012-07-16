@@ -56,7 +56,7 @@ object CheckinTimeFilter {
      * so that we can parse using simpleDateFormat
      * @param timestamp
      */
-    def removeTrailingTimezoneColon(timestamp: String):String = {
+    def removeTrailingTimezoneColon(timestamp: String): String = {
         TimezoneColon findFirstIn timestamp match {
             case Some(TimezoneColon(dateTime, remainingTimeZone)) => dateTime + remainingTimeZone
             case None => timestamp

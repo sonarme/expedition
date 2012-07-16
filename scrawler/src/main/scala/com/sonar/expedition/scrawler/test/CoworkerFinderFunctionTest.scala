@@ -18,7 +18,7 @@ class CoworkerFinderFunctionTest(args: Args) extends Job(args) {
     val serviceIdPipe = TextLine(serviceIdsInput).read.project('line)
     val checkinsPipe = TextLine(checkinsInput).read.project('line)
     val findCoworkersPipe = coworkerFuncTest.findCoworkerCheckins(serviceProfilePipe, friendsPipe, serviceIdPipe, checkinsPipe)
-        .project(('keyid, 'originalUId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-        .write(TextLine(coworkerCheckins))
+            .project(('keyid, 'originalUId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+            .write(TextLine(coworkerCheckins))
 
 }
