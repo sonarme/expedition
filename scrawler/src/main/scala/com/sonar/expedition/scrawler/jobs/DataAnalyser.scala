@@ -212,7 +212,13 @@ class DataAnalyser(args: Args) extends Job(args) {
             (key, uname,genderprob.getGender(uname), fbid, lnid, city, worktitle, lat, long, geometryLatitude, geometryLongitude, worked, stemmedWorked, stemmedName, score, certainty,lucene.search(worktitle))
 
             }
-            .project(('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory))
+            .project('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)
+            .filter('key1){
+                fields: (String) =>
+                val (key) = fields
+                (key!="-1")
+
+            }.project('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)
             .++(jpipe)
 
      .write(TextLine(jobOutput))
