@@ -1,3 +1,4 @@
+/*
 package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{Job, Args, TextLine}
@@ -5,6 +6,7 @@ import javax.print.attribute.standard.JobSheets
 import com.sonar.expedition.scrawler.pipes.GenderFromNameProbablity
 import util.matching.Regex
 import NameClassifyTest._
+import com.sonar.expedition.scrawler.objs.serializable.GenderFromNameProbablity
 
 class NameClassifyTest(args: Args) extends Job(args) {
 
@@ -70,3 +72,4 @@ class NameClassifyTest(args: Args) extends Job(args) {
 object NameClassifyTest {
     val GenderInfo: Regex = """([a-zA-Z]+)\s+(\d+.\d+)\s+(\d+.\d+)\s+(\d+)""".r;
 }
+*/

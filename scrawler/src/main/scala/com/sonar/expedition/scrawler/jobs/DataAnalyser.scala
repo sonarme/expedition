@@ -8,9 +8,8 @@ import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
-import com.lambdaworks.jacks._
 import java.security.MessageDigest
-import tools.nsc.io.Streamable.Bytes
+import cascading.tuple.Fields
 
 
 /*
@@ -30,6 +29,9 @@ class DataAnalyser(args: Args) extends Job(args) {
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
     val placesData = args("placesData")
+    val jobtraineddata = TextLine(args("occupationCodetsv"))
+    val bayestrainingmodel=args("bayestrainingmodel")
+
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -55,6 +57,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
     val scorer = new LocationScorer
+    val trainer = new BayesModelPipe(args)
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
@@ -166,6 +169,15 @@ class DataAnalyser(args: Args) extends Job(args) {
             val hashed = md5SumString(user.getBytes("UTF-8"))
             hashed
     }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends).write(TextLine(jobOutput))
+
+    val jobtypes= filteredProfiles.project('worktitle).rename('worktitle -> 'data).write(TextLine("/tmp/jobtypes"))
+
+
+    val seqModel = SequenceFile(bayestrainingmodel , Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) -> ('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)){
+        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+
+    }
+    val out2 = trainer.calcProb(seqModel, jobtypes).project(Fields.ALL).write(TextLine("/tmp/outputjobc"))
 
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
