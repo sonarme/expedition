@@ -29,7 +29,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
     val placesData = args("placesData")
-    val jobtraineddata = TextLine(args("occupationCodetsv"))
     val bayestrainingmodel=args("bayestrainingmodel")
 
 
