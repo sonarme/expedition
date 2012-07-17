@@ -30,11 +30,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     val jobOutput = args("output")
     val placesData = args("placesData")
     val jobtraineddata = TextLine(args("occupationCodetsv"))
-    //val malepipe = TextLine(args("male"))
-    //val femalepipe = TextLine(args("female"))
-    //these two are used to complete the pipe i.e sink, while forming the luucene indexes and male/female detection resp.
-    //val jobtrainedoutpipe = TextLine(args("occupationCodeTsvOutpipe"))
-    //val genderoutpipe = TextLine(args("genderdataOutpipe"))
     val bayestrainingmodel=args("bayestrainingmodel")
 
 
@@ -47,7 +42,7 @@ class DataAnalyser(args: Args) extends Job(args) {
         }
     }).project(('id, 'serviceType, 'jsondata))
 
-    val trainer = new BayesModelPipe(args)
+
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val employerGroupedServiceProfilePipe = new DTOProfileInfoPipe(args)
     val friendInfoPipe = new FriendInfoPipe(args)
@@ -62,6 +57,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
     val scorer = new LocationScorer
+    val trainer = new BayesModelPipe(args)
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
@@ -172,18 +168,16 @@ class DataAnalyser(args: Args) extends Job(args) {
             val user = fields
             val hashed = md5SumString(user.getBytes("UTF-8"))
             hashed
-    }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+    }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends).write(TextLine(jobOutput))
 
-    /*val jobtypes= filteredProfiles.project('worktitle1).rename('worktitle1 -> 'data)
+    val jobtypes= filteredProfiles.project('worktitle).rename('worktitle -> 'data).write(TextLine("/tmp/jobtypes"))
+
 
     val seqModel = SequenceFile(bayestrainingmodel , Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) -> ('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)){
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
     }
-
-
-    val out2 = trainer.calcProb(seqModel, jobtypes)*/
-            .write(TextLine(jobOutput))
+    val out2 = trainer.calcProb(seqModel, jobtypes).project(Fields.ALL).write(TextLine("/tmp/outputjobc"))
 
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")

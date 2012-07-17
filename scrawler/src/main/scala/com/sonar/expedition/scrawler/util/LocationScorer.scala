@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.util
 
-class LocationScorer extends Serializable{
+class LocationScorer extends Serializable {
     val levver = new Levenshtein
     val havver = new Haversine
 

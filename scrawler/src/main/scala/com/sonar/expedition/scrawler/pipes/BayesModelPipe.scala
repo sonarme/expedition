@@ -6,7 +6,16 @@ import com.twitter.scalding.{Job, Args}
 class BayesModelPipe(args: Args) extends Job(args) {
 
 
-    def trainBayesModel(reading: RichPipe): RichPipe = {
+    def trainBayesModel(input: RichPipe): RichPipe = {
+
+        // input has 'key, 'token, and 'doc
+
+        // turn all to lower case, strip plurals and remove punctuation from token
+        val reading = input.map('token -> 'token2){
+            token: String => stripEnglishPlural(token.replaceAll("""\p{P}"""," ").toLowerCase)
+        }.discard('token).rename('token2 -> 'token)
+
+
 
         // input has 'key, 'token, and 'doc
 
@@ -126,6 +135,45 @@ class BayesModelPipe(args: Args) extends Job(args) {
             }
         }
         normTFIDFPipe.project('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)
+    }
+
+    def stripEnglishPlural(word: String): String = {
+        // too small?
+        if ( word.length<1 ) {
+            word
+        }
+        // special cases
+        else if ( word.equals("has") ||
+                word.equals("was") ||
+                word.equals("does") ||
+                word.equals("goes") ||
+                word.equals("dies") ||
+                word.equals("yes") ||
+                word.equals("gets") || // means too much in java/JSP
+                word.equals("its") )
+        {
+            word
+        }
+        else if ( word.endsWith("sses") ||
+                word.endsWith("xes") ||
+                word.endsWith("hes") ) {
+            // remove 'es'
+            word.substring(0,word.length()-2);
+        }
+        else if ( word.endsWith("ies") ) {
+            // remove 'ies', replace with 'y'
+            word.substring(0,word.length()-3)+'y'
+        }
+        else if ( word.endsWith("s") &&
+                !word.endsWith("ss") &&
+                !word.endsWith("is") &&
+                !word.endsWith("us") &&
+                !word.endsWith("pos") &&
+                !word.endsWith("ses") ) {
+            // remove 's'
+            word.substring(0,word.length-1)
+        }
+
     }
 
     def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
