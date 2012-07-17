@@ -28,6 +28,8 @@ class DataAnalyser(args: Args) extends Job(args) {
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
+    val jobOutputclasslabel = args("outputclassify")
+
     val placesData = args("placesData")
     val bayestrainingmodel=args("bayestrainingmodel")
 
@@ -176,7 +178,7 @@ class DataAnalyser(args: Args) extends Job(args) {
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
     }
-    val out2 = trainer.calcProb(seqModel, jobtypes).project(Fields.ALL).write(TextLine("/tmp/outputjobc"))
+    val out2 = trainer.calcProb(seqModel, jobtypes).project(Fields.ALL).write(TextLine(jobOutputclasslabel))
 
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
