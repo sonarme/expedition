@@ -30,6 +30,6 @@ class CheckinGrouperFunctionTest(args: Args) extends Job(args) {
     val friends = friendGrouper.groupFriends(TextLine(friendsInput).read)
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val chkindata = checkinGrouperPipe.checkinTuple(TextLine(checkinsInput).read, friends, serviceIds)
-            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+            .project('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
             .write(TextLine(checkinTupleExport))
 }
