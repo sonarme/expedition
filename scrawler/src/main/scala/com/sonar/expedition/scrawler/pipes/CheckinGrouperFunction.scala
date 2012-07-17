@@ -95,7 +95,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         var data = input
-                .mapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
             line: String => {
                 line match {
                     case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
@@ -105,11 +105,11 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time)
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time) )
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
-                        ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                        None // ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
                     }
                 }
             }
@@ -140,18 +140,23 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 (lat, long)
         }.flatMap(('lat, 'lng) ->('latitude, 'longitude, 'city)) {
             fields: (String, String) => {
-                val (lat, lng) = fields
-                // List(MetroArea(Point(40.0,-73.0),Point(...), "NY"))
-                val metroAreas = List(((40.489, -74.327), (40.924, -73.723), "New York"),
-                    ((33.708, -118.620), (34.303, -117.780), "Los Angeles"), ((37.596, -122.514), (37.815, -122.362), "San Fransisco"),
-                    ((30.139, -97.941), (30.521, -97.568), "Austin"), ((41.656, -87.858), (42.028, -87.491), "Chicago"),
-                    ((29.603, -95.721), (29.917, -95.200), "Houston"), ((33.647, -84.573), (33.908, -84.250), "Atlanta"),
-                    ((38.864, -94.760), (39.358, -94.371), "Kansas City"), ((30.130, -82.053), (30.587, -81.384), "Jacksonville"))
-                val result: Option[((Double, Double), (Double, Double), String)] = metroAreas.find {
-                    case ((s, e), (n, w), _) => s >= lat.toDouble && lat.toDouble <= n && e >= lng.toDouble && lng.toDouble <= w
-                }
-                result map {
-                    case (_, _, city) => (lat, lng, city)
+                val (latField, lngField) = fields
+                if (latField == "None" || lngField == "None") None
+                else {
+                    val lat = latField.toDouble
+                    val lng = lngField.toDouble
+                    // List(MetroArea(Point(40.0,-73.0),Point(...), "NY"))
+                    val metroAreas = List(((40.489, -74.327), (40.924, -73.723), "New York"),
+                        ((33.708, -118.620), (34.303, -117.780), "Los Angeles"), ((37.596, -122.514), (37.815, -122.362), "San Fransisco"),
+                        ((30.139, -97.941), (30.521, -97.568), "Austin"), ((41.656, -87.858), (42.028, -87.491), "Chicago"),
+                        ((29.603, -95.721), (29.917, -95.200), "Houston"), ((33.647, -84.573), (33.908, -84.250), "Atlanta"),
+                        ((38.864, -94.760), (39.358, -94.371), "Kansas City"), ((30.130, -82.053), (30.587, -81.384), "Jacksonville"))
+                    val result: Option[((Double, Double), (Double, Double), String)] = metroAreas.find {
+                        case ((s, e), (n, w), _) => s >= lat && lat <= n && e >= lng && lng <= w
+                    }
+                    result map {
+                        case (_, _, city) => (lat, lng, city)
+                    }
                 }
 
 

@@ -8,35 +8,36 @@ import collection.immutable.HashMap
 
 object GenderFromNameProbablity {
 
-    private var malelist:java.util.Map[String,String] = new java.util.HashMap[String,String]
-    private var femalelist:java.util.Map[String,String] = new java.util.HashMap[String,String]
+    private var malelist: java.util.Map[String, String] = new java.util.HashMap[String, String]
+    private var femalelist: java.util.Map[String, String] = new java.util.HashMap[String, String]
 
 }
 
-class GenderFromNameProbablity extends Serializable{
+class GenderFromNameProbablity extends Serializable {
 
     def addMaleItems(name: String, freq: String) {
 
-        malelist.put(name,freq)
+        malelist.put(name, freq)
     }
+
     def addFemaleItems(name: String, freq: String) {
 
-        femalelist.put(name,freq)
+        femalelist.put(name, freq)
     }
 
-    def getGender(name:String):String = {
+    def getGender(name: String): String = {
 
-        val maleprob= Option(malelist.get(name)).getOrElse("0").toFloat
-        val femaleprob= Option(femalelist.get(name)).getOrElse("0").toFloat
-        val prob =  maleprob / (maleprob + femaleprob)
+        val maleprob = Option(malelist.get(name)).getOrElse("0").toFloat
+        val femaleprob = Option(femalelist.get(name)).getOrElse("0").toFloat
+        val prob = maleprob / (maleprob + femaleprob)
 
-        println(name + ", " + maleprob  + malelist.containsKey(name) + malelist.size());
+        println(name + ", " + maleprob + malelist.containsKey(name) + malelist.size());
 
-        if(maleprob > femaleprob){
+        if (maleprob > femaleprob) {
             "male " + prob
-        }else if(maleprob < femaleprob){
-            "female " + (1-prob)
-        }else{
+        } else if (maleprob < femaleprob) {
+            "female " + (1 - prob)
+        } else {
             "unknown 0.0"
         }
 
