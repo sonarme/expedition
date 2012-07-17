@@ -172,6 +172,8 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 !word.endsWith("ses") ) {
             // remove 's'
             word.substring(0,word.length-1)
+        }  else{
+           word
         }
 
     }
