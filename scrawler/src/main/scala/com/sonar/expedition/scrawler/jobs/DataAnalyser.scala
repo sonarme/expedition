@@ -178,7 +178,12 @@ class DataAnalyser(args: Args) extends Job(args) {
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
     }
-    val out2 = trainer.calcProb(seqModel, jobtypes).project(Fields.ALL).write(TextLine(jobOutputclasslabel))
+    val trained = trainer.calcProb(seqModel, jobtypes).project('data, 'key, 'weight).rename(('data, 'key, 'weight)->('data1, 'key1, 'weight1)) //project('data, 'key, 'weight)
+
+    val classifiedjobs = filteredProfiles.joinWithSmaller('worktitle -> 'data1,trained)
+            .project('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)
+            .write(TextLine(jobOutputclasslabel))
+
 
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
