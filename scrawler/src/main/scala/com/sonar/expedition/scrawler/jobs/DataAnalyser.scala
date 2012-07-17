@@ -9,6 +9,8 @@ import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
 import com.lambdaworks.jacks._
+import java.security.MessageDigest
+import tools.nsc.io.Streamable.Bytes
 
 
 /*
@@ -157,8 +159,24 @@ class DataAnalyser(args: Args) extends Job(args) {
                     (lat.toDouble > 33.647 && lat.toDouble < 33.908 && lng.toDouble > -84.573 && lng.toDouble < -84.250) ||
                     (lat.toDouble > 38.864 && lat.toDouble < 39.358 && lng.toDouble > -94.760 && lng.toDouble < -94.371) ||
                     (lat.toDouble > 30.130 && lat.toDouble < 30.587 && lng.toDouble > -82.053 && lng.toDouble < -81.384)
-    }.project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends).write(TextLine(jobOutput))
+    }.project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+            .map('uname -> 'hasheduser) {
+        fields: String =>
+            val user = fields
+            val hashed = md5SumString(user.getBytes("UTF-8"))
+            hashed
+    }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends).write(TextLine(jobOutput))
 
+    def md5SumString(bytes: Array[Byte]): String = {
+        val md5 = MessageDigest.getInstance("MD5")
+        md5.reset()
+        md5.update(bytes)
+        md5.digest().map(0xFF & _).map {
+            "%02x".format(_)
+        }.foldLeft("") {
+            _ + _
+        }
+    }
 
 
     //           add this to output json lines

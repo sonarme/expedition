@@ -5,6 +5,7 @@ import util.matching.Regex
 import java.util.Calendar
 import CheckinGrouperFunction._
 import cascading.pipe.joiner.LeftJoin
+import java.security.MessageDigest
 
 class CheckinGrouperFunction(args: Args) extends Job(args) {
 
@@ -157,7 +158,24 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
             }
         }
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+                .map('serProfileID -> 'hasheduser) {
+            fields: String =>
+                val user = fields
+                val hashed = md5SumString(user.getBytes("UTF-8"))
+                hashed
+        }.project('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
 
+    }
+
+    def md5SumString(bytes: Array[Byte]): String = {
+        val md5 = MessageDigest.getInstance("MD5")
+        md5.reset()
+        md5.update(bytes)
+        md5.digest().map(0xFF & _).map {
+            "%02x".format(_)
+        }.foldLeft("") {
+            _ + _
+        }
     }
 
     def addTotalTimesCheckedIn(input: RichPipe): RichPipe = {
