@@ -6,6 +6,7 @@ import java.util.Calendar
 import CheckinGrouperFunction._
 import cascading.pipe.joiner.LeftJoin
 import java.security.MessageDigest
+import ch.hsr.geohash.{WGS84Point, BoundingBox}
 
 class CheckinGrouperFunction(args: Args) extends Job(args) {
 
@@ -145,17 +146,18 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 else {
                     val lat = latField.toDouble
                     val lng = lngField.toDouble
+                    val locPoint:WGS84Point = new WGS84Point(lat, lng)
                     // List(MetroArea(Point(40.0,-73.0),Point(...), "NY"))
-                    val metroAreas = List(((40.489, -74.327), (40.924, -73.723), "New York"),
-                        ((33.708, -118.620), (34.303, -117.780), "Los Angeles"), ((37.596, -122.514), (37.815, -122.362), "San Fransisco"),
-                        ((30.139, -97.941), (30.521, -97.568), "Austin"), ((41.656, -87.858), (42.028, -87.491), "Chicago"),
-                        ((29.603, -95.721), (29.917, -95.200), "Houston"), ((33.647, -84.573), (33.908, -84.250), "Atlanta"),
-                        ((38.864, -94.760), (39.358, -94.371), "Kansas City"), ((30.130, -82.053), (30.587, -81.384), "Jacksonville"))
-                    val result: Option[((Double, Double), (Double, Double), String)] = metroAreas.find {
-                        case ((s, e), (n, w), _) => s >= lat && lat <= n && e >= lng && lng <= w
+                    val metroAreas = List((new BoundingBox(new WGS84Point(40.489, -74.327), new WGS84Point(40.924, -73.723)), "New York"),
+                        (new BoundingBox(new WGS84Point(33.708, -118.620), new WGS84Point(34.303, -117.780)), "Los Angeles"), (new BoundingBox(new WGS84Point(37.596, -122.514), new WGS84Point(37.815, -122.362)), "San Fransisco"),
+                        (new BoundingBox(new WGS84Point(30.139, -97.941), new WGS84Point(30.521, -97.568)), "Austin"), (new BoundingBox(new WGS84Point(41.656, -87.858), new WGS84Point(42.028, -87.491)), "Chicago"),
+                        (new BoundingBox(new WGS84Point(29.603, -95.721), new WGS84Point(29.917, -95.200)), "Houston"), (new BoundingBox(new WGS84Point(33.647, -84.573), new WGS84Point(33.908, -84.250)), "Atlanta"),
+                        (new BoundingBox(new WGS84Point(38.864, -94.760), new WGS84Point(39.358, -94.371)), "Kansas City"), (new BoundingBox(new WGS84Point(30.130, -82.053), new WGS84Point(30.587, -81.384)), "Jacksonville"))
+                    val result: Option[(BoundingBox, String)] = metroAreas.find {
+                        case (boundingBox:BoundingBox, _) => boundingBox.contains(locPoint)
                     }
                     result map {
-                        case (_, _, city) => (lat, lng, city)
+                        case (_, city) => (locPoint.getLatitude, locPoint.getLongitude, city)
                     }
                 }
 
