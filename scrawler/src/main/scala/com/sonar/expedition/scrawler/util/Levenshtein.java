@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.util;
 
 
 // code copied from the interwebs with modifications for integer distance
-public class Levenshtein {
+public class Levenshtein{
     public Levenshtein() {
         super();
     }

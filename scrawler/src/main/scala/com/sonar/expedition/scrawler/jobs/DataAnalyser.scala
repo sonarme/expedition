@@ -8,7 +8,8 @@ import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
-import com.sonar.expedition.scrawler.objs.serializable.{LuceneIndex, GenderFromNameProbablity}
+import java.security.MessageDigest
+import cascading.tuple.Fields
 
 
 /*
@@ -29,11 +30,13 @@ class DataAnalyser(args: Args) extends Job(args) {
     val jobOutput = args("output")
     val placesData = args("placesData")
     val jobtraineddata = TextLine(args("occupationCodetsv"))
-    val malepipe = TextLine(args("male"))
-    val femalepipe = TextLine(args("female"))
+    //val malepipe = TextLine(args("male"))
+    //val femalepipe = TextLine(args("female"))
     //these two are used to complete the pipe i.e sink, while forming the luucene indexes and male/female detection resp.
-    val jobtrainedoutpipe = TextLine(args("occupationCodeTsvOutpipe"))
-    val genderoutpipe = TextLine(args("genderdataOutpipe"))
+    //val jobtrainedoutpipe = TextLine(args("occupationCodeTsvOutpipe"))
+    //val genderoutpipe = TextLine(args("genderdataOutpipe"))
+    val bayestrainingmodel=args("bayestrainingmodel")
+
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -44,6 +47,7 @@ class DataAnalyser(args: Args) extends Job(args) {
         }
     }).project(('id, 'serviceType, 'jsondata))
 
+    val trainer = new BayesModelPipe(args)
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val employerGroupedServiceProfilePipe = new DTOProfileInfoPipe(args)
     val friendInfoPipe = new FriendInfoPipe(args)
@@ -57,23 +61,14 @@ class DataAnalyser(args: Args) extends Job(args) {
     val coworkerPipe = new CoworkerFinderFunction((args))
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
-    val gendperpipe = new GenderInfoReadPipe(args)
-    val jobCodeReader = new  JobCodeReader(args)
     val scorer = new LocationScorer
-    var genderprob: GenderFromNameProbablity = new  GenderFromNameProbablity()
-    var lucene = new LuceneIndex()
-    lucene.initialise
-
-
-
-
 
 
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
             .map('worked ->('stemmedWorked, 'mtphnWorked)) {
-            fields: String =>
+        fields: String =>
             val (worked) = fields
             val stemmedWorked = StemAndMetaphoneEmployer.getStemmed(worked)
             val mtphnWorked = StemAndMetaphoneEmployer.getStemmedMetaphone(worked)
@@ -97,58 +92,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     //val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
     /*
     if city is not filled up find city form chekcins and friends checkin
-
      */
-
-
-    /*comments:
-    just need to make sure this pipes get joined with  filteredProfiles or else cascading is smart enough to separte out independent job flows in whcih case
-    it will be impossible to use  genderprob and lucene as they will initailed as part of a different job flow.
-    */
-
-    val malegender = gendperpipe.DataPipe(malepipe.read)
-    val femalegender = gendperpipe.DataPipe(femalepipe.read)
-    val mpipe=malegender.project(('name, 'freq)).mapTo(('name, 'freq)->('name1, 'freq1)){
-        fields: (String, String) =>
-            val (name, freq) = fields
-            genderprob.addMaleItems(name.toUpperCase,freq)
-            (name,freq)
-    }
-    val fpipe = femalegender.project(('name, 'freq)).mapTo(('name, 'freq)->('name1, 'freq1)){
-        fields: (String, String) =>
-            val (name, freq) = fields
-            genderprob.addFemaleItems(name.toUpperCase,freq)
-            (name, freq)
-    }
-
-    val gpipe=mpipe.++(fpipe).mapTo(('name1, 'freq1)->
-            ('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory))
-    {
-        fields: (String, String) =>
-            val (name1, freq) = fields
-            ("-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1")
-
-    }
-
-    val jobs = jobCodeReader.readJobTypes(TextLine(args("occupationCodetsv")).read)
-                .mapTo(('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite) ->('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)) {
-                fields: (String, String, String, String) =>
-                val (matrixocccode, matrixocctitle, cpscode, cpsocctite) = fields
-                lucene.addItems(cpsocctite, matrixocctitle)
-                (matrixocccode, matrixocctitle, cpscode, cpsocctite)
-    }
-
-    val jpipe=jobs.mapTo(('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)
-            ->
-            ('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)){
-        fields: (String, String,String, String) =>
-            val (matrixocccode, matrixocctitle, cpscode, cpsocctite) = fields
-            ("-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1")
-
-    }.project('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)
-    .++(gpipe)
-
-
     var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
     val friendData = TextLine(finp).read.project('line)
 
@@ -162,14 +106,18 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val friendsForCoworker = friendGrouper.groupFriends(friendData)
 
+    val numberOfFriends = friendsForCoworker.groupBy('userProfileId) {
+        _.size
+    }.rename('size -> 'numberOfFriends).project('userProfileId, 'numberOfFriends)
+
     val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
 
-    val pipefilteredProfiles = filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
+    filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
             .map('mtphnWorked -> 'worked) {
-            fields: (String) =>
+        fields: (String) =>
             var (mtphnWorked) = fields
             if (mtphnWorked == null || mtphnWorked == "") {
                 mtphnWorked = " "
@@ -185,53 +133,83 @@ class DataAnalyser(args: Args) extends Job(args) {
             val long = latLongArray.last
             (lat, long)
     }
-            .map(('stemmedWorked, 'lat, 'long, 'stemmedName, 'geometryLatitude, 'geometryLongitude) ->('work, 'workLatitude, 'workLongitude, 'place, 'placeLatitude, 'placeLongitude, 'score, 'certainty)) {
+            .map(('stemmedWorked, 'lat, 'long, 'stemmedName, 'geometryLatitude, 'geometryLongitude) ->('score, 'certainty)) {
         fields: (String, String, String, String, String, String) =>
             val (work, workLatitude, workLongitude, place, placeLatitude, placeLongitude) = fields
             val score = scorer.getScore(work, workLatitude, workLongitude, place, placeLatitude, placeLongitude)
             val certainty = scorer.certaintyScore(score, work, place)
-            (work, workLatitude, workLongitude, place, placeLatitude, placeLongitude, score, certainty)
+            (score, certainty)
     }
-//            .groupBy('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked) {
-//        _
-//                .toList[Double]('certainty -> 'certaintyList)
-//    }
-//            .map(('certaintyList) -> ('certaintyScore)) {
-//        fields: (List[Double]) =>
-//            val (certaintyList) = fields
-//            val certainty = certaintyList.max
-//            certainty
-//    }
+            .groupBy('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked) {
+        _
+                .toList[(Double, String, String)](('certainty, 'geometryLatitude, 'geometryLongitude) -> 'certaintyList)
+    }
+            .map(('certaintyList) ->('certaintyScore, 'geometryLatitude, 'geometryLongitude)) {
+        fields: (List[(Double, String, String)]) =>
+            val (certaintyList) = fields
+            val certainty = certaintyList.max
+            (certainty._1, certainty._2, certainty._3)
+    }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
+
+            .joinWithSmaller('key -> 'userProfileId, numberOfFriends, joiner = new LeftJoin)
+            .project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+            .filter(('lat, 'long)) {
+        fields: (String, String) =>
+            val (lat, lng) = fields
+            (lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8) ||
+                    (lat.toDouble > 40.489 && lat.toDouble < 40.924 && lng.toDouble > -74.327 && lng.toDouble < -73.723) ||
+                    (lat.toDouble > 33.708 && lat.toDouble < 34.303 && lng.toDouble > -118.620 && lng.toDouble < -117.780) ||
+                    (lat.toDouble > 37.596 && lat.toDouble < 37.815 && lng.toDouble > -122.514 && lng.toDouble < -122.362) ||
+                    (lat.toDouble > 30.139 && lat.toDouble < 30.521 && lng.toDouble > -97.941 && lng.toDouble < -97.568) ||
+                    (lat.toDouble > 41.656 && lat.toDouble < 42.028 && lng.toDouble > -87.858 && lng.toDouble < -87.491) ||
+                    (lat.toDouble > 29.603 && lat.toDouble < 29.917 && lng.toDouble > -95.721 && lng.toDouble < -95.200) ||
+                    (lat.toDouble > 33.647 && lat.toDouble < 33.908 && lng.toDouble > -84.573 && lng.toDouble < -84.250) ||
+                    (lat.toDouble > 38.864 && lat.toDouble < 39.358 && lng.toDouble > -94.760 && lng.toDouble < -94.371) ||
+                    (lat.toDouble > 30.130 && lat.toDouble < 30.587 && lng.toDouble > -82.053 && lng.toDouble < -81.384)
+    }.project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+            .map('uname -> 'hasheduser) {
+        fields: String =>
+            val user = fields
+            val hashed = md5SumString(user.getBytes("UTF-8"))
+            hashed
+    }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+
+    /*val jobtypes= filteredProfiles.project('worktitle1).rename('worktitle1 -> 'data)
+
+    val seqModel = SequenceFile(bayestrainingmodel , Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) -> ('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)){
+        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+
+    }
 
 
-            .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))
-            .mapTo((('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'geometryLatitude, 'geometryLongitude, 'worked, 'stemmedWorked, 'stemmedName, 'score, 'certainty))->(('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory))){
-            fields: (String, String, String, String, String, String,String, String, String, String, String, String, String, String, String) =>
-            val (key, uname, fbid, lnid, city, worktitle, lat, long, geometryLatitude, geometryLongitude, worked, stemmedWorked, stemmedName, score, certainty) = fields
+    val out2 = trainer.calcProb(seqModel, jobtypes)*/
+            .write(TextLine(jobOutput))
 
-            (key, uname,genderprob.getGender(uname), fbid, lnid, city, worktitle, lat, long, geometryLatitude, geometryLongitude, worked, stemmedWorked, stemmedName, score, certainty,lucene.search(worktitle))
-
-            }
-            .project('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)
-            .filter('key1){
-                fields: (String) =>
-                val (key) = fields
-                (key!="-1")
-
-            }.project('key1, 'uname1,'gender, 'fbid1, 'lnid1, 'city1, 'worktitle1, 'lat1, 'long1, 'geometryLatitude1, 'geometryLongitude1, 'worked1, 'stemmedWorked1, 'stemmedName1, 'score1, 'certainty1,'workcategory)
-            .++(jpipe)
-
-     .write(TextLine(jobOutput))
+    def md5SumString(bytes: Array[Byte]): String = {
+        val md5 = MessageDigest.getInstance("MD5")
+        md5.reset()
+        md5.update(bytes)
+        md5.digest().map(0xFF & _).map {
+            "%02x".format(_)
+        }.foldLeft("") {
+            _ + _
+        }
+    }
 
 
+    //           add this to output json lines
+
+    //          .map(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude) -> ('json)) {
+    //        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+    //            val (key, uname, fbid, lnid, city, worktitle, lat, long, worked, stemmedWorked, certaintyScore, geometryLatitude, geometryLongitude) = fields
+    //            val json = JacksMapper.writeValueAsString(Map("key" -> key, "uname" -> uname, "Ids" -> List("fbid" -> fbid, "lnid" -> lnid), "city" -> city, "work" -> List("worktitle" -> worktitle, "lat" -> lat, "long" -> long, "worked" -> worked, "stemmedWorked" -> stemmedWorked), "certaintyScore" -> certaintyScore, "place" -> List("geometryLatitude" -> geometryLatitude, "geometryLongitude" -> geometryLongitude)))
+    //            json
+    //    }.project('json).write(TextLine(jobOutput))
 }
 
 
 object DataAnalyser {
     val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r
-    val Profile = """([a-zA-Z\d\- ]+)\t(ln|fb|tw)\t([a-zA-Z\d\- ]+)""".r
-
 
 }

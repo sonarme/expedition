@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.util
 
 import com.sonar.expedition.scrawler.util.{Levenshtein, StemAndMetaphoneEmployer}
 
-class EmployerCheckinMatch {
+class EmployerCheckinMatch extends Serializable{
     val levver = new Levenshtein
     //metaphoner.setMaxCodeLen(6)
     val maxDistance = 1
