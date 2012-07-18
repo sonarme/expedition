@@ -45,8 +45,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, fbJson, serviceType2, lnJson) = fields
-                val fbServiceProfile = parseJson(fbJson)
-                val lnServiceProfile = parseJson(lnJson)
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
                 val fbid = getID(fbServiceProfile)
                 val lnid = getID(lnServiceProfile)
                 (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
@@ -150,8 +150,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, fbJson, serviceType2, lnJson) = fields
-                val fbServiceProfile = parseJson(fbJson)
-                val lnServiceProfile = parseJson(lnJson)
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
                 val fbid = getID(fbServiceProfile)
                 val lnid = getID(lnServiceProfile)
                 (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
@@ -228,6 +228,11 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
             fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String], List[String]) =>
                 val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, workdesc) = fields
                 (key, uname.head, fbid, lnid, educ.head, worked.head, city.head, edegree.head, eyear.head, worktitle.head, workdesc.head)
+
+//               val myFunction = () => {
+//
+//                    Option("")
+//               }
         }
 
 
@@ -349,24 +354,6 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
             Option(jsonString)
         }
     }
-
-
-    def parseJson(jsonStringOption: Option[String]): Option[ServiceProfileDTO] = {
-        if (jsonStringOption.get.length > 20) {
-
-            jsonStringOption map {
-                jsonString =>
-                    ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[ServiceProfileDTO])
-
-
-            }
-        }
-        else {
-            None
-        }
-
-    }
-
 
     def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getUserId())
