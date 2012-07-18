@@ -68,6 +68,12 @@ object ScrawlerObjectMapper {
         objectMapper
     }
 
+    def parseJson[T](jsonStringOption: Option[String], classType:Class[T]): Option[T] = {
+        for (jsonString <- jsonStringOption if jsonString.contains("""{""")) yield {
+            mapper().readValue(jsonString, classType)
+        }
+    }
+
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
