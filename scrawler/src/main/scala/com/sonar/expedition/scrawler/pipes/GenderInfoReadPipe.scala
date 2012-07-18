@@ -10,20 +10,15 @@ import  GenderInfoReadPipe._
 class GenderInfoReadPipe(args: Args) extends Job(args) {
     def DataPipe(malepipe: RichPipe): RichPipe = {
 
-       val pipe = malepipe.project('line).mapTo('line->('name, 'freq, 'cum_freq, 'rank)){
+       val pipe = malepipe.project('line).flatMapTo('line->('name, 'freq, 'cum_freq, 'rank)){
             line: String => {
                 line match {
-                    case GenderInfo(name, freq, cum_freq, rank) =>  (name, freq, cum_freq, rank)
-                    case _ =>  ("None", 0, 0, -1)
+                    case GenderInfo(name, freq, cum_freq, rank) => Some( (name, freq.toDouble, cum_freq.toDouble, rank.toInt))
+                    case _ => None
                 }
             }
         }
-         .filter('name, 'freq, 'cum_freq, 'rank){
-            fields : (String, String,String, String) =>
-                val (name, freq, cum_freq, rank) = fields
-                (rank != "-1")
 
-        }.project('name, 'freq, 'cum_freq, 'rank)
 
         pipe
     }

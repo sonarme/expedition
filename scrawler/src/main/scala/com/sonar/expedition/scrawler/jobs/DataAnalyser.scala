@@ -29,9 +29,11 @@ class DataAnalyser(args: Args) extends Job(args) {
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
     val jobOutputclasslabel = args("outputclassify")
-
     val placesData = args("placesData")
     val bayestrainingmodel=args("bayestrainingmodel")
+    val malepipe = TextLine(args("male"))
+    val femalepipe = TextLine(args("female"))
+    val genderoutput = args("genderoutput")
 
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
@@ -60,12 +62,12 @@ class DataAnalyser(args: Args) extends Job(args) {
     val scorer = new LocationScorer
     val trainer = new BayesModelPipe(args)
 
-
+    var genderprob: GenderFromNameProbablity = new  GenderFromNameProbablity
+    val gendperpipe= new GenderInfoReadPipe(args)
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
-
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
             .map('worked ->('stemmedWorked, 'mtphnWorked)) {
-        fields: String =>
+            fields: String =>
             val (worked) = fields
             val stemmedWorked = StemAndMetaphoneEmployer.getStemmed(worked)
             val mtphnWorked = StemAndMetaphoneEmployer.getStemmedMetaphone(worked)
@@ -111,6 +113,30 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
+     val malegender = gendperpipe.DataPipe(malepipe.read)
+     val femalegender = gendperpipe.DataPipe(femalepipe.read)
+     val mpipe=malegender.project(('name, 'freq)).mapTo(('name, 'freq)->('name1, 'freq1)){
+                fields: (String, Double) =>
+                val (name, freq) = fields
+                genderprob.addMaleItems(name.toLowerCase,freq)
+                (name,freq)
+     }
+
+    val fpipe = femalegender.project(('name, 'freq)).mapTo(('name, 'freq)->('name1, 'freq1)){
+                fields: (String, Double) =>
+                val (name, freq) = fields
+                genderprob.addFemaleItems(name.toLowerCase,freq)
+                (name, freq)
+    }
+
+    val gpipe=mpipe.++(fpipe)
+            .mapTo(('name1, 'freq1)->
+                        ('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1))
+    {
+                fields: (String, Double) =>
+                val (name1, freq) = fields
+                ("-1","-1","-1","-1","-1","-1","-1","-1","-1","-1","-1")
+    }.write(TextLine(genderoutput))
 
     filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
             .map('mtphnWorked -> 'worked) {
@@ -121,9 +147,9 @@ class DataAnalyser(args: Args) extends Job(args) {
             }
             mtphnWorked
     }
-            .joinWithSmaller('worked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude, 'stemmedName, 'stemmedWorked))
+    .joinWithSmaller('worked -> 'mtphnName, placesPipe, joiner = new LeftJoin).project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'centroid, 'geometryLatitude, 'geometryLongitude, 'stemmedName, 'stemmedWorked))
             .map('centroid ->('lat, 'long)) {
-        fields: String =>
+            fields: String =>
             val (centroid) = fields
             val latLongArray = centroid.split(":")
             val lat = latLongArray.head
@@ -147,11 +173,11 @@ class DataAnalyser(args: Args) extends Job(args) {
             val certainty = certaintyList.max
             (certainty._1, certainty._2, certainty._3)
     }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
-
-            .joinWithSmaller('key -> 'userProfileId, numberOfFriends, joiner = new LeftJoin)
+     .joinWithSmaller('key -> 'userProfileId, numberOfFriends, joiner = new LeftJoin)
             .project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
             .filter(('lat, 'long)) {
-        fields: (String, String) =>
+            fields: (String, String) =>
+
             val (lat, lng) = fields
             (lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8) ||
                     (lat.toDouble > 40.489 && lat.toDouble < 40.924 && lng.toDouble > -74.327 && lng.toDouble < -73.723) ||
@@ -164,8 +190,8 @@ class DataAnalyser(args: Args) extends Job(args) {
                     (lat.toDouble > 38.864 && lat.toDouble < 39.358 && lng.toDouble > -94.760 && lng.toDouble < -94.371) ||
                     (lat.toDouble > 30.130 && lat.toDouble < 30.587 && lng.toDouble > -82.053 && lng.toDouble < -81.384)
     }.project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
-            .map('uname -> 'hasheduser) {
-        fields: String =>
+    .map('uname -> 'hasheduser) {
+            fields: String =>
             val user = fields
             val hashed = md5SumString(user.getBytes("UTF-8"))
             hashed
@@ -182,6 +208,24 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val classifiedjobs = filteredProfiles.joinWithSmaller('worktitle -> 'data1,trained)
             .project('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)
+            /*.mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)->('key1, 'uname2,'gender, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)){
+            fields: (String, String, String, String, String, String, String, String, String, String, String) =>
+            val (key, uname, fbid, lnid, stemmedWorked,mtphnWorked, city, worktitle, data1, key1, weight1) = fields
+
+
+            (key, uname,"" ,fbid, lnid, stemmedWorked,mtphnWorked, city, worktitle, data1, key1, weight1)
+            }*/
+            .++(gpipe)
+            .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)->('key1, 'uname2,'gender, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)){
+            fields: (String, String, String, String, String, String, String, String, String, String, String) =>
+            val (key, uname,fbid, lnid, stemmedWorked,mtphnWorked, city, worktitle, data1, key1, weight1) = fields
+
+            val gender = genderprob.gender(uname.toLowerCase)
+            (key, uname, gender,fbid, lnid, stemmedWorked,mtphnWorked, city, worktitle, data1, key1, weight1)
+            }.project('key1, 'uname2,'gender, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)
+            .filter('key1){      //filter out the contents in pipe gpipe, we require that for serializing the genderprob object for gender classification
+                line:String => (line!="-1")
+            }
             .write(TextLine(jobOutputclasslabel))
 
 

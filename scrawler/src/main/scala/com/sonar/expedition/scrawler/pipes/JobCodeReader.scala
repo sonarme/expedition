@@ -7,17 +7,16 @@ import JobCodeReader._
 class JobCodeReader(args: Args) extends Job(args) {
     def readJobTypes(incoming: RichPipe): RichPipe = {
         val pipe = incoming.project('line)
-                .mapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
+                .flatMapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
             line: String => {
                 line match {
-                    case Occupation(matrixocccode, matrixocctitle, cpscode, cpsocctite) => (matrixocccode, matrixocctitle, cpscode, cpsocctite)
-                    case _ => ("None", "None", "None", "None")
+                    case Occupation(matrixocccode, matrixocctitle, cpscode, cpsocctite) => Some(matrixocccode, matrixocctitle, cpscode, cpsocctite)
+                    case _ => None
                 }
             }
 
         }
         .project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)
-
         pipe
     }
 }

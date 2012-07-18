@@ -1,48 +1,52 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, TextLine}
 import util.matching.Regex
+
 import GenderFromNameProbablity._
-import com.mongodb.util.Hash
-import collection.immutable.HashMap
 
 object GenderFromNameProbablity {
 
-    private var malelist: java.util.Map[String, String] = new java.util.HashMap[String, String]
-    private var femalelist: java.util.Map[String, String] = new java.util.HashMap[String, String]
+    private var malelist: Map[String, Double] = Map.empty
+    private var femalelist: Map[String, Double] = Map.empty
+    val firstname: Regex = """([a-zA-Z\d]+)\s*(.*)""".r
 
 }
+
 
 class GenderFromNameProbablity extends Serializable {
 
-    def addMaleItems(name: String, freq: String) {
+    def addMaleItems(name: String, freq: Double) {
 
-        malelist.put(name, freq)
+        malelist += (name->freq)
     }
 
-    def addFemaleItems(name: String, freq: String) {
+    def addFemaleItems(name: String, freq: Double) {
 
-        femalelist.put(name, freq)
+        femalelist+=(name->freq)
     }
 
-    def getGender(name: String): String = {
+    def gender(name: String): String = {
 
-        val maleprob = Option(malelist.get(name)).getOrElse("0").toFloat
-        val femaleprob = Option(femalelist.get(name)).getOrElse("0").toFloat
+        val fname=name  match {
+            case firstname(firstname,secondnames)=>firstname
+            case _ => "0"   //firstname always exists, it will come here only if name is null or an empty string in which case "unknown::0.0" will be returned.
+        }
+        val maleprob = malelist.getOrElse(fname,0.0)
+        val femaleprob = femalelist.getOrElse(fname,0.0)
+
         val prob = maleprob / (maleprob + femaleprob)
 
-        println(name + ", " + maleprob + malelist.containsKey(name) + malelist.size());
-
         if (maleprob > femaleprob) {
-            "male " + prob
+            "male::" + prob
         } else if (maleprob < femaleprob) {
-            "female " + (1 - prob)
+            "female::" + (1 - prob)
         } else {
-            "unknown 0.0"
+            "unknown::0.0"
         }
 
     }
-
 }
+
+
 
 

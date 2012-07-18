@@ -7,16 +7,17 @@ import CheckinInfoPipe._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import com.sonar.expedition.scrawler.clustering.KMeans
+import org.joda.time.DateTime
 
 class CheckinInfoPipe(args: Args) extends Job(args) {
 
     def getCheckinsDataPipe(checkinInput: RichPipe): RichPipe = {
 
-        val chkindata = (checkinInput.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
+        val chkindata = (checkinInput.project('line).flatMap(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
             line: String => {
                 line match {
-                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-                    case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
+                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)  )
+                    case _ => None
                 }
             }
         })
@@ -50,11 +51,11 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
 
     def getCheckinsDataPipeCollectinLatLon(checkinInput: RichPipe): RichPipe = {
 
-        val chkindata = (checkinInput.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
+        val chkindata = (checkinInput.project('line).flatMap(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
             line: String => {
                 line match {
-                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-                    case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
+                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng))
+                    case _ => None
                 }
             }
         })

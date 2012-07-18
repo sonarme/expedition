@@ -9,23 +9,22 @@ import CategoriseJobTypeMain._
 import com.sonar.expedition.scrawler.jobs.DataAnalyser._
 import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 
+/*  com.sonar.expedition.scrawler.jobs.CategoriseJobTypeMain --hdfs --occupationCodetsv "/tmp/occupationCodetsv.txt" --JobClassifiedOutput "/tmp/JobClassifiedOutput" --serviceProfileData "/tmp/serviceProfileData.txt"
+
+*/
 class CategoriseJobTypeMain(args: Args) extends Job(args) {
 
-    //val types = getJobTypePipes(TextLine("/tmp/dataAnalyse.txt").read.project('line))
-  /*  val output1 = TextLine(args("output"))
-    val output2 = TextLine("/tmp/output2")
-  */
     val output3 = TextLine(args("JobClassifiedOutput"))
 
     //todo use LuceneTFIDFUtils in utils scala object after fixing the error
     var lucene = new LuceneIndex()
     lucene.initialise
     val codes = TextLine(args("occupationCodetsv")).project('line)
-            .mapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
+            .flatMapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
         line: String => {
             line match {
-                case Occupation(matrixocccode, matrixocctitle, cpscode, cpsocctite) => (matrixocccode, matrixocctitle, cpscode, cpsocctite)
-                case _ => ("None", "None", "None", "None")
+                case Occupation(matrixocccode, matrixocctitle, cpscode, cpsocctite) => List((matrixocccode, matrixocctitle, cpscode, cpsocctite))
+                case _ => List.empty
             }
         }
 
@@ -40,7 +39,7 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
             .project('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)
 
 
-    val data1 = (TextLine("/tmp/serviceProfileDatasmall.txt").read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+    val data1 = (TextLine(args("serviceProfileData")).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
                 case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
