@@ -101,7 +101,7 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val numberOfFriends = friendsForCoworker.groupBy('userProfileId) {
         _.size
-    }.rename('size -> 'numberOfFriends).project('userProfileId, 'numberOfFriends)
+    }.rename('size -> 'numberOfFriends).project(('userProfileId, 'numberOfFriends))
 
     val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
@@ -133,7 +133,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             val certainty = scorer.certaintyScore(score, work, place)
             (score, certainty)
     }
-            .groupBy('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked) {
+            .groupBy(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked)) {
         _
                 .toList[(Double, String, String)](('certainty, 'geometryLatitude, 'geometryLongitude) -> 'certaintyList)
     }
@@ -145,7 +145,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
 
             .joinWithSmaller('key -> 'userProfileId, numberOfFriends, joiner = new LeftJoin)
-            .project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+            .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .filter(('lat, 'long)) {
         fields: (String, String) =>
             val (lat, lng) = fields
@@ -159,13 +159,14 @@ class DataAnalyser(args: Args) extends Job(args) {
                     (lat.toDouble > 33.647 && lat.toDouble < 33.908 && lng.toDouble > -84.573 && lng.toDouble < -84.250) ||
                     (lat.toDouble > 38.864 && lat.toDouble < 39.358 && lng.toDouble > -94.760 && lng.toDouble < -94.371) ||
                     (lat.toDouble > 30.130 && lat.toDouble < 30.587 && lng.toDouble > -82.053 && lng.toDouble < -81.384)
-    }.project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+    }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .map('uname -> 'hasheduser) {
         fields: String =>
             val user = fields
             val hashed = md5SumString(user.getBytes("UTF-8"))
             hashed
-    }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends).write(TextLine(jobOutput))
+    }.project(('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
+            .write(TextLine(jobOutput))
 
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
