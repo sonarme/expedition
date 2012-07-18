@@ -16,6 +16,9 @@ import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import com.sonar.expedition.scrawler.objs._
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.mongodb.util.JSON
+import util.parsing.json.JSONObject
+import twitter4j.json.JSONObjectType
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
@@ -347,11 +350,21 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         }
     }
 
+
     def parseJson(jsonStringOption: Option[String]): Option[ServiceProfileDTO] = {
-        jsonStringOption map {
-            jsonString =>
-                ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[ServiceProfileDTO])
+        if (jsonStringOption.get.length > 20) {
+
+            jsonStringOption map {
+                jsonString =>
+                    ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[ServiceProfileDTO])
+
+
+            }
         }
+        else {
+            None
+        }
+
     }
 
 

@@ -160,12 +160,13 @@ class DataAnalyser(args: Args) extends Job(args) {
                     (lat.toDouble > 38.864 && lat.toDouble < 39.358 && lng.toDouble > -94.760 && lng.toDouble < -94.371) ||
                     (lat.toDouble > 30.130 && lat.toDouble < 30.587 && lng.toDouble > -82.053 && lng.toDouble < -81.384)
     }.project('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
-            .map('uname -> 'hasheduser) {
-        fields: String =>
-            val user = fields
-            val hashed = md5SumString(user.getBytes("UTF-8"))
-            hashed
-    }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends).write(TextLine(jobOutput))
+            //            .map('uname -> 'hasheduser) {
+            //        fields: String =>
+            //            val user = fields
+            //            val hashed = md5SumString(user)
+            //            hashed
+            //    }.project('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends)
+            .write(TextLine(jobOutput))
 
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
