@@ -208,13 +208,6 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val classifiedjobs = filteredProfiles.joinWithSmaller('worktitle -> 'data1,trained)
             .project('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)
-            /*.mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)->('key1, 'uname2,'gender, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)){
-            fields: (String, String, String, String, String, String, String, String, String, String, String) =>
-            val (key, uname, fbid, lnid, stemmedWorked,mtphnWorked, city, worktitle, data1, key1, weight1) = fields
-
-
-            (key, uname,"" ,fbid, lnid, stemmedWorked,mtphnWorked, city, worktitle, data1, key1, weight1)
-            }*/
             .++(gpipe)
             .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)->('key1, 'uname2,'gender, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)){
             fields: (String, String, String, String, String, String, String, String, String, String, String) =>
