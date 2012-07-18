@@ -1,6 +1,5 @@
 package com.sonar.expedition.scrawler.util
 
-import com.sonar.expedition.scrawler.util.{Levenshtein, StemAndMetaphoneEmployer}
 
 class EmployerCheckinMatch extends Serializable {
     val levver = new Levenshtein
