@@ -15,17 +15,20 @@ class TrainBayesModel (args: Args) extends Job(args) {
     val input         = args("jobtraininginput")
     val trainingmodel  = args("bayestrainingmodel")
 
-    val reading = TextLine(input).read
-            .flatMapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle)) {
-            line: String => {
+    val reading = TextLine(input).read.project('offset,'line)
+            .flatMapTo(('offset,'line) ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle,'offset1)) {
+            fields: (String,String) =>
+            val (line,offset) = fields
+
+
             line match {
-                case Occupation(matrixocccode, matrixocctitle, cpscode, cpsocctitle) => Some((matrixocccode, matrixocctitle, cpscode, cpsocctitle))
+                case Occupation(matrixocccode, matrixocctitle, cpscode, cpsocctitle) => Some((matrixocccode, matrixocctitle, cpscode, cpsocctitle,offset))
                 case _ => None
             }
-        }
 
-    }.project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle)
-     .rename('offset -> 'doc).rename('cpsocctitle -> 'key).flatMap('matrixocctitle -> 'token){
+
+    }.project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle,'offset1)
+     .rename('offset1 -> 'doc).rename('cpsocctitle -> 'key).flatMap('matrixocctitle -> 'token){
         title: String => {
             title.split("\\s+")
         }
