@@ -64,8 +64,7 @@ class InternalAnalysis(args: Args) extends Job(args) {
         size: Int => {
             size > 1
         }
-    }
-            .write(TextLine(geocount))
+    }.write(TextLine(geocount))
     //'rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city
 
 }

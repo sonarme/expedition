@@ -168,6 +168,29 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.project(('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .write(TextLine(jobOutput))
 
+    val stcount = data.groupBy('serviceType) {
+        _.size
+    }.write(TextLine(servicetypecount))
+
+    val pfcount = data.unique('id).groupAll {
+        _.size
+    }.write(TextLine(profilecount))
+
+    val gcount = joinedProfiles.map('city -> 'cityCleaned) {
+        city: String => {
+            StemAndMetaphoneEmployer.removeStopWords(city)
+        }
+    }
+            .project(('key, 'cityCleaned))
+            .groupBy('cityCleaned) {
+        _.size
+    }
+            .filter('size) {
+        size: Int => {
+            size > 1
+        }
+    }.write(TextLine(geocount))
+
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
         md5.reset()
