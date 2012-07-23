@@ -18,10 +18,10 @@ class ScrawlerModule extends SimpleModule("scrawler", new Version(1, 0, 0, null,
     }
 }
 
-class DeserializationProblemHandlerImpl extends DeserializationProblemHandler with Logging{
+class DeserializationProblemHandlerImpl extends DeserializationProblemHandler with Logging {
     override def handleUnknownProperty(ctxt: DeserializationContext, jp: JsonParser, deserializer: JsonDeserializer[_], beanOrClass: Any, propertyName: String) = {
         error("Problem deserializing property: " + propertyName)
-//        ctxt.getParser.skipChildren()
+        //        ctxt.getParser.skipChildren()
         true
     }
 }
@@ -61,12 +61,17 @@ object ScrawlerObjectMapper {
     }
 
 
-
     def mapper(): ObjectMapper = {
         if (!initialized) {
             init()
         }
         objectMapper
+    }
+
+    def parseJson[T](jsonStringOption: Option[String], classType:Class[T]): Option[T] = {
+        for (jsonString <- jsonStringOption if jsonString.contains("""{""")) yield {
+            mapper().readValue(jsonString, classType)
+        }
     }
 
 }
@@ -76,7 +81,7 @@ abstract class IgnoreUnknownMixin {
 
     @scala.reflect.BeanProperty
     @JsonProperty("is_current")
-    var current:Boolean = _
+    var current: Boolean = _
 
 }
 
@@ -85,7 +90,7 @@ abstract class UserEmploymentMixin {
 
     @scala.reflect.BeanProperty
     @JsonProperty("is_current")
-    var current:Boolean = _
+    var current: Boolean = _
 
 }
 

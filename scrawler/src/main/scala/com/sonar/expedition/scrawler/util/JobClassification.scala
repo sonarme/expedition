@@ -26,7 +26,8 @@ class JobClassification(args: Args) extends Job(args) {
     }
 
     def getOccupationCodes(path: String): RichPipe = {
-        val jobtypePipe = TextLine(path).read.project('line).mapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) { //cpsocc: CPS OCCUPATION { {
+        val jobtypePipe = TextLine(path).read.project('line).mapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
+            //cpsocc: CPS OCCUPATION { {
             line: String => {
                 line match {
                     case Occupation(matrixocccode, matrixocctitle, cpscode, cpsocctite) => (matrixocccode, matrixocctitle, cpscode, cpsocctite)

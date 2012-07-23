@@ -16,6 +16,9 @@ import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import com.sonar.expedition.scrawler.objs._
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.mongodb.util.JSON
+import util.parsing.json.JSONObject
+import twitter4j.json.JSONObjectType
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
@@ -42,8 +45,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, fbJson, serviceType2, lnJson) = fields
-                val fbServiceProfile = parseJson(fbJson)
-                val lnServiceProfile = parseJson(lnJson)
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
                 val fbid = getID(fbServiceProfile)
                 val lnid = getID(lnServiceProfile)
                 (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
@@ -102,7 +105,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                     fi: String => isNumeric(fi)
                 }
                 var headFirst = filterFirst.headOption.getOrElse("")
-                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty){
+                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty) {
                     headFirst = filterFirst.tail.head
                 }
 
@@ -115,10 +118,10 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 (user, headFirst, headSecond)
         }
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)){
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
             fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String]) =>
-            val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle) = fields
-            (key, getFirstNonNull(uname), fbid, lnid, getFirstNonNull(educ), getFirstNonNull(worked), getFirstNonNull(city), getFirstNonNull(edegree), getFirstNonNull(eyear), getFirstNonNull(worktitle))
+                val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle) = fields
+                (key, getFirstNonNull(uname), fbid, lnid, getFirstNonNull(educ), getFirstNonNull(worked), getFirstNonNull(city), getFirstNonNull(edegree), getFirstNonNull(eyear), getFirstNonNull(worktitle))
         }
 
         dtoProfiles
@@ -147,8 +150,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, fbJson, serviceType2, lnJson) = fields
-                val fbServiceProfile = parseJson(fbJson)
-                val lnServiceProfile = parseJson(lnJson)
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
                 val fbid = getID(fbServiceProfile)
                 val lnid = getID(lnServiceProfile)
                 (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
@@ -208,7 +211,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                     fi: String => isNumeric(fi)
                 }
                 var headFirst = filterFirst.headOption.getOrElse("")
-                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty){
+                if (!filterFirst.isEmpty && !filterFirst.tail.isEmpty) {
                     headFirst = filterFirst.tail.head
                 }
 
@@ -221,10 +224,15 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 (user, headFirst, headSecond)
         }
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)){
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
             fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String], List[String]) =>
                 val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, workdesc) = fields
                 (key, uname.head, fbid, lnid, educ.head, worked.head, city.head, edegree.head, eyear.head, worktitle.head, workdesc.head)
+
+//               val myFunction = () => {
+//
+//                    Option("")
+//               }
         }
 
 
@@ -346,14 +354,6 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
             Option(jsonString)
         }
     }
-
-    def parseJson(jsonStringOption: Option[String]): Option[ServiceProfileDTO] = {
-        jsonStringOption map {
-            jsonString =>
-                ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[ServiceProfileDTO])
-        }
-    }
-
 
     def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getUserId())

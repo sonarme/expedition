@@ -1,12 +1,11 @@
 package com.sonar.expedition.scrawler.util
 
-import com.sonar.expedition.scrawler.util.{Levenshtein, StemAndMetaphoneEmployer}
 
-class EmployerCheckinMatch {
+class EmployerCheckinMatch extends Serializable {
     val levver = new Levenshtein
     //metaphoner.setMaxCodeLen(6)
     val maxDistance = 1
-    
+
     /* checks if the employer stem matches the venueName stem and returns a boolean */
 
     def checkStemMatch(employer: String, venueName: String): Boolean = {
@@ -57,6 +56,6 @@ class EmployerCheckinMatch {
 
 }
 
-object EmployerCheckinMatch {
+object EmployerCheckinMatch extends Serializable {
 
 }

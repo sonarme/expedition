@@ -1,22 +1,35 @@
 package com.sonar.expedition.scrawler.test
 
-import com.sonar.expedition.scrawler.pipes.CheckinGrouperFunction
-
+import com.sonar.expedition.scrawler.pipes._
 import com.twitter.scalding._
+import com.sonar.expedition.scrawler.jobs.DataAnalyser
+import com.twitter.scalding.TextLine
 
 class CheckinGrouperFunctionTest(args: Args) extends Job(args) {
-    var in = "/tmp/checkinDatatest.txt"
-    var out = "/tmp/userGroupedCheckins.txt"
-    val groupFuncTest = new CheckinGrouperFunction(args)
-
-    //TextLine(in).read.project('line).write(TextLine(out))
-
-    val pipe1 = TextLine(in).read.project('line)
-    val pipe2 = groupFuncTest.addTotalTimesCheckedIn(groupFuncTest.unfilteredCheckins(pipe1)).write(TextLine(out))
-    //val test = TextLine(in).then{
-    //  groupFuncTest.groupCheckins( _  )
-    //}
-    //.write(TextLine(out))
+    val serviceProfileInput = args("serviceProfileData")
+    val friendsInput = args("friendData")
+    val checkinsInput = args("checkinData")
+    val checkinTupleExport = args("output")
 
 
+    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
+    val checkinGrouperPipe = new CheckinGrouperFunction(args)
+    val friendGrouper = new FriendGrouperFunction(args)
+
+    val data = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+        line: String => {
+            line match {
+                case DataAnalyser.ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case _ => List.empty
+            }
+        }
+    }).project(('id, 'serviceType, 'jsondata))
+
+
+    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
+    val friends = friendGrouper.groupFriends(TextLine(friendsInput).read)
+    val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
+    val chkindata = checkinGrouperPipe.checkinTuple(TextLine(checkinsInput).read, friends, serviceIds)
+            .project('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+            .write(TextLine(checkinTupleExport))
 }
