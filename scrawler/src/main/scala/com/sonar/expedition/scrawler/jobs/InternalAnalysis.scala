@@ -25,9 +25,9 @@ output : the file to which the non visited profile links will be written to
 class InternalAnalysis(args: Args) extends Job(args) {
 
     val inputData = args("serviceProfileData")
-    val profilecount = args("profileCount")
-    val servicetypecount = args("serviceCount")
-    val geocount = args("geoCount")
+    val profileCount = args("profileCount")
+    val serviceCount = args("serviceCount")
+    val geoCount = args("geoCount")
 
     val employerGroupedServiceProfilePipe = new DTOProfileInfoPipe(args)
 
@@ -42,12 +42,12 @@ class InternalAnalysis(args: Args) extends Job(args) {
 
     val stcount = data.groupBy('serviceType) {
         _.size
-    }.project(Fields.ALL).write(TextLine(servicetypecount))
+    }.project(Fields.ALL).write(TextLine(serviceCount))
 
     val pfcount = data.unique('id).groupAll {
         _.size
     }
-            .write(TextLine(profilecount))
+            .write(TextLine(profileCount))
 
 
     val gcount = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data)
@@ -64,7 +64,7 @@ class InternalAnalysis(args: Args) extends Job(args) {
         size: Int => {
             size > 1
         }
-    }.write(TextLine(geocount))
+    }.write(TextLine(geoCount))
     //'rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city
 
 }
