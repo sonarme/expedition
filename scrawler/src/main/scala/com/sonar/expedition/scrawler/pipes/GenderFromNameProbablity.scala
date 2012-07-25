@@ -2,51 +2,44 @@ package com.sonar.expedition.scrawler.pipes
 
 import util.matching.Regex
 
-import GenderFromNameProbablity._
-
 object GenderFromNameProbablity {
 
-    private var malelist: Map[String, Double] = Map.empty
-    private var femalelist: Map[String, Double] = Map.empty
-    val firstname: Regex = """([a-zA-Z\d]+)\s*(.*)""".r
+    def dataFileMap(file: String) = io.Source.fromInputStream(getClass.getResourceAsStream(file)).getLines().flatMap {
+        line =>
 
-}
+            line match {
+                case GenderInfoReadPipe.GenderInfo(name, freq, cum_freq, rank) => Some(name -> freq.toDouble /*, cum_freq.toDouble, rank.toInt*/)
+                case _ => None
+            }
+    }.toMap[String, Double]
 
+    private val malelist = dataFileMap("/datafiles/male.txt")
+    private val femalelist = dataFileMap("/datafiles/female.txt")
+    val splitName = """([a-zA-Z\d]+)\s*(.*)""".r
 
-class GenderFromNameProbablity extends Serializable {
+    @transient
+    def gender(name: String): (Gender, Double) = {
 
-    def addMaleItems(name: String, freq: Double) {
-
-        malelist += (name->freq)
-    }
-
-    def addFemaleItems(name: String, freq: Double) {
-
-        femalelist+=(name->freq)
-    }
-
-    def gender(name: String): String = {
-
-        val fname=name  match {
-            case firstname(firstname,secondnames)=>firstname
-            case _ => "0"   //firstname always exists, it will come here only if name is null or an empty string in which case "unknown::0.0" will be returned.
+        val firstName = name match {
+            case splitName(first, second) => first
+            case name => name //firstname always exists, it will come here only if name is null or an empty string in which case "unknown::0.0" will be returned.
         }
-        val maleprob = malelist.getOrElse(fname,0.0)
-        val femaleprob = femalelist.getOrElse(fname,0.0)
+        val upperCaseName = firstName.toUpperCase
+        val maleprob = malelist.getOrElse(upperCaseName, 0.0)
+        val femaleprob = femalelist.getOrElse(upperCaseName, 0.0)
 
         val prob = maleprob / (maleprob + femaleprob)
 
         if (maleprob > femaleprob) {
-            "male::" + prob
+            Gender.male -> prob
         } else if (maleprob < femaleprob) {
-            "female::" + (1 - prob)
+            Gender.female -> (1 - prob)
         } else {
-            "unknown::0.0"
+            Gender.unknown -> 0.0
         }
 
     }
 }
-
 
 
 

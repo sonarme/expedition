@@ -46,7 +46,7 @@ class MeetUpCrawl(args: Args) extends Job(args) {
             .project('line)
             .flatMap('line -> 'links) {
         line: String => MeetupCrawler.importLinks(line).split("\\n")
-    }.flatMapTo('links -> 'profiles) {
+    }.flatMapTo('links -> 'memberlinks) {
         links: String => ScrawlerUtils.extractContentsPageLinks(links).split("\\n") //will contain  pagination links , if pages more then one, add first page as a pagination link
     }))
     //end of sitemap

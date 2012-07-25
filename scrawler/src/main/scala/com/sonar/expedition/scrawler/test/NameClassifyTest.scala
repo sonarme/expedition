@@ -1,3 +1,4 @@
+/*
 package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{Job, Args, TextLine}
@@ -70,4 +71,4 @@ class NameClassifyTest(args: Args) extends Job(args) {
 
 object NameClassifyTest {
     val GenderInfo: Regex = """([a-zA-Z]+)\s+(\d+.\d+)\s+(\d+.\d+)\s+(\d+)""".r;
-}
+}*/

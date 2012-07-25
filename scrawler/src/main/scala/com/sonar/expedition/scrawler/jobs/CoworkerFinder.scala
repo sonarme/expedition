@@ -15,14 +15,13 @@ class CoworkerFinder(args: Args) extends Job(args) {
     val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
     val friendsInput = "/tmp/userGroupedFriends.txt"
     val serviceIdsInput = "/tmp/serviceIds.txt"
-    //    val checkinsInput = "/tmp/checkinDatatest.txt"
     val pipedcoworkers = "/tmp/pipedcoworkers.txt"
 
-    val employerGroupedEmployeeUserIds = (TextLine(serviceProfileInput).read.project('line).map(('line) ->('employer, 'workers)) {
+    val employerGroupedEmployeeUserIds = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('employer, 'workers)) {
         line: String => {
             line match {
-                case ExtractFromList(employer, workers) => (employer, workers)
-                case _ => ("None", "None")
+                case ExtractFromList(employer, workers) => Some((employer, workers))
+                case _ => None
             }
         }
     }).project(('employer, 'workers)).map('employer, 'emp) {
@@ -42,8 +41,8 @@ class CoworkerFinder(args: Args) extends Job(args) {
     val userIdGroupedFriends = (TextLine(friendsInput).read.project('line).map(('line) ->('userId, 'friends)) {
         line: String => {
             line match {
-                case ExtractFromList(userId, friends) => (userId, friends)
-                case _ => ("None", "None")
+                case ExtractFromList(userId, friends) => Some((userId, friends))
+                case _ => None
             }
         }
     }).project(('userId, 'friends)).flatMap('friends -> ('listoffriends)) {
@@ -60,11 +59,11 @@ class CoworkerFinder(args: Args) extends Job(args) {
 
     //val employerAndFriends = userIdGroupedFriends.joinWithLarger('uId -> 'listofworkers, employerGroupedEmployeeUserIds).project('uId, 'employer, 'listoffriends).write(TextLine(EandF))
 
-    val findFriendSonarId = (TextLine(serviceIdsInput).read.project('line).map(('line) ->('friendUserId, 'fbId, 'lnId)) {
+    val findFriendSonarId = (TextLine(serviceIdsInput).read.project('line).flatMap(('line) ->('friendUserId, 'fbId, 'lnId)) {
         line: String => {
             line match {
-                case ExtractIds(userId, fbId, lnId) => (userId, fbId, lnId)
-                case _ => ("None", "None", "None")
+                case ExtractIds(userId, fbId, lnId) => Some((userId, fbId, lnId))
+                case _ => None
             }
         }
     }).project(('friendUserId, 'fbId, 'lnId))

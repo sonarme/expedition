@@ -15,7 +15,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
 
         val data = input
-                .mapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
             line: String => {
                 line match {
                     case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
@@ -24,11 +24,11 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         timeFilter.setTime(checkinDate)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, dayOfWeek, time)
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, dayOfWeek, time))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
-                        ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                        None
                     }
                 }
             }
@@ -63,7 +63,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
 
         val data = input
-                .mapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
             line: String => {
                 line match {
                     case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
@@ -73,11 +73,11 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time)
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
-                        ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                        None
                     }
                 }
             }
@@ -97,7 +97,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
 
         val data = input
-                .mapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
             line: String => {
                 line match {
                     case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
@@ -107,17 +107,18 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time)
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
-                        ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                        None
                     }
                 }
             }
         }
         data
     }
+
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         var data = input
@@ -131,7 +132,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time) )
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
@@ -171,7 +172,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 else {
                     val lat = latField.toDouble
                     val lng = lngField.toDouble
-                    val locPoint:WGS84Point = new WGS84Point(lat, lng)
+                    val locPoint: WGS84Point = new WGS84Point(lat, lng)
                     // List(MetroArea(Point(40.0,-73.0),Point(...), "NY"))
                     val metroAreas = List((new BoundingBox(new WGS84Point(40.489, -74.327), new WGS84Point(40.924, -73.723)), "New York"),
                         (new BoundingBox(new WGS84Point(33.708, -118.620), new WGS84Point(34.303, -117.780)), "Los Angeles"), (new BoundingBox(new WGS84Point(37.596, -122.514), new WGS84Point(37.815, -122.362)), "San Fransisco"),
@@ -179,7 +180,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         (new BoundingBox(new WGS84Point(29.603, -95.721), new WGS84Point(29.917, -95.200)), "Houston"), (new BoundingBox(new WGS84Point(33.647, -84.573), new WGS84Point(33.908, -84.250)), "Atlanta"),
                         (new BoundingBox(new WGS84Point(38.864, -94.760), new WGS84Point(39.358, -94.371)), "Kansas City"), (new BoundingBox(new WGS84Point(30.130, -82.053), new WGS84Point(30.587, -81.384)), "Jacksonville"))
                     val result: Option[(BoundingBox, String)] = metroAreas.find {
-                        case (boundingBox:BoundingBox, _) => boundingBox.contains(locPoint)
+                        case (boundingBox: BoundingBox, _) => boundingBox.contains(locPoint)
                     }
                     result map {
                         case (_, city) => (locPoint.getLatitude, locPoint.getLongitude, city)

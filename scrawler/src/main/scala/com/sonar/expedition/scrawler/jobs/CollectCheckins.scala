@@ -93,7 +93,7 @@ class CollectCheckins(args: Args) extends Job(args) {
     }
 
             .groupBy(Fields.ALL) {
-           _.sortBy('keyid)
+        _.sortBy('keyid)
     }
 
             .write(output2)

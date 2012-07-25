@@ -2,6 +2,7 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Job}
 import com.twitter.scalding.{Job, Args}
+import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 
 class BayesModelPipe(args: Args) extends Job(args) {
 
@@ -11,8 +12,8 @@ class BayesModelPipe(args: Args) extends Job(args) {
         // input has 'key, 'token, and 'doc
 
         // turn all to lower case, strip plurals and remove punctuation from token
-        val reading = input.map('token -> 'token2){
-            token: String => stripEnglishPlural(token.replaceAll("""\p{P}"""," ").toLowerCase)
+        val reading = input.map('token -> 'token2) {
+            token: String => StemAndMetaphoneEmployer.removeStopWords(stripEnglishPlural(token.replaceAll( """\p{P}""", " ")))
         }.discard('token).rename('token2 -> 'token)
 
 
@@ -34,8 +35,9 @@ class BayesModelPipe(args: Args) extends Job(args) {
         }
                 .map('featureList -> 'rms) {
             list: List[Int] => {
-                val sumSq = list.foldLeft[Double](0.0)((a, b) => a + (b * b))
-                math.sqrt(sumSq)
+                //val sumSq = list.foldLeft[Double](0.0)((a, b) => a + (b * b))
+                //math.sqrt(sumSq)
+                normaliseList(list)
             }
         }.discard('featureList)
 
@@ -67,20 +69,21 @@ class BayesModelPipe(args: Args) extends Job(args) {
 
                 .map('sizeList -> 'sumSize) {
             sizeList: List[Int] => {
-                normaliseList(sizeList)
+                sizeList.foldLeft[Int](0)((a, b) => a + (b * b))
             }
         }.discard('sizeList)
 
         val normalized = counter.crossWithTiny(sumOfSizeSquared).map(('size, 'sumSize) -> 'weight) {
             fields: (Int, Int) => {
                 val (size, sumSize) = fields
-                Math.log(1.0 + size) / math.sqrt(sumSize)
+                math.log(1.0 + size) / math.sqrt(sumSize)
             }
         }
 
         val totalPipe = normalized
                 .joinWithSmaller('token -> 'token, tdcPipe)
                 .joinWithSmaller(('key, 'token) ->('key, 'token), fcPipe)
+                //.joinWithSmaller(('key, 'token) ->('key, 'token), docPipe)
                 .crossWithTiny(numDocs)
                 .joinWithSmaller('key -> 'key, rmsPipe)
                 .joinWithSmaller('key -> 'key, vocab)
@@ -93,11 +96,11 @@ class BayesModelPipe(args: Args) extends Job(args) {
         val tfidfPipe = totalPipe.map(('termDocCount, 'docCount) -> 'logIDF) {
             fields: (Int, Int) => {
                 val (tdc, dc) = fields
-                (Math.log(dc * 1.0 / tdc))
+                (math.log(dc * 1.0 / tdc))
             }
         }
-        // tf
-        .map(('featureCount, 'rms) -> 'logTF) {
+                // tf
+                .map(('featureCount, 'rms) -> 'logTF) {
             fields: (Int, Double) => {
                 val (fc, rms) = fields
                 if (fc == 0)
@@ -107,7 +110,7 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 //Math.log(1 + fc / rms)
             }
         }
-        .map(('logIDF, 'logTF) -> ('logTFIDF)) {
+                .map(('logIDF, 'logTF) -> ('logTFIDF)) {
             fields: (Double, Double) => {
                 val (idf, tf) = fields
                 idf * tf
@@ -118,17 +121,17 @@ class BayesModelPipe(args: Args) extends Job(args) {
         val tfidfSummerPipe = tfidfPipe.groupBy('key) {
             _.toList[Double]('logTFIDF -> 'tfidfList)
         }
-           .map('tfidfList -> 'sigmak) {
-                list: List[Double] => {
-                normaliseDList(list)
+                .map('tfidfList -> 'sigmak) {
+            list: List[Double] => {
+                list.foldLeft[Double](0.0)((a, b) => a + b)
             }
         }
-        .discard('tfidfList)
+                .discard('tfidfList)
 
         // tf-idf
         val normTFIDFPipe = tfidfPipe.joinWithSmaller('key -> 'key, tfidfSummerPipe)
-            .map(('logTFIDF, 'sigmak, 'vocabCount) -> 'normTFIDF) {
-                fields: (Double, Double, Int) => {
+                .map(('logTFIDF, 'sigmak, 'vocabCount) -> 'normTFIDF) {
+            fields: (Double, Double, Int) => {
                 val (tfidf, sk, vc) = fields
                 (tfidf + 1) / (sk + vc)
             }
@@ -136,55 +139,51 @@ class BayesModelPipe(args: Args) extends Job(args) {
         normTFIDFPipe.project('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)
     }
 
-    def normaliseDList(freq:List[Double]) : List[Double]={
-        val dividend = math.sqrt(freq reduce {(acc,elem)=> acc+(elem*elem)})
-        freq map (_ / dividend)
 
-    }
-
-    def normaliseList(freq:List[Int]):List[Double]={
-        val dividend = math.sqrt(freq reduce {(acc,elem)=> acc+(elem*elem)})
-        freq map (_ / dividend)
+    def normaliseList(freq: List[Int]): Double = {
+        val dividend = math.sqrt(freq reduce {
+            (acc, elem) => acc + (elem * elem)
+        })
+        //freq map (_ / dividend)
+        dividend
 
     }
 
     def stripEnglishPlural(word: String): String = {
-
-        val specialWordSet1 = Set("has", "was", "does","goes","dies","yes","gets","its")
+        // too small?
+        val specialWordSet1 = Set("has", "was", "does", "goes", "dies", "yes", "gets", "its")
         val specialWordSet2 = Set("sses", "xes", "hes")
         val specialWordSet3 = Set("ies")
-        val specialWordSet4 = Set("s", "ss", "is","us","pos","ses")
+        val specialWordSet4 = Set("s", "ss", "is", "us", "pos", "ses")
         // too small?
-        if ( word.length<1 ) {
+        if (word.length < 1) {
             word
         }
         // special cases
 
-        else if ( specialWordSet1(word) )
-        {
+        else if (specialWordSet1(word)) {
             word
         }
-        else if ( specialWordSet2(word)) {
+        else if (specialWordSet2(word)) {
             // remove 'es'
-            word.substring(0,word.length()-2);
+            word.substring(0, word.length() - 2);
         }
-        else if (  specialWordSet3(word)) {
+        else if (specialWordSet3(word)) {
             // remove 'ies', replace with 'y'
-            word.substring(0,word.length()-3)+'y'
+            word.substring(0, word.length() - 3) + 'y'
         }
-        else if ( specialWordSet4(word)) {
+        else if (specialWordSet4(word)) {
             // remove 's'
-            word.substring(0,word.length-1)
-        }  else{
-           word
+            word.substring(0, word.length - 1)
+        } else {
+            word
         }
-
     }
 
     def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
         data.map('data -> 'value) {
             line: String => {
-                line.split("\\s+")
+                StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
             }
         }
                 .flatMap('value -> 'token) {
@@ -192,25 +191,32 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 value
         }
                 .joinWithLarger(('token -> 'token), model)
-                .groupBy(('data, 'key)){
+                .groupBy(('data, 'key)) {
             _.toList[Double]('normTFIDF -> 'weightList)
         }
-                .map('weightList -> 'weight){
+                .map('weightList -> 'weight) {
             list: List[Double] => {
                 list.foldLeft[Double](0.0)((a, b) => a + b)
             }
-        }.groupBy('data){
+        }.groupBy('data) {
             _.toList[(Double, String)](('weight, 'key) -> 'weightKeyList)
         }
-                .map(('weightKeyList) -> ('weight, 'key)) {
+                .map(('weightKeyList) ->('weight, 'key)) {
             fields: (List[(Double, String)]) =>
                 val (weightKeyList) = fields
-                (weightKeyList.max._1, weightKeyList.max._2)
+                val weightKey = weightKeyList.max
+                (weightKey._1, weightKey._2)
+
+
         }
-        .project('data, 'key, 'weight)
+                .project('data, 'key, 'weight)
+                .filter('data, 'key, 'weight) {
+            fields: (String, String, String) =>
+                val (data, key, weight) = fields
+                (data != null)
+
+        }.project('data, 'key, 'weight)
     }
-
-
 
 
 }

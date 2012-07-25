@@ -2,30 +2,35 @@ package com.sonar.expedition.scrawler.meetup
 
 import org.apache.http.client.HttpClient
 import org.apache.http.client.methods.HttpPost
-import org.apache.http.HttpStatus
 import org.apache.http.impl.client.DefaultHttpClient
+import java.net.{URL, URI}
 
-//import org.apache.commons.httpclient.{HttpStatus, HttpClient}
-
+import org.apache.http.client.utils.URLEncodedUtils
 import java.io._;
 import org.jsoup.select.Elements;
 import org.jsoup.nodes.Document;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
+import collection.JavaConversions._
+import com.sun.deploy.net.HttpResponse
+import org.springframework.http.{HttpMethod, HttpEntity}
+
+import org.apache.http.util.EntityUtils
+import org.unitils.thirdparty.org.apache.commons.io.IOUtils
+;
 
 
 object ScrawlerUtils {
+    val meetupPageSize = 20
 
     def extractContentsfromPageLinks(urlpass: String): String = {
         var document: Document = null
         var responseBodyString = ""
         var results: String = ""
-        //todo: FIx me!!!! We should probably only have a singleton httpClient
+        //todo: Fix me!!!! We should probably only have a singleton httpClient
         var httpclient = new DefaultHttpClient();
         var method = new HttpPost(urlpass);
-
-        // Execute the method.
         var statusCode = httpclient.execute(method);
         responseBodyString = method.getEntity.getContent.toString; //bytes
         //document = Jsoup.connect(urlpass).userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:5.0) Gecko/20100101 Firefox/5.0").get
@@ -50,7 +55,7 @@ object ScrawlerUtils {
 
     def extractContentsPageLinks(url: String): String = {
         var results = ""
-        val highestpage = findhighestepageNum(url);
+        val highestpage = findLastMeetupMemberPage(url);
         val index = url.indexOf("meetup.com") + 11;
         var groupname: String = url.substring(index, index + url.substring(index).indexOf("/"));
         if (1 == highestpage) {
@@ -68,27 +73,17 @@ object ScrawlerUtils {
 
     }
 
-    def findhighestepageNum(url: String): Int = {
-        var highestPage = 1;
-        var tmppage = 1;
-        var page = 1;
-        var memurl = doHttpUrlConnectionAction(url).split("relative_page");
-        if (memurl.isDefinedAt(2)) {
-            if (memurl(2).indexOf("?offset=") != -(1)) {
-                val tmpindex = memurl(2).indexOf("?offset=") + 8;
-                val innertmpind = memurl(2).substring(tmpindex).indexOf("&");
-                tmppage = Integer.parseInt(memurl(2).substring(tmpindex, tmpindex + innertmpind));
-                if (tmppage > highestPage)
-                    highestPage = tmppage;
-            }
-            val page: Int = highestPage match {
-                case 1 => 1
-                case _ => highestPage / 20
-            }
-            println(page);
-            page
-        } else {
-            1
+    def findLastMeetupMemberPage(url: String): Int = {
+
+        val document = getPageContentsDoc(url)
+        val pager = document.select( """ul[class=D_pager border-none]""")
+        val relPagers = pager.select( """li[class=relative_page]""")
+        if (relPagers.isEmpty) 0
+        else {
+            val lastPager = relPagers.last()
+            val lastPagerUrl = lastPager.select("a").attr("href")
+            val nameValuePairs = URLEncodedUtils.parse(new URI(lastPagerUrl), null)
+            nameValuePairs.find(_.getName == "offset").map(_.getValue.toInt / meetupPageSize).getOrElse(0)
         }
 
 
@@ -96,17 +91,19 @@ object ScrawlerUtils {
 
 
     def doHttpUrlConnectionAction(desiredUrl: String): String = {
-        var responseBodyString = ""
-        var results: String = ""
-        var httpclient = new DefaultHttpClient();
-        var method = new HttpPost(desiredUrl);
-        var statusCode = httpclient.execute(method);
-        responseBodyString = method.getEntity.getContent.toString; //bytes
+        val httpclient = new DefaultHttpClient()
+        val method = new HttpPost(desiredUrl)
+        val statusCode = httpclient.execute(method)
+        val responseIS = statusCode.getEntity().getContent()
+        val reader = new BufferedReader(new InputStreamReader(responseIS))
+        val responseBodyString = Stream.continually(reader.readLine()).takeWhile(_ ne null).mkString
+        println(responseBodyString)
         responseBodyString
+
     }
 
+
     def getResponse(reader: BufferedReader): Option[String] = {
-        // Wrap the Java result in an Option (this will become a Some or a None)
         Option(reader.readLine().toString);
     }
 
@@ -118,15 +115,14 @@ object ScrawlerUtils {
     }
 
     def getPageContentsDoc(urlpass: String): Document = {
-        var profiledocument: Document = null
-        var responseBodyString = ""
-        var results: String = ""
-        var httpclient = new DefaultHttpClient();
-        var method = new HttpPost(urlpass);
-        var statusCode = httpclient.execute(method);
-        responseBodyString = method.getEntity.getContent.toString; //bytes
-        profiledocument = Jsoup.parse(responseBodyString, urlpass);
-        profiledocument
+        val httpclient = new DefaultHttpClient
+
+        val method = new HttpPost(urlpass)
+        method.setHeader("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2")
+        val statusCode = httpclient.execute(method)
+        val responseBodyString = EntityUtils.toString(statusCode.getEntity)
+        Jsoup.parse(responseBodyString, urlpass)
+
     }
 
     def extractProfileName(profiledocument: Document): String = {

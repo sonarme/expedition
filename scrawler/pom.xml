@@ -30,13 +30,27 @@
         <encoding>UTF-8</encoding>
     </properties>
     <dependencies>
-        <dependency><groupId>org.scalatest</groupId><artifactId>scalatest_2.9.1</artifactId><version>1.8</version><scope>test</scope></dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.9.1</artifactId>
+            <version>1.8</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.twitter</groupId>
             <artifactId>scalding_2.9.1</artifactId>
             <version>0.5.1</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.2.1</version>
+        </dependency>
 
         <!-- START: dependencies that are shaded -->
         <dependency>
@@ -205,11 +219,7 @@
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.1.2</version>
-        </dependency>
+
         <dependency>
             <groupId>com.google.code.crawler-commons</groupId>
             <artifactId>crawler-commons</artifactId>

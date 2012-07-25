@@ -15,8 +15,8 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
         val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
             line: String => {
                 line match {
-                    case ExtractFromList(employer, workers) => (employer, workers)
-                    case _ => ("None", "None")
+                    case ExtractFromList(employer, workers) => Some((employer, workers))
+                    case _ => None
                 }
             }
         }).flatMap(('workers) -> ('listofworkers)) {
@@ -30,8 +30,8 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
         val userIdGroupedCheckins = (checkinInput.map(('line) ->('userId, 'venueName, 'latitude, 'longitude)) {
             line: String => {
                 line match {
-                    case ExtractCheckin(userId, venue, lat, lng) => (userId, venue, lat, lng)
-                    case _ => ("None", "None", "None", "None")
+                    case ExtractCheckin(userId, venue, lat, lng) => Some((userId, venue, lat, lng))
+                    case _ => None
                 }
             }
         })
@@ -70,8 +70,8 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
         val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
             line: String => {
                 line match {
-                    case ExtractFromList(employer, workers) => (employer, workers)
-                    case _ => ("None", "None")
+                    case ExtractFromList(employer, workers) => Some((employer, workers))
+                    case _ => None
                 }
             }
         }).flatMap(('workers) -> ('listofworkers)) {

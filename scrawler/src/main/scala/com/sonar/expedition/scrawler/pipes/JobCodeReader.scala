@@ -16,12 +16,12 @@ class JobCodeReader(args: Args) extends Job(args) {
             }
 
         }
-        .project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)
+                .project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)
         pipe
     }
 }
 
-object  JobCodeReader{
+object JobCodeReader {
     val Occupation: Regex = """([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)\t([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)""".r
 
 }
