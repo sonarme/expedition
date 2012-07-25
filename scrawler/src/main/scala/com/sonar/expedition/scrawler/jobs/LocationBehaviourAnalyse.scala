@@ -1,9 +1,9 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{TextLine, Job, Args}
-import com.sonar.expedition.scrawler.pipes.{CheckinGrouperFunction, CheckinInfoPipe}
+import com.sonar.expedition.scrawler.pipes.{CheckinTimeFilter, CheckinGrouperFunction, CheckinInfoPipe}
 import cascading.tuple.Fields
-import java.util.Date
+import java.util.{Calendar, Date}
 
 class LocationBehaviourAnalyse(args: Args) extends Job(args) {
 
@@ -54,11 +54,16 @@ class LocationBehaviourAnalyse(args: Args) extends Job(args) {
 
     val chkinpipe2 = chkinpipe.project('venName,'keyid,'chknTime).rename(('venName,'keyid,'chknTime) -> ('venName1,'keyid1,'chknTime1))
 
-    var chkinpipe3= chkinpipe1.joinWithSmaller('keyid -> 'keyid1,chkinpipe2).project('venName1,'venName)
-            .filter('venName1,'venName){
-            fields: (String,String) =>
-            val (venname1,venname2) = fields
+    var chkinpipe3= chkinpipe1.joinWithSmaller('keyid -> 'keyid1,chkinpipe2).project('venName1,'chknTime1,'venName,'chknTime)
+
+    .filter('venName1,'chknTime1,'venName,'chknTime){
+            fields: (String,String,String,String) =>
+            val (venname1,chknTime1,venname2,chknTime2) = fields
             (!venname1.equals(venname2))
+    }.filter('venName1,'chknTime1,'venName,'chknTime){
+        fields: (String,String,String,String) =>
+        val (venname1,chknTime1,venname2,chknTime2) = fields
+        (deltatime(chknTime1,chknTime2))
     }
     .mapTo(('venName1,'venName) -> ('venName1,'venName,'count)){
         fields: (String,String) =>
@@ -83,5 +88,28 @@ class LocationBehaviourAnalyse(args: Args) extends Job(args) {
 
 
 
+    def deltatime(chkintime1:String,chkintime2:String) : Boolean ={
+
+        val timeFilter1 = Calendar.getInstance()
+        val checkinDate1 = CheckinTimeFilter.parseDateTime(chkintime1)
+        timeFilter1.setTime(checkinDate1)
+        val date1 = timeFilter1.get(Calendar.DAY_OF_YEAR)
+        val time1 = timeFilter1.get(Calendar.HOUR_OF_DAY) + timeFilter1.get(Calendar.MINUTE) / 60.0
+
+
+        val timeFilter2 = Calendar.getInstance()
+        val checkinDate2 = CheckinTimeFilter.parseDateTime(chkintime2)
+        timeFilter2.setTime(checkinDate2)
+        val date2 = timeFilter2.get(Calendar.DAY_OF_YEAR)
+        val time2 = timeFilter2.get(Calendar.HOUR_OF_DAY) + timeFilter2.get(Calendar.MINUTE) / 60.0
+
+        if (date1.equals(date2)){
+            // need to include the timing too, which simple, if same date, check diff in time, normally we dont want checkins in border timings like 12 am.
+            true
+        }
+        else
+            false
+
+    }
 
 }
