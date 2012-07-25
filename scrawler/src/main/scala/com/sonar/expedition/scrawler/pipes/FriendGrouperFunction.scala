@@ -40,7 +40,7 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
                 //            group => group.toList[String]('serviceProfileId, 'serviceProfileIdList)
                 //        }.project(('userProfileId, 'serviceProfileIdList))
 
-                .project('userProfileId, 'serviceProfileId, 'friendName)
+                .project('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
 
         data
     }

@@ -63,7 +63,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
 
         val data = input
-                .mapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
             line: String => {
                 line match {
                     case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
@@ -72,16 +72,17 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         timeFilter.setTime(checkinDate)
                         //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
-                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
-                        ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
+                        None
                     }
                 }
             }
-        }.map(('latitude, 'longitude) -> ('loc)) {
+        }
+                .map(('latitude, 'longitude) -> ('loc)) {
             fields: (String, String) =>
                 val (lat, lng) = fields
                 val loc = lat + ":" + lng
