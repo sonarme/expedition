@@ -30,6 +30,9 @@ class DataAnalyser(args: Args) extends Job(args) {
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
     val placesData = args("placesData")
+    val profileCount = args("profileCount")
+    val serviceCount = args("serviceCount")
+    val geoCount = args("geoCount")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -168,6 +171,29 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.project(('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .write(TextLine(jobOutput))
 
+    val stcount = data.groupBy('serviceType) {
+        _.size
+    }.write(TextLine(serviceCount))
+
+    val pfcount = data.unique('id).groupAll {
+        _.size
+    }.write(TextLine(profileCount))
+
+    val gcount = joinedProfiles.map('city -> 'cityCleaned) {
+        city: String => {
+            StemAndMetaphoneEmployer.removeStopWords(city)
+        }
+    }
+            .project(('key, 'cityCleaned))
+            .groupBy('cityCleaned) {
+        _.size
+    }
+            .filter('size) {
+        size: Int => {
+            size > 1
+        }
+    }.write(TextLine(geoCount))
+
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
         md5.reset()
@@ -192,7 +218,7 @@ class DataAnalyser(args: Args) extends Job(args) {
 
 
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
+    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|4s) : (.*)""".r
     val companiesregex: Regex = """(.*):(.*)""".r
 
 }
