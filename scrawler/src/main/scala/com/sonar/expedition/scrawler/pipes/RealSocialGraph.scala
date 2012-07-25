@@ -73,7 +73,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
             loc: String => !loc.equals("0.0:0.0")
         }
                 // group time by 4 hour chunks
-                .map('chknTime -> ('timeChunk, 'timeChunk2)) {
+                .map('chknTime ->('timeChunk, 'timeChunk2)) {
             checkinTime: String => {
                 val timeFilter = Calendar.getInstance()
                 val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
@@ -82,7 +82,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
             }
         }
                 // group location by 0.002 x 0.002 boxes
-                .map('loc -> ('locChunk, 'locChunk2, 'locChunk3, 'locChunk4)) {
+                .map('loc ->('locChunk, 'locChunk2, 'locChunk3, 'locChunk4)) {
             locString: String => {
                 val lat = locString.split(":").head.toDouble
                 val lng = locString.split(":").last.toDouble
@@ -111,154 +111,154 @@ class RealSocialGraph(args: Args) extends Job(args) {
         }
                 .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
 
-//        val chunked2 = chunked
-//                .unique(('timeChunk, 'locChunk2, 'keyid, 'serType, 'serProfileID))
-//                .groupBy('timeChunk, 'locChunk2) {
-//            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-//                    .size
-//        }
-//                // filter out chunks of size one, then flatten
-//                .filter('size) {
-//            size: Int => size > 1
-//        }
-//                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-//            fields: List[(String, String, String)] => fields
-//        }
-//                .project(('timeChunk, 'locChunk2, 'keyid, 'serType, 'serProfileID))
-//                .rename('locChunk2 -> 'locChunk)
-//                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//
-//        val chunked3 = chunked
-//                .unique(('timeChunk, 'locChunk3, 'keyid, 'serType, 'serProfileID))
-//                .groupBy('timeChunk, 'locChunk3) {
-//            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-//                    .size
-//        }
-//                // filter out chunks of size one, then flatten
-//                .filter('size) {
-//            size: Int => size > 1
-//        }
-//                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-//            fields: List[(String, String, String)] => fields
-//        }
-//                .project(('timeChunk, 'locChunk3, 'keyid, 'serType, 'serProfileID))
-//                .rename('locChunk3 -> 'locChunk)
-//                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//
-//        val chunked4 = chunked
-//                .unique(('timeChunk, 'locChunk4, 'keyid, 'serType, 'serProfileID))
-//                .groupBy('timeChunk, 'locChunk4) {
-//            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-//                    .size
-//        }
-//                // filter out chunks of size one, then flatten
-//                .filter('size) {
-//            size: Int => size > 1
-//        }
-//                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-//            fields: List[(String, String, String)] => fields
-//        }
-//                .project(('timeChunk, 'locChunk4, 'keyid, 'serType, 'serProfileID))
-//                .rename('locChunk4 -> 'locChunk)
-//                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//
-//        val chunked5 = chunked
-//                .unique(('timeChunk2, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//                .groupBy('timeChunk2, 'locChunk) {
-//            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-//                    .size
-//        }
-//                // filter out chunks of size one, then flatten
-//                .filter('size) {
-//            size: Int => size > 1
-//        }
-//                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-//            fields: List[(String, String, String)] => fields
-//        }
-//                .project(('timeChunk2, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//                .rename('timeChunk2 -> 'timeChunk)
-//                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//
-//        val chunked6 = chunked
-//                .unique(('timeChunk2, 'locChunk2, 'keyid, 'serType, 'serProfileID))
-//                .groupBy('timeChunk2, 'locChunk2) {
-//            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-//                    .size
-//        }
-//                // filter out chunks of size one, then flatten
-//                .filter('size) {
-//            size: Int => size > 1
-//        }
-//                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-//            fields: List[(String, String, String)] => fields
-//        }
-//                .project(('timeChunk2, 'locChunk2, 'keyid, 'serType, 'serProfileID))
-//                .rename(('timeChunk2, 'locChunk2) -> ('timeChunk, 'locChunk))
-//                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//
-//        val chunked7 = chunked
-//                .unique(('timeChunk2, 'locChunk3, 'keyid, 'serType, 'serProfileID))
-//                .groupBy('timeChunk2, 'locChunk3) {
-//            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-//                    .size
-//        }
-//                // filter out chunks of size one, then flatten
-//                .filter('size) {
-//            size: Int => size > 1
-//        }
-//                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-//            fields: List[(String, String, String)] => fields
-//        }
-//                .project(('timeChunk2, 'locChunk3, 'keyid, 'serType, 'serProfileID))
-//                .rename(('timeChunk2, 'locChunk3) -> ('timeChunk, 'locChunk))
-//                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-//
-//        val chunked8 = chunked
-//                .unique(('timeChunk2, 'locChunk4, 'keyid, 'serType, 'serProfileID))
-//                .groupBy('timeChunk2, 'locChunk4) {
-//            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-//                    .size
-//        }
-//                // filter out chunks of size one, then flatten
-//                .filter('size) {
-//            size: Int => size > 1
-//        }
-//                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-//            fields: List[(String, String, String)] => fields
-//        }
-//                .project(('timeChunk2, 'locChunk4, 'keyid, 'serType, 'serProfileID))
-//                .rename(('timeChunk2, 'locChunk4) -> ('timeChunk, 'locChunk))
-//                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //        val chunked2 = chunked
+        //                .unique(('timeChunk, 'locChunk2, 'keyid, 'serType, 'serProfileID))
+        //                .groupBy('timeChunk, 'locChunk2) {
+        //            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+        //                    .size
+        //        }
+        //                // filter out chunks of size one, then flatten
+        //                .filter('size) {
+        //            size: Int => size > 1
+        //        }
+        //                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+        //            fields: List[(String, String, String)] => fields
+        //        }
+        //                .project(('timeChunk, 'locChunk2, 'keyid, 'serType, 'serProfileID))
+        //                .rename('locChunk2 -> 'locChunk)
+        //                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //
+        //        val chunked3 = chunked
+        //                .unique(('timeChunk, 'locChunk3, 'keyid, 'serType, 'serProfileID))
+        //                .groupBy('timeChunk, 'locChunk3) {
+        //            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+        //                    .size
+        //        }
+        //                // filter out chunks of size one, then flatten
+        //                .filter('size) {
+        //            size: Int => size > 1
+        //        }
+        //                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+        //            fields: List[(String, String, String)] => fields
+        //        }
+        //                .project(('timeChunk, 'locChunk3, 'keyid, 'serType, 'serProfileID))
+        //                .rename('locChunk3 -> 'locChunk)
+        //                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //
+        //        val chunked4 = chunked
+        //                .unique(('timeChunk, 'locChunk4, 'keyid, 'serType, 'serProfileID))
+        //                .groupBy('timeChunk, 'locChunk4) {
+        //            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+        //                    .size
+        //        }
+        //                // filter out chunks of size one, then flatten
+        //                .filter('size) {
+        //            size: Int => size > 1
+        //        }
+        //                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+        //            fields: List[(String, String, String)] => fields
+        //        }
+        //                .project(('timeChunk, 'locChunk4, 'keyid, 'serType, 'serProfileID))
+        //                .rename('locChunk4 -> 'locChunk)
+        //                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //
+        //        val chunked5 = chunked
+        //                .unique(('timeChunk2, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //                .groupBy('timeChunk2, 'locChunk) {
+        //            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+        //                    .size
+        //        }
+        //                // filter out chunks of size one, then flatten
+        //                .filter('size) {
+        //            size: Int => size > 1
+        //        }
+        //                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+        //            fields: List[(String, String, String)] => fields
+        //        }
+        //                .project(('timeChunk2, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //                .rename('timeChunk2 -> 'timeChunk)
+        //                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //
+        //        val chunked6 = chunked
+        //                .unique(('timeChunk2, 'locChunk2, 'keyid, 'serType, 'serProfileID))
+        //                .groupBy('timeChunk2, 'locChunk2) {
+        //            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+        //                    .size
+        //        }
+        //                // filter out chunks of size one, then flatten
+        //                .filter('size) {
+        //            size: Int => size > 1
+        //        }
+        //                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+        //            fields: List[(String, String, String)] => fields
+        //        }
+        //                .project(('timeChunk2, 'locChunk2, 'keyid, 'serType, 'serProfileID))
+        //                .rename(('timeChunk2, 'locChunk2) -> ('timeChunk, 'locChunk))
+        //                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //
+        //        val chunked7 = chunked
+        //                .unique(('timeChunk2, 'locChunk3, 'keyid, 'serType, 'serProfileID))
+        //                .groupBy('timeChunk2, 'locChunk3) {
+        //            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+        //                    .size
+        //        }
+        //                // filter out chunks of size one, then flatten
+        //                .filter('size) {
+        //            size: Int => size > 1
+        //        }
+        //                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+        //            fields: List[(String, String, String)] => fields
+        //        }
+        //                .project(('timeChunk2, 'locChunk3, 'keyid, 'serType, 'serProfileID))
+        //                .rename(('timeChunk2, 'locChunk3) -> ('timeChunk, 'locChunk))
+        //                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        //
+        //        val chunked8 = chunked
+        //                .unique(('timeChunk2, 'locChunk4, 'keyid, 'serType, 'serProfileID))
+        //                .groupBy('timeChunk2, 'locChunk4) {
+        //            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+        //                    .size
+        //        }
+        //                // filter out chunks of size one, then flatten
+        //                .filter('size) {
+        //            size: Int => size > 1
+        //        }
+        //                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+        //            fields: List[(String, String, String)] => fields
+        //        }
+        //                .project(('timeChunk2, 'locChunk4, 'keyid, 'serType, 'serProfileID))
+        //                .rename(('timeChunk2, 'locChunk4) -> ('timeChunk, 'locChunk))
+        //                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
 
 
         val chunked12 = chunked1.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
-//        val chunked22 = chunked2.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
-//        val chunked32 = chunked3.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
-//        val chunked42 = chunked4.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
-//        val chunked52 = chunked5.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
-//        val chunked62 = chunked6.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
-//        val chunked72 = chunked7.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
-//        val chunked82 = chunked8.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
+        //        val chunked22 = chunked2.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
+        //        val chunked32 = chunked3.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
+        //        val chunked42 = chunked4.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
+        //        val chunked52 = chunked5.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
+        //        val chunked62 = chunked6.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
+        //        val chunked72 = chunked7.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
+        //        val chunked82 = chunked8.rename(('keyid, 'serType, 'serProfileID) ->('keyid2, 'serType2, 'serProfileID2))
 
         val joinedChunks1 = chunked1
                 .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked12)
-//        val joinedChunks2 = chunked2
-//                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked22)
-//        val joinedChunks3 = chunked3
-//                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked32)
-//        val joinedChunks4 = chunked4
-//                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked42)
-//        val joinedChunks5 = chunked5
-//                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked52)
-//        val joinedChunks6 = chunked6
-//                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked62)
-//        val joinedChunks7 = chunked7
-//                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked72)
-//        val joinedChunks8 = chunked8
-//                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked82)
-//
-//        val joinedChunks = (joinedChunks1++joinedChunks2++joinedChunks3++joinedChunks4++joinedChunks5++joinedChunks6++joinedChunks7++joinedChunks8)
-//                .unique(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID, 'keyid2, 'serType2, 'serProfileID2))
+        //        val joinedChunks2 = chunked2
+        //                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked22)
+        //        val joinedChunks3 = chunked3
+        //                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked32)
+        //        val joinedChunks4 = chunked4
+        //                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked42)
+        //        val joinedChunks5 = chunked5
+        //                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked52)
+        //        val joinedChunks6 = chunked6
+        //                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked62)
+        //        val joinedChunks7 = chunked7
+        //                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked72)
+        //        val joinedChunks8 = chunked8
+        //                .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked82)
+        //
+        //        val joinedChunks = (joinedChunks1++joinedChunks2++joinedChunks3++joinedChunks4++joinedChunks5++joinedChunks6++joinedChunks7++joinedChunks8)
+        //                .unique(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID, 'keyid2, 'serType2, 'serProfileID2))
         val joinedChunks = joinedChunks1
 
         //********

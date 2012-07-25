@@ -32,7 +32,6 @@ class RealSocialGraphTest(args: Args) extends Job(args) {
     val chkindata = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinsInput).read)
 
     val findFriendsAtTheSameVenue = friendsNearby.friendsNearbyByChunks(friends, chkindata, serviceIds)
-//            .project(('uId, 'friendKey, 'venName, 'friendVenName, 'loc, 'friendLoc, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour))
             .write(TextLine(matchedFriends))
 
 

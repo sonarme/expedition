@@ -92,7 +92,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 else {
                     val lat = latField.toDouble
                     val lng = lngField.toDouble
-                    val locPoint:WGS84Point = new WGS84Point(lat, lng)
+                    val locPoint: WGS84Point = new WGS84Point(lat, lng)
                     // List(MetroArea(Point(40.0,-73.0),Point(...), "NY"))
                     val metroAreas = List((new BoundingBox(new WGS84Point(40.489, -74.327), new WGS84Point(40.924, -73.723)), "New York"),
                         (new BoundingBox(new WGS84Point(33.708, -118.620), new WGS84Point(34.303, -117.780)), "Los Angeles"), (new BoundingBox(new WGS84Point(37.596, -122.514), new WGS84Point(37.815, -122.362)), "San Fransisco"),
@@ -100,7 +100,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         (new BoundingBox(new WGS84Point(29.603, -95.721), new WGS84Point(29.917, -95.200)), "Houston"), (new BoundingBox(new WGS84Point(33.647, -84.573), new WGS84Point(33.908, -84.250)), "Atlanta"),
                         (new BoundingBox(new WGS84Point(38.864, -94.760), new WGS84Point(39.358, -94.371)), "Kansas City"), (new BoundingBox(new WGS84Point(30.130, -82.053), new WGS84Point(30.587, -81.384)), "Jacksonville"))
                     val result: Option[(BoundingBox, String)] = metroAreas.find {
-                        case (boundingBox:BoundingBox, _) => boundingBox.contains(locPoint)
+                        case (boundingBox: BoundingBox, _) => boundingBox.contains(locPoint)
                     }
                     result map {
                         case (_, city) => (locPoint.getLatitude, locPoint.getLongitude, city)
