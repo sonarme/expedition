@@ -98,11 +98,11 @@ class RealSocialGraph(args: Args) extends Job(args) {
         // do 8 times, one for each timechunk and locchunk pair
         val chunked1 = chunked
                 .unique(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+                // filter out chunks of size one, then flatten
                 .groupBy('timeChunk, 'locChunk) {
             _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
                     .size
         }
-                // filter out chunks of size one, then flatten
                 .filter('size) {
             size: Int => size > 1
         }
@@ -301,9 +301,9 @@ class RealSocialGraph(args: Args) extends Job(args) {
                 .project(('keyid, 'keyid2, 'uname, 'uname2))
 
 
-        //                .groupAll{
-        //            _.size
-        //        }
+        //         .groupAll{
+        //     _.size
+        // }
 
 
 

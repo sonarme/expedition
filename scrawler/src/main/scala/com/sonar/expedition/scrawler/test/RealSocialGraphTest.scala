@@ -5,10 +5,10 @@ import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.jobs.DataAnalyser
 
 class RealSocialGraphTest(args: Args) extends Job(args) {
-    val serviceProfileInput = "/data/serviceProfileData.txt"
-    val friendsInput = "/data/friendData.txt"
-    val checkinsInput = "/data/checkinDatasmaller.txt"
-    val matchedFriends = "/tmp/matchedFriends.txt"
+    val serviceProfileInput = args("serviceProfileData")
+    val friendsInput = args("friendData")
+    val checkinsInput = args("checkinData")
+    val matchedFriends = args("output")
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
