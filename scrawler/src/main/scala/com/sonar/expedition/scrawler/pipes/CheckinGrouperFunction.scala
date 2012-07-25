@@ -69,11 +69,13 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val numberOfVenueVisits = addTotalTimesCheckedIn(data).project('keyid, 'numberOfVenueVisits)
+        val checkins = unfilteredCheckins(input)
 
-        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, data, serviceIdsInput).project('uId, 'numberOfFriendsAtVenue)
+        val numberOfVenueVisits = addTotalTimesCheckedIn(checkins).project('keyid, 'numberOfVenueVisits)
 
-        val data = unfilteredCheckins(input).joinWithSmaller('keyid -> 'uId, numberOfFriendsAtVenue, joiner = new LeftJoin)
+        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, checkins, serviceIdsInput).project('uId, 'numberOfFriendsAtVenue)
+
+        val data = checkins.joinWithSmaller('keyid -> 'uId, numberOfFriendsAtVenue, joiner = new LeftJoin)
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'numberOfFriendsAtVenue)
 
         addTotalTimesCheckedIn(data).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'loc, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
