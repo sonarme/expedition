@@ -146,7 +146,6 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 val loc = lat + ":" + lng
                 (loc)
         }
-
                 .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour))
 
 

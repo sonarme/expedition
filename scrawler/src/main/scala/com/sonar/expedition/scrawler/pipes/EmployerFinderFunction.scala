@@ -112,7 +112,6 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
 
 object EmployerFinderFunction {
     val ExtractFromList: Regex = """(.*)\tList\((.*)\)""".r
-    //    val ExtractFromCheckinList: Regex = """(.*)\tList\((.*)\)\tList\((.*)\)\tList\((.*)\)""".r
     val ExtractCheckin: Regex = """(.*)\t(.*)\t(.*)\t(.*)""".r
 
 }
