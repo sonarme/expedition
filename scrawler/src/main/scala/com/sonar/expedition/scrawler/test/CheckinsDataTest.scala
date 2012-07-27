@@ -1,9 +1,8 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.test
 
-import com.sonar.expedition.scrawler.pipes.{CheckinTimeFilter, CheckinInfoPipe}
-import com.twitter.scalding.{Job, Args, TextLine}
+import com.sonar.expedition.scrawler.pipes.CheckinInfoPipe
 import cascading.tuple.Fields
-import com.twitter.scalding.{GroupBuilder, TextLine, Job, Args}
+import com.twitter.scalding.{TextLine, Job, Args}
 
 class CheckinsDataTest(args: Args) extends Job(args) {
 

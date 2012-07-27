@@ -94,19 +94,19 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
         }
         data
     }
-    
+
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         val checkins = unfilteredCheckins(input)
 
-        val numberOfVenueVisits = addTotalTimesCheckedIn(checkins).project('keyid, 'numberOfVenueVisits)
+        val numberOfVenueVisits = addTotalTimesCheckedIn(checkins).project(('keyid, 'numberOfVenueVisits))
 
-        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, checkins, serviceIdsInput).project('uId, 'numberOfFriendsAtVenue)
+        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, checkins, serviceIdsInput).project(('uId, 'numberOfFriendsAtVenue))
 
         val data = checkins.joinWithSmaller('keyid -> 'uId, numberOfFriendsAtVenue, joiner = new LeftJoin)
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'numberOfFriendsAtVenue)
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'numberOfFriendsAtVenue))
 
-        addTotalTimesCheckedIn(data).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'loc, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+        addTotalTimesCheckedIn(data).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'loc, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
                 .map(('loc) ->('lat, 'lng)) {
             fields: (String) =>
                 val loc = fields
@@ -138,13 +138,13 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
             }
         }
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
                 .map('serProfileID -> 'hasheduser) {
             fields: String =>
                 val user = fields
                 val hashed = md5SumString(user.getBytes("UTF-8"))
                 hashed
-        }.project('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+        }.project(('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
 
     }
 
@@ -168,16 +168,16 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
+        val userIdGroupedFriends = friendsInput.project(('userProfileId, 'serviceProfileId, 'friendName))
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
                 val uIdString = userIdString.trim
                 val serviceId = serviceProfileId.trim
                 (uIdString, serviceId)
-        }.project('uId, 'serviceId)
+        }.project(('uId, 'serviceId))
 
-        val findFriendSonarId = serviceIdsInput.project(('row_keyfrnd, 'fbId, 'lnId)
+        val findFriendSonarId = serviceIdsInput.project(('row_keyfrnd, 'fbId, 'lnId))
 
         val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'serviceId, userIdGroupedFriends)
                 .project(('uId, 'row_keyfrnd, 'fbId, 'lnId))

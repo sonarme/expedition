@@ -61,17 +61,17 @@ class LocationBehaviourAnalyse(args: Args) extends Job(args) {
             .write(chkindataoutput2)
 
 
-    val chkinpipe1 = chkinpipe.project('keyid, 'venName, 'chknTime)
+    val chkinpipe1 = chkinpipe.project(('keyid, 'venName, 'chknTime))
 
-    val chkinpipe2 = chkinpipe.project('venName, 'keyid, 'chknTime).rename(('venName, 'keyid, 'chknTime) ->('venName1, 'keyid1, 'chknTime1))
+    val chkinpipe2 = chkinpipe.project(('venName, 'keyid, 'chknTime)).rename(('venName, 'keyid, 'chknTime) ->('venName1, 'keyid1, 'chknTime1))
 
-    var chkinpipe3 = chkinpipe1.joinWithSmaller('keyid -> 'keyid1, chkinpipe2).project('venName1, 'chknTime1, 'venName, 'chknTime)
+    var chkinpipe3 = chkinpipe1.joinWithSmaller('keyid -> 'keyid1, chkinpipe2).project(('venName1, 'chknTime1, 'venName, 'chknTime))
 
-            .filter('venName1, 'chknTime1, 'venName, 'chknTime) {
+            .filter(('venName1, 'chknTime1, 'venName, 'chknTime)) {
         fields: (String, String, String, String) =>
             val (venname1, chknTime1, venname2, chknTime2) = fields
             (!venname1.equals(venname2))
-    }.filter('venName1, 'chknTime1, 'venName, 'chknTime) {
+    }.filter(('venName1, 'chknTime1, 'venName, 'chknTime)) {
         fields: (String, String, String, String) =>
             val (venname1, chknTime1, venname2, chknTime2) = fields
             (deltatime(chknTime1, chknTime2))
@@ -88,7 +88,7 @@ class LocationBehaviourAnalyse(args: Args) extends Job(args) {
         fields: (String, String, List[String]) =>
             val (venname1, venname2, cnt) = fields
             (venname1, venname2, cnt.size)
-    }.unique('venName1, 'venName, 'count2)
+    }.unique(('venName1, 'venName, 'count2))
             .groupBy('venName1) {
         _
                 .toList[String]('venName -> 'venName2)

@@ -137,7 +137,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
     def twitterProfileTuples(twitterPipe: RichPipe): RichPipe = {
         val data = twitterPipe
-                .map('jsondata -> ('twid, 'twServiceProfile, 'twname)){
+                .map('jsondata ->('twid, 'twServiceProfile, 'twname)) {
             twJson: String => {
                 val twServiceProfile = ScrawlerObjectMapper.parseJson(Option(twJson), classOf[ServiceProfileDTO])
                 val twid = getID(twServiceProfile).getOrElse(twJson)
@@ -145,7 +145,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 (twid, twServiceProfile, twname)
             }
         }
-                .project('id, 'twid, 'twname)
+                .project(('id, 'twid, 'twname))
 
 
         data
@@ -164,9 +164,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .rename('id -> 'key)
                 .project(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
 
-        val total = (fblnWithTw++twWithFbln)
+        val total = (fblnWithTw ++ twWithFbln)
                 .unique(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid)) {
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid)) {
             fields: (String, String, String, String, String, String, String, String, String, String, String, String) => {
                 val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, twid, twname) = fields
                 val key2 = Option(key).getOrElse("")
@@ -320,8 +320,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, fbJson, serviceType2, lnJson) = fields
-                val fbServiceProfile = parseJson(fbJson)
-                val lnServiceProfile = parseJson(lnJson)
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
                 val fbid = getID(fbServiceProfile)
                 val lnid = getID(lnServiceProfile)
                 (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
@@ -371,8 +371,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .mapTo(Fields.ALL -> Fields.ALL) {
             fields: (String, String, Option[String], String, Option[String]) =>
                 val (id, serviceType, fbJson, serviceType2, lnJson) = fields
-                val fbServiceProfile = parseJson(fbJson)
-                val lnServiceProfile = parseJson(lnJson)
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
                 val fbid = getID(fbServiceProfile)
                 val lnid = getID(lnServiceProfile)
                 (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
