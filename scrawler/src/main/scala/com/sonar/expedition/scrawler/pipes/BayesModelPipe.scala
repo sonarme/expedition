@@ -136,7 +136,7 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 (tfidf + 1) / (sk + vc)
             }
         }
-        normTFIDFPipe.project('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)
+        normTFIDFPipe.project(('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak))
     }
 
 
@@ -209,13 +209,13 @@ class BayesModelPipe(args: Args) extends Job(args) {
 
 
         }
-                .project('data, 'key, 'weight)
-                .filter('data, 'key, 'weight) {
+                .project(('data, 'key, 'weight))
+                .filter(('data, 'key, 'weight)) {
             fields: (String, String, String) =>
                 val (data, key, weight) = fields
                 (data != null)
 
-        }.project('data, 'key, 'weight)
+        }.project(('data, 'key, 'weight))
     }
 
 

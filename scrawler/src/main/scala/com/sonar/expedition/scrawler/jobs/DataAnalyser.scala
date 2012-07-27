@@ -182,16 +182,16 @@ class DataAnalyser(args: Args) extends Job(args) {
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
     }
-    val trained = trainer.calcProb(seqModel, jobtypes).project('data, 'key, 'weight).rename(('data, 'key, 'weight) ->('data1, 'key1, 'weight1)).write(TextLine("/tmp")) //project('data, 'key, 'weight)
+    val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('data1, 'key1, 'weight1)).write(TextLine("/tmp")) //project('data, 'key, 'weight)
 
     val classifiedjobs = filteredProfiles.joinWithSmaller('worktitle -> 'data1, trained)
-            .project('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1)
+            .project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1))
             .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1) ->('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)) {
         fields: (String, String, String, String, String, String, String, String, String, String, String) =>
             val (key, uname, fbid, lnid, stemmedWorked, mtphnWorked, city, worktitle, data1, key1, weight1) = fields
             val (gender, probability) = GenderFromNameProbablity.gender(uname)
             (key, uname, gender, probability, fbid, lnid, stemmedWorked, mtphnWorked, city, worktitle, data1, key1, weight1)
-    }.project('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)
+    }.project(('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2))
 
             .write(TextLine(jobOutputclasslabel))
 
