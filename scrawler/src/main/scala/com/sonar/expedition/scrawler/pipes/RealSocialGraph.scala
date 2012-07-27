@@ -12,14 +12,13 @@ group checkins by friends, sort by time, filter by location and
 
 */
 
-// TODO: add twitter
-
 class RealSocialGraph(args: Args) extends Job(args) {
 
     val havver = new Haversine
 
 
     // similar to friends at same venue
+    /*
     def friendsNearbyByFriends(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
@@ -59,7 +58,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
         } //.project('uId, 'friendKey, 'loc, 'friendLoc, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour)
 
         matchingCheckins
-    }
+    } */
 
 
     // group into chunks and cross within chunks
@@ -273,32 +272,46 @@ class RealSocialGraph(args: Args) extends Job(args) {
                 (uIdString, serviceId)
         }.project('uId, 'serviceType, 'serviceId)
 
-        val findFriendSonarId = serviceIdsInput.project('row_keyfrnd, 'fbId, 'lnId)
+        val findFriendSonarId = serviceIdsInput.project('friendkey, 'fbid, 'lnid, 'twid, 'fsid)
 
         val facebookFriends = findFriendSonarId
-                .joinWithLarger('fbId -> 'serviceId, userIdGroupedFriends)
+                .joinWithLarger('fbid -> 'serviceId, userIdGroupedFriends)
                 .filter('serviceType) {
             serviceType: String => serviceType.equals("facebook")
         }
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
 
         val linkedinFriends = findFriendSonarId
-                .joinWithLarger('lnId -> 'serviceId, userIdGroupedFriends)
+                .joinWithLarger('lnid -> 'serviceId, userIdGroupedFriends)
                 .filter('serviceType) {
             serviceType: String => serviceType.equals("linkedin")
         }
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
 
-        val mergedFriends = linkedinFriends.++(facebookFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+        val twitterFriends = findFriendSonarId
+                .joinWithLarger('twid -> 'serviceId, userIdGroupedFriends)
+                .filter('serviceType) {
+            serviceType: String => serviceType.equals("twitter")
+        }
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
 
-        val friendsCheckins = joinedChunks.joinWithSmaller(('keyid, 'keyid2) ->('uId, 'row_keyfrnd), mergedFriends)
+        val foursquareFriends = findFriendSonarId
+                .joinWithLarger('fsid -> 'serviceId, userIdGroupedFriends)
+                .filter('serviceType) {
+            serviceType: String => serviceType.equals("foursquare")
+        }
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        val mergedFriends = linkedinFriends.++(facebookFriends).++(twitterFriends).++(foursquareFriends)
+                .unique('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        val friendsCheckins = joinedChunks.joinWithSmaller(('keyid, 'keyid2) ->('uId, 'friendkey), mergedFriends)
                 .unique(('keyid, 'keyid2))
-                .joinWithLarger('keyid2 -> 'row_keyfrnd, serviceIdsInput)
+                .joinWithLarger('keyid2 -> 'friendkey, serviceIdsInput)
                 .rename('uname -> 'uname2)
                 .project(('keyid, 'keyid2, 'uname2))
-                .joinWithLarger('keyid -> 'row_keyfrnd, serviceIdsInput)
-                .project(('keyid, 'keyid2, 'uname, 'uname2))
+                .joinWithLarger('keyid -> 'friendkey, serviceIdsInput)
+                .unique(('keyid, 'keyid2, 'uname, 'uname2))
 
 
         //         .groupAll{

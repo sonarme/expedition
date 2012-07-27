@@ -19,22 +19,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.mongodb.util.JSON
 import util.parsing.json.JSONObject
 import twitter4j.json.JSONObjectType
-import cascading.pipe.joiner.LeftJoin
+import cascading.pipe.joiner._
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
 
-    def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
-        val numProfiles = datahandle.groupBy('id) {
-            _.size
-        }.rename('size -> 'numProfiles)
+    // don't use anymore, new one also has foursquare
 
-        val profiles = datahandle.joinWithSmaller('id -> 'id, numProfiles)
+    /* def getDTOProfileInfoInTuplesOld(datahandle: RichPipe): RichPipe = {
 
-        val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+        val dupProfiles = datahandle.rename(('id, 'serviceType, 'jsondata) ->('id2, 'serviceType2, 'jsondata2))
 
-        val dtoProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
-                .mapTo(Fields.ALL -> Fields.ALL) {
+        val dtoProfiles = datahandle.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
+                .mapTo(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2) ->('id, 'serviceType, 'fbJson, 'serviceType2, 'lnJson)) {
             fields: (String, String, String, String, String) =>
                 val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
                 //                val fbId = getFBId(serviceType, serviceType2)
@@ -127,11 +124,98 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         dtoProfiles
 
+    }  */
+
+    // updated to include foursquare data
+    // uncomment last line to get hashes of fb, ln, and fsids to compare prod data
+
+    def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
+
+        val dtoProfiles = datahandle
+                .mapTo(('id, 'serviceType, 'jsondata) ->('id, 'serviceType, 'fbJson, 'lnJson, 'fsJson)) {
+            fields: (String, String, String) =>
+                val (id, serviceType, jsondata) = fields
+                val fbJson = getJson(serviceType, jsondata, "fb")
+                val lnJson = getJson(serviceType, jsondata, "ln")
+                val fsJson = getJson(serviceType, jsondata, "4s")
+                (id, serviceType, fbJson, lnJson, fsJson)
+        }
+
+        val combinedProfiles = dtoProfiles
+                .groupBy('id){
+            _
+                    .toList[Option[String]]('fbJson -> 'fbJsonList)
+                    .toList[Option[String]]('lnJson -> 'lnJsonList)
+                    .toList[Option[String]]('fsJson -> 'fsJsonList)
+
+        }
+        .map(('fbJsonList, 'lnJsonList, 'fsJsonList) -> ('fbJson, 'lnJson, 'fsJson)) {
+            fields: (List[Option[String]], List[Option[String]], List[Option[String]]) =>
+                val (fbJsonList, lnJsonList, fsJsonList) = fields
+                val fbJson = getFirstNonNullOption(fbJsonList)
+                val lnJson = getFirstNonNullOption(lnJsonList)
+                val fsJson = getFirstNonNullOption(fsJsonList)
+                (fbJson, lnJson, fsJson)
+        }
+        .rename('id -> 'key)
+        .project(('key, 'fbJson, 'lnJson, 'fsJson))
+
+        val output = combinedProfiles
+                .map(('fbJson, 'lnJson, 'fsJson) ->('fbid, 'fbServiceProfile, 'lnid, 'lnServiceProfile, 'fsid, 'fsServiceProfile)) {
+            fields: (Option[String], Option[String], Option[String]) =>
+                val (fbJson, lnJson, fsJson) = fields
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
+                val fsServiceProfile = ScrawlerObjectMapper.parseJson(fsJson, classOf[ServiceProfileDTO])
+                val fbid = getID(fbServiceProfile).getOrElse(fbJson.getOrElse(""))
+                val lnid = getID(lnServiceProfile).getOrElse(lnJson.getOrElse(""))
+                val fsid = getID(fsServiceProfile).getOrElse(fsJson.getOrElse(""))
+                (fbid, fbServiceProfile, lnid, lnServiceProfile, fsid, fsServiceProfile)
+        }
+                .mapTo(('key, 'fbid, 'fbServiceProfile, 'lnid, 'lnServiceProfile, 'fsid, 'fsServiceProfile) ->('key, 'username, 'fbid, 'lnid, 'fsid, 'twalias, 'edu, 'work, 'city)) {
+            fields: (String, String, Option[ServiceProfileDTO], String, Option[ServiceProfileDTO], String, Option[ServiceProfileDTO]) =>
+                val (id, fbid, fbJson, lnid, lnJson, fsid, fsJson) = fields
+                val fbedu = getEducation(fbJson)
+                val lnedu = getEducation(lnJson)
+                val fsedu = getEducation(fsJson)
+                val edu = fbedu.toList ++ lnedu.toList ++ fsedu.toList
+                val fbwork = getWork(fbJson)
+                val lnwork = getWork(lnJson)
+                val fswork = getWork(fsJson)
+                val work = fbwork.toList ++ lnwork.toList ++ fswork.toList
+                val username = getUserName(fbJson).getOrElse(getUserName(lnJson).getOrElse(getUserName(fsJson).getOrElse("")))
+                val fbcity = getCity(fbJson)
+                val lncity = getCity(lnJson)
+                val fscity = getCity(fsJson)
+                val fsfbid = getFSFBID(fsJson)
+                val fstwid = getFSTWID(fsJson)
+                val fbidnew = selectNonNullString(fbid, fsfbid)
+                val city = fbcity.toList ++ lncity.toList ++ fscity.toList
+                (id, username, fbidnew, lnid, fsid, fstwid, edu, work, city)
+        }
+                .mapTo(('key, 'username, 'fbid, 'lnid, 'fsid, 'twalias, 'edu, 'work, 'city) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
+            fields: (String, String, String, String, String, String, List[UserEducation], List[UserEmployment], List[String]) =>
+                val (rowkey, fbname, fbid, lnid, fsid, twalias, edu, work, city) = fields
+                val educationschool = getFirstEdu(edu)
+                val edudegree = getFirstEduDegree(edu)
+                var eduyear = getFirstEduDegreeYear(edu)
+                val workcomp = getFirstWork(work)
+                val worktitle = getWorkTitle(work)
+                val workdesc = getWorkSummary(work)
+                val ccity = getcurrCity(city)
+                //(rowkey, fbname, md5SumString(fbid.getBytes("UTF-8")), md5SumString(lnid.getBytes("UTF-8")), md5SumString(fsid.getBytes("UTF-8")), educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
+                (rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
+        }
+
+        output
+
     }
+
+    // twitter pipe
 
     def twitterProfileTuples(twitterPipe: RichPipe): RichPipe = {
         val data = twitterPipe
-                .map('jsondata -> ('twid, 'twServiceProfile, 'twname)){
+                .map('jsondata ->('twid, 'twServiceProfile, 'twname)) {
             twJson: String => {
                 val twServiceProfile = ScrawlerObjectMapper.parseJson(Option(twJson), classOf[ServiceProfileDTO])
                 val twid = getID(twServiceProfile).getOrElse(twJson)
@@ -145,36 +229,42 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         data
     }
 
+    // joins twitter pipe and rest of profiles
+
     def getTotalProfileTuples(serviceProfileData: RichPipe, twServiceProfileData: RichPipe): RichPipe = {
 
-        val fbln = getDTOProfileInfoInTuples(serviceProfileData)
+        val fblnfs = getDTOProfileInfoInTuples(serviceProfileData)
         val tw = twitterProfileTuples(twServiceProfileData)
 
-        val fblnWithTw = fbln.joinWithSmaller('key -> 'id, tw, new LeftJoin)
-                .discard('id)
-                .project(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
-        val twWithFbln = tw.joinWithSmaller('id -> 'key, fbln, new LeftJoin)
-                .discard('key)
-                .rename('id -> 'key)
-                .project(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
+        val total = fblnfs.joinWithSmaller('key -> 'id, tw, new OuterJoin)
+                .map(('key, 'id) -> 'mainkey) {
+            fields: (String, String) => {
+                val (key, id) = fields
+                if (key == null)
+                    id
+                else
+                    key
+            }
 
-        val total = (fblnWithTw++twWithFbln)
-                .unique(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid)) {
-            fields: (String, String, String, String, String, String, String, String, String, String, String, String) => {
-                val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, twid, twname) = fields
+        }
+                .discard('key)
+                .rename('mainkey -> 'key)
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
+            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String) => {
+                val (key, uname, fbid, lnid, fsid, twalias, educ, worked, city, edegree, eyear, worktitle, twid, twname) = fields
                 val key2 = Option(key).getOrElse("")
                 val uname2 = Option(uname).getOrElse(twname)
                 val fbid2 = Option(fbid).getOrElse("")
                 val lnid2 = Option(lnid).getOrElse("")
+                val fsid2 = Option(fsid).getOrElse("")
                 val educ2 = Option(educ).getOrElse("")
                 val worked2 = Option(worked).getOrElse("")
                 val city2 = Option(city).getOrElse("")
                 val edegree2 = Option(edegree).getOrElse("")
                 val eyear2 = Option(eyear).getOrElse("")
                 val worktitle2 = Option(worktitle).getOrElse("")
-                val twid2 = Option(twid).getOrElse("")
-                (key2, uname2, fbid2, lnid2, educ2, worked2, city2, edegree2, eyear2, worktitle2, twid2)
+                val twid2 = Option(twid).getOrElse(twalias)
+                (key2, uname2, fbid2, lnid2, fsid2, twid2, educ2, worked2, city2, edegree2, eyear2, worktitle2)
             }
         }
 
@@ -182,6 +272,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         total
     }
+
+    // not necessary, just use normal function
 
     def getWrkDescProfileTuples(datahandle: RichPipe): RichPipe = {
         val numProfiles = datahandle.groupBy('id) {
@@ -302,40 +394,77 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         filtered.headOption.getOrElse("")
     }
 
+    def getFirstNonNullOption(input: List[Option[String]]): Option[String] = {
+        val filtered = input.filter {
+            opst: Option[String] => {
+                val st = opst.getOrElse("")
+                !st.equals("") && !st.equals("null")
+            }
+        }
+        filtered.headOption.getOrElse(None)
+    }
+
+    def selectNonNullString(str1: String, str2: String): String = {
+        if (!str1.equals(""))
+            str1
+        else
+            str2
+    }
+
     def isNumeric(input: String): Boolean = input.forall(_.isDigit)
 
     def getcurrCity(city: List[String]): String = {
-        city.headOption.mkString
+        Option(city.headOption.getOrElse("")).getOrElse("")
     }
 
     def getFirstEdu(edu: List[UserEducation]): String = {
-        edu.headOption.map(_.getSchoolName()).mkString
+        val educ = edu.headOption
+        if (educ.isEmpty)
+            ""
+        else
+            Option(educ.get.getSchoolName).getOrElse("")
     }
 
 
     def getFirstEduDegree(edu: List[UserEducation]): String = {
-        edu.headOption.map(_.getDegree()).mkString
+        val educ = edu.headOption
+        if (educ.isEmpty)
+            ""
+        else
+            Option(educ.get.getDegree).getOrElse("")
     }
 
 
     def getFirstEduDegreeYear(edu: List[UserEducation]): String = {
-        edu.headOption.map(_.getYear()).mkString
+        val educ = edu.headOption
+        if (educ.isEmpty)
+            ""
+        else
+            Option(educ.get.getYear).getOrElse("")
     }
 
     def getFirstWork(work: List[UserEmployment]): String = {
-        work.headOption.map(_.getCompanyName()).mkString
+        val emp = work.headOption
+        if (emp.isEmpty)
+            ""
+        else
+            Option(emp.get.getCompanyName).getOrElse("")
     }
 
     def getWorkSummary(work: List[UserEmployment]): String = {
-        work.headOption.map(_.getSummary()).mkString
+        val emp = work.headOption
+        if (emp.isEmpty)
+            ""
+        else
+            Option(emp.get.getSummary).getOrElse("")
     }
 
     def getWorkTitle(work: List[UserEmployment]): String = {
-        work.headOption.map(_.getTitle()).mkString
-    }
-
-    def getLatitute(checkins: List[CheckinObjects]): String = {
-        checkins.map(_.getLatitude).toString()
+        val emp = work.headOption
+        if (emp.isEmpty)
+            ""
+        else
+            Option(emp.get.getTitle).getOrElse("")
     }
 
     def formCityList(fbcitydata: Option[String], lnkdcitydata: Option[String]): List[String] = {
@@ -362,31 +491,27 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         serviceProfile.map(_.getFullName())
     }
 
+    def getFSFBID(serviceProfile: Option[ServiceProfileDTO]): String = {
+        val alias = serviceProfile.map(_.getAliases)
+        if (alias.isEmpty)
+            ""
+        else
+            Option(alias.get.getFacebook).getOrElse("")
+    }
+
+    def getFSTWID(serviceProfile: Option[ServiceProfileDTO]): String = {
+        val alias = serviceProfile.map(_.getAliases)
+        if (alias.isEmpty)
+            ""
+        else
+            Option(alias.get.getTwitter).getOrElse("")
+    }
+
+
     def getCity(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getLocation())
     }
 
-    def getFBId(serviceTypeFB: String, serviceTypeLn: String): Option[String] = {
-        if (serviceTypeFB == null)
-            None
-        if ((serviceTypeFB == serviceTypeLn) && serviceTypeFB.trim == "ln") {
-            None
-        }
-        else {
-            Option(serviceTypeFB)
-        }
-    }
-
-    def getLinkedInId(serviceTypeFB: String, serviceTypeLn: String): Option[String] = {
-        if (serviceTypeLn == null)
-            None
-        if ((serviceTypeFB == serviceTypeLn) && serviceTypeLn.trim == "fb") {
-            None
-        }
-        else {
-            Option(serviceTypeLn)
-        }
-    }
 
     def getFBJson(serviceTypeFB: String, serviceTypeLn: String, jsonString: String): Option[String] = {
         if (serviceTypeFB == null)
@@ -408,6 +533,15 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         else {
             Option(jsonString)
         }
+    }
+
+    def getJson(serviceType: String, jsonString: String, serviceDesired: String): Option[String] = {
+        if (serviceType == null)
+            None
+        else if (serviceType == serviceDesired)
+            Option(jsonString)
+        else
+            None
     }
 
     def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
