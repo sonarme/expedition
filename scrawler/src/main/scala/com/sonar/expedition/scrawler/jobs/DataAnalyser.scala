@@ -10,6 +10,9 @@ import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
 import java.security.MessageDigest
 import cascading.tuple.Fields
+import com.lambdaworks.jacks._
+import java.security.MessageDigest
+import tools.nsc.io.Streamable.Bytes
 
 
 /*
@@ -38,7 +41,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     val malepipe = TextLine(args("male"))
     val femalepipe = TextLine(args("female"))
     val genderoutput = args("genderoutput")
-
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -201,7 +203,9 @@ class DataAnalyser(args: Args) extends Job(args) {
         md5.update(bytes)
         md5.digest().map(0xFF & _).map {
             "%02x".format(_)
-        }.mkString
+        }.foldLeft("") {
+            _ + _
+        }
     }
 
 

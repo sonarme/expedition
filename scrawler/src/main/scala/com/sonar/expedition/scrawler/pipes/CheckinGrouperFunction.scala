@@ -13,48 +13,12 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def groupCheckins(input: RichPipe): RichPipe = {
 
-
-        val data = input
-                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfWeek, 'hour)) {
-            line: String => {
-                line match {
-                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
-                        val timeFilter = Calendar.getInstance()
-                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
-                        timeFilter.setTime(checkinDate)
-                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, dayOfWeek, time))
-                    }
-                    case _ => {
-                        println("Coudn't extract line using regex: " + line)
-                        None
-                    }
-                }
-            }
-        }
+        val data = unfilteredCheckins(input)
                 .filter('dayOfWeek) {
             dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour) {
             hour: Double => hour > 8.5 && hour < 18.5
-        }.map(('latitude, 'longitude) -> ('loc)) {
-            fields: (String, String) =>
-                val (lat, lng) = fields
-                val loc = lat + ":" + lng
-                (loc)
-        }
-
-                //                .pack[CheckinObjects](('serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin)
-                //                .groupBy('userProfileId) {
-                //            group => group.toList[CheckinObjects]('checkin,'checkindata)
-                //        }.map(Fields.ALL -> ('ProfileId, 'venue)){
-                //            fields : (String,List[CheckinObjects]) =>
-                //                val (userid ,checkin) = fields
-                //                val venue = checkin.map(_.getVenueName)
-                //                (userid,venue)
-                //        }.project('ProfileId,'venue)
-
-                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+        }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
         data
     }
@@ -63,17 +27,28 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
 
         val data = input
-                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'dayOfWeek, 'hour)) {
             line: String => {
                 line match {
-                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
+                    case CheckinExtractLineWithMessages(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, msg) => {
                         val timeFilter = Calendar.getInstance()
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         timeFilter.setTime(checkinDate)
                         //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
-                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
+                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, dayOfWeek, time))
+                    }
+                    case CheckinExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
+                        val timeFilter = Calendar.getInstance()
+                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                        timeFilter.setTime(checkinDate)
+                        //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
+                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, dayOfWeek, time))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
@@ -81,14 +56,15 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                     }
                 }
             }
-        }.map(('latitude, 'longitude) -> ('loc)) {
+        }
+                .map(('latitude, 'longitude) -> ('loc)) {
             fields: (String, String) =>
                 val (lat, lng) = fields
                 val loc = lat + ":" + lng
                 (loc)
         }
 
-                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour))
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'dayOfWeek, 'hour))
 
         data
     }
@@ -118,43 +94,16 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
         }
         data
     }
-
+    
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        var data = input
-                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
-            line: String => {
-                line match {
-                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
-                        val timeFilter = Calendar.getInstance()
-                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
-                        timeFilter.setTime(checkinDate)
-                        //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
-                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
-                    }
-                    case _ => {
-                        println("Coudn't extract line using regex: " + line)
-                        None // ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None", 1, 0.0)
-                    }
-                }
-            }
-        }.map(('latitude, 'longitude) -> ('loc)) {
-            fields: (String, String) =>
-                val (lat, lng) = fields
-                val loc = lat + ":" + lng
-                (loc)
-        }
-                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour))
+        val checkins = unfilteredCheckins(input)
 
+        val numberOfVenueVisits = addTotalTimesCheckedIn(checkins).project('keyid, 'numberOfVenueVisits)
 
+        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, checkins, serviceIdsInput).project('uId, 'numberOfFriendsAtVenue)
 
-        val numberOfVenueVisits = addTotalTimesCheckedIn(data).project('keyid, 'numberOfVenueVisits)
-
-        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, data, serviceIdsInput).project('uId, 'numberOfFriendsAtVenue)
-
-        data = data.joinWithSmaller('keyid -> 'uId, numberOfFriendsAtVenue, joiner = new LeftJoin)
+        val data = checkins.joinWithSmaller('keyid -> 'uId, numberOfFriendsAtVenue, joiner = new LeftJoin)
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'numberOfFriendsAtVenue)
 
         addTotalTimesCheckedIn(data).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'loc, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
@@ -228,31 +177,31 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 (uIdString, serviceId)
         }.project('uId, 'serviceId)
 
-        val findFriendSonarId = serviceIdsInput.project('row_keyfrnd, 'fbId, 'lnId)
+        val findFriendSonarId = serviceIdsInput.project(('row_keyfrnd, 'fbId, 'lnId)
 
         val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'serviceId, userIdGroupedFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project(('uId, 'row_keyfrnd, 'fbId, 'lnId))
 
         val linkedinFriends = findFriendSonarId.joinWithLarger('lnId -> 'serviceId, userIdGroupedFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project(('uId, 'row_keyfrnd, 'fbId, 'lnId))
 
         val mergedFriends = linkedinFriends.++(facebookFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project(('uId, 'row_keyfrnd, 'fbId, 'lnId))
 
         val friendsCheckins = checkinInput.joinWithSmaller('keyid -> 'row_keyfrnd, mergedFriends)
                 .rename(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour) ->
                 ('friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour))
-                .unique('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour)
+                .unique(('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour))
 
         val matchingCheckins = checkinInput.joinWithSmaller('keyid -> 'uId, friendsCheckins)
-                .filter('venName, 'friendVenName, 'friendDayOfYear, 'dayOfYear, 'friendHour, 'hour) {
+                .filter(('venName, 'friendVenName, 'friendDayOfYear, 'dayOfYear, 'friendHour, 'hour)) {
             fields: (String, String, Int, Int, Double, Double) =>
                 val (originalVenue, friendVenue, friendDay, originalDay, friendHour, originalHour) = fields
                 (originalVenue.equalsIgnoreCase(friendVenue)) && (friendDay == originalDay) && (originalHour <= (friendHour + 1.5)) && (originalHour >= (friendHour - 1.5)) && (originalVenue != null) && (friendVenue != "")
-        }.project('uId, 'friendKey, 'venName, 'friendVenName, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour)
+        }.project(('uId, 'friendKey, 'venName, 'friendVenName, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour))
                 .groupBy('uId) {
             _.size
-        }.rename('size -> 'numberOfFriendsAtVenue).project('uId, 'numberOfFriendsAtVenue)
+        }.rename('size -> 'numberOfFriendsAtVenue).project(('uId, 'numberOfFriendsAtVenue))
 
         matchingCheckins
     }
@@ -260,5 +209,8 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 }
 
 object CheckinGrouperFunction {
+    val CheckinExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
+    val CheckinExtractLineWithMessages: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
     val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
+
 }
