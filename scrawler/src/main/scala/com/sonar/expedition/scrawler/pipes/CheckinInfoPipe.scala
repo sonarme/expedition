@@ -15,25 +15,21 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val chkindata = (checkinInput.project('line).map(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
             line: String => {
                 line match {
-                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, message) => (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng)
                     case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
                 }
             }
         })
                 .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)
-                .mapTo(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng) ->('userProfileID1, 'serviceType1, 'serviceProfileID1, 'serviceCheckinID1, 'venueName1, 'venueAddress1, 'checkinTime1, 'geohash1, 'loc1)) {
-            fields: (String, String, String, String, String, String, String, String, String, String) =>
-                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng) = fields
+                .map(('lat, 'lng) -> 'loc) {
+            fields: (String, String) =>
+                val (lat, lng) = fields
                 // println("location " +lat + ","+ lng)
 
-                (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat + ":" + lng)
-
-        }.map(('userProfileID1, 'serviceType1, 'serviceProfileID1, 'serviceCheckinID1, 'venueName1, 'venueAddress1, 'checkinTime1, 'geohash1, 'loc1) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location)) {
-            fields: (String, String, String, String, String, String, String, String, String) =>
-                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
-                (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
+                (lat + ":" + lng)
 
         }
+                .discard(('lat, 'lng))
                 .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location)
                 .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)) {
             fields: (String, String, String, String, String, String, String, String, String) =>
@@ -130,8 +126,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val clusters = 3
         // chnage no of clustures required
         val chkins: java.util.List[String] = ListBuffer(chkinlist: _*)
-        val res = km.clusterKMeans(chkins, clusters)
-        return res
+        km.clusterKMeans(chkins, clusters)
 
     }
 
@@ -141,13 +136,11 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         md5.update(bytes)
         md5.digest().map(0xFF & _).map {
             "%02x".format(_)
-        }.foldLeft("") {
-            _ + _
-        }
+        }.foldLeft("") {_ + _}
     }
 
 }
 
 object CheckinInfoPipe {
-    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
+    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
 }

@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.mongodb.util.JSON
 import util.parsing.json.JSONObject
 import twitter4j.json.JSONObjectType
+import cascading.pipe.joiner.LeftJoin
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
@@ -126,6 +127,60 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         dtoProfiles
 
+    }
+
+    def twitterProfileTuples(twitterPipe: RichPipe): RichPipe = {
+        val data = twitterPipe
+                .map('jsondata -> ('twid, 'twServiceProfile, 'twname)){
+            twJson: String => {
+                val twServiceProfile = ScrawlerObjectMapper.parseJson(Option(twJson), classOf[ServiceProfileDTO])
+                val twid = getID(twServiceProfile).getOrElse(twJson)
+                val twname = getUserName(twServiceProfile).getOrElse("")
+                (twid, twServiceProfile, twname)
+            }
+        }
+                .project('id, 'twid, 'twname)
+
+
+        data
+    }
+
+    def getTotalProfileTuples(serviceProfileData: RichPipe, twServiceProfileData: RichPipe): RichPipe = {
+
+        val fbln = getDTOProfileInfoInTuples(serviceProfileData)
+        val tw = twitterProfileTuples(twServiceProfileData)
+
+        val fblnWithTw = fbln.joinWithSmaller('key -> 'id, tw, new LeftJoin)
+                .discard('id)
+                .project(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
+        val twWithFbln = tw.joinWithSmaller('id -> 'key, fbln, new LeftJoin)
+                .discard('key)
+                .rename('id -> 'key)
+                .project(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
+
+        val total = (fblnWithTw++twWithFbln)
+                .unique(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid)) {
+            fields: (String, String, String, String, String, String, String, String, String, String, String, String) => {
+                val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, twid, twname) = fields
+                val key2 = Option(key).getOrElse("")
+                val uname2 = Option(uname).getOrElse(twname)
+                val fbid2 = Option(fbid).getOrElse("")
+                val lnid2 = Option(lnid).getOrElse("")
+                val educ2 = Option(educ).getOrElse("")
+                val worked2 = Option(worked).getOrElse("")
+                val city2 = Option(city).getOrElse("")
+                val edegree2 = Option(edegree).getOrElse("")
+                val eyear2 = Option(eyear).getOrElse("")
+                val worktitle2 = Option(worktitle).getOrElse("")
+                val twid2 = Option(twid).getOrElse("")
+                (key2, uname2, fbid2, lnid2, educ2, worked2, city2, edegree2, eyear2, worktitle2, twid2)
+            }
+        }
+
+
+
+        total
     }
 
     def getWrkDescProfileTuples(datahandle: RichPipe): RichPipe = {
