@@ -1,3 +1,4 @@
+/*
 package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{Job, Args, TextLine}
@@ -6,6 +7,7 @@ import com.sonar.expedition.scrawler.pipes.GenderFromNameProbablity
 import util.matching.Regex
 import NameClassifyTest._
 
+//com.sonar.expedition.scrawler.test.NameClassifyTest --hdfs
 class NameClassifyTest(args: Args) extends Job(args) {
 
     var genderprob: GenderFromNameProbablity = new GenderFromNameProbablity()
@@ -30,7 +32,7 @@ class NameClassifyTest(args: Args) extends Job(args) {
     val mpipe = malegender.project(('name, 'freq)).mapTo(('name, 'freq) ->('name1, 'freq1)) {
         fields: (String, String) =>
             val (name, freq) = fields
-            genderprob.addMaleItems(name.toUpperCase, freq)
+            genderprob.addMaleItems(name.toUpperCase, freq.toDouble)
             (name, freq)
     }.write(TextLine("/tmp/gen1.txt"))
 
@@ -55,18 +57,18 @@ class NameClassifyTest(args: Args) extends Job(args) {
     val fpipe = femalegender.project(('name, 'freq)).mapTo(('name, 'freq) ->('name1, 'freq1)) {
         fields: (String, String) =>
             val (name, freq) = fields
-            genderprob.addFemaleItems(name.toUpperCase, freq)
+            genderprob.addFemaleItems(name.toUpperCase, freq.toDouble)
             (name, freq)
     }.write(TextLine("/tmp/gen2.txt"))
 
 
     val test = malegender.++(femalegender).project('name).mapTo('name ->('name1, 'gender)) {
         name: String =>
-            val gender = genderprob.getGender(name.toUpperCase)
+            val gender = genderprob.gender(name.toUpperCase)
             (name, gender)
     }.project('name1, 'gender).write(TextLine("/tmp/genderoutput.txt"))
 }
 
 object NameClassifyTest {
     val GenderInfo: Regex = """([a-zA-Z]+)\s+(\d+.\d+)\s+(\d+.\d+)\s+(\d+)""".r;
-}
+}*/
