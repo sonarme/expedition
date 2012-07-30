@@ -13,35 +13,23 @@ class EmployerFinder(args: Args) extends Job(args) {
     val checkinInput = "/tmp/userGroupedCheckins.txt"
     val out = "/tmp/locationMatch.txt"
 
-    val employerGroupedEmployeeUserIds = (TextLine(serviceProfileInput).read.project('line).map(('line) ->('employer, 'workers)) {
+    val employerGroupedEmployeeUserIds = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('employer, 'listofworkers)) {
         line: String => {
             line match {
-                case ExtractFromList(employer, workers) => (employer, workers)
-                case _ => ("None", "None")
-            }
-        }
-    }).flatMap(('workers) -> ('listofworkers)) {
-        fields: String =>
-            val workerString = fields
-            val employees = workerString.split(", ")
-            (employees)
-    }.project(('employer, 'listofworkers))
-
-
-    val userIdGroupedCheckins = (TextLine(checkinInput).read.project('line).map(('line) ->('userId, 'venueName, 'latitude, 'longitude)) {
-        line: String => {
-            line match {
-                case ExtractCheckin(userId, venue, lat, lng) => (userId, venue, lat, lng)
-                case _ => ("None", "None", "None", "None")
+                case ExtractFromList(employer, workers) => Some((employer, workers.split(",")))
+                case _ => None
             }
         }
     })
-    //            .map(('userId, 'checkins) -> ('id, 'listofcheckins)) {
-    //        fields : (String, String) =>
-    //            val (userIdString, checkinString) = fields
-    //            val checkinVenues = checkinString.split(", ").toList
-    //            (userIdString, checkinVenues)
-    //    }
+
+    val userIdGroupedCheckins = (TextLine(checkinInput).read.project('line).flatMap(('line) ->('userId, 'venueName, 'latitude, 'longitude)) {
+        line: String => {
+            line match {
+                case ExtractCheckin(userId, venue, lat, lng) => Some((userId, venue, lat, lng))
+                case _ => None
+            }
+        }
+    })
 
 
     val joined = userIdGroupedCheckins.joinWithSmaller('userId -> 'listofworkers, employerGroupedEmployeeUserIds)

@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.util
+package com.sonar.expedition.scrawler.objs.serializable
 
 import java.util.ArrayList
 import org.apache.lucene.analysis.Analyzer
@@ -18,10 +18,10 @@ import org.apache.lucene.util.Version
 import LuceneIndex._
 
 object LuceneIndex {
-    private[util] var directory: Directory = null
-    private[util] var analyzer: Analyzer = null
-    private[util] var config: IndexWriterConfig = null
-    private[util] var writer: IndexWriter = null
+    private[serializable] var directory: Directory = null
+    private[serializable] var analyzer: Analyzer = null
+    private[serializable] var config: IndexWriterConfig = null
+    private[serializable] var writer: IndexWriter = null
     private var docs: ArrayList[Document] = null
 }
 

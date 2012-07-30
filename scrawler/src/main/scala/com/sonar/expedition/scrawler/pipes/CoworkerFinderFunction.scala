@@ -9,11 +9,11 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
 
     def findCoworkers(serviceProfileInput: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
+        val employerGroupedEmployeeUserIds = (serviceProfileInput.flatMap(('line) ->('employer, 'workers)) {
             line: String => {
                 line match {
-                    case ExtractFromList(employer, workers) => (employer, workers)
-                    case _ => ("None", "None")
+                    case ExtractFromList(employer, workers) => Some((employer, workers))
+                    case _ => None
                 }
             }
         }).project('employer, 'workers).map('employer -> 'emp) {
@@ -45,8 +45,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val userIdGroupedFriends = (friendsInput.map(('line) ->('userId, 'friends)) {
             line: String => {
                 line match {
-                    case ExtractFromList(userId, friends) => (userId, friends)
-                    case _ => ("None", "None")
+                    case ExtractFromList(userId, friends) => Some((userId, friends))
+                    case _ => None
                 }
             }
         }).project('userId, 'friends).flatMap('friends -> ('listoffriends)) {
@@ -66,8 +66,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val findFriendSonarId = (serviceIdsInput.map(('line) ->('row_keyfrnd, 'fbId, 'lnId)) {
             line: String => {
                 line match {
-                    case ExtractIds(userId, fbId, lnId) => (userId, fbId, lnId)
-                    case _ => ("None", "None", "None")
+                    case ExtractIds(userId, fbId, lnId) => Some((userId, fbId, lnId))
+                    case _ => None
                 }
             }
         }).project('row_keyfrnd, 'fbId, 'lnId)
@@ -115,8 +115,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val employerGroupedEmployeeUserIds = (serviceProfileInput.map(('line) ->('employer, 'workers)) {
             line: String => {
                 line match {
-                    case ExtractFromList(employer, workers) => (employer, workers)
-                    case _ => ("None", "None")
+                    case ExtractFromList(employer, workers) => Some((employer, workers))
+                    case _ => None
                 }
             }
         })
@@ -146,8 +146,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val userIdGroupedFriends = (friendsInput.map(('line) ->('userId, 'friends)) {
             line: String => {
                 line match {
-                    case ExtractFromList(userId, friends) => (userId, friends)
-                    case _ => ("None", "None")
+                    case ExtractFromList(userId, friends) => Some((userId, friends))
+                    case _ => None
                 }
             }
         }).project('userId, 'friends).flatMap('friends -> ('listoffriends)) {
@@ -167,8 +167,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val findFriendSonarId = (serviceIdsInput.map(('line) ->('row_keyfrnd, 'fbId, 'lnId)) {
             line: String => {
                 line match {
-                    case ExtractIds(userId, fbId, lnId) => (userId, fbId, lnId)
-                    case _ => ("None", "None", "None")
+                    case ExtractIds(userId, fbId, lnId) => Some((userId, fbId, lnId))
+                    case _ => None
                 }
             }
         }).project('row_keyfrnd, 'fbId, 'lnId)

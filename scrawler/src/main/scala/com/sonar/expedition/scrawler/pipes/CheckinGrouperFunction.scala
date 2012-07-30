@@ -69,18 +69,44 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
         data
     }
 
+    def unfilteredCheckinsLatLon(input: RichPipe): RichPipe = {
+
+
+        val data = input
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
+            line: String => {
+                line match {
+                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
+                        val timeFilter = Calendar.getInstance()
+                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                        timeFilter.setTime(checkinDate)
+                        //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
+                    }
+                    case _ => {
+                        println("Coudn't extract line using regex: " + line)
+                        None
+                    }
+                }
+            }
+        }
+        data
+    }
+
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         val checkins = unfilteredCheckins(input)
 
-        val numberOfVenueVisits = addTotalTimesCheckedIn(checkins).project('keyid, 'numberOfVenueVisits)
+        val numberOfVenueVisits = addTotalTimesCheckedIn(checkins).project(('keyid, 'numberOfVenueVisits))
 
-        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, checkins, serviceIdsInput).project('uId, 'numberOfFriendsAtVenue)
+        val numberOfFriendsAtVenue = friendsAtSameVenue(friendsInput, checkins, serviceIdsInput).project(('uId, 'numberOfFriendsAtVenue))
 
         val data = checkins.joinWithSmaller('keyid -> 'uId, numberOfFriendsAtVenue, joiner = new LeftJoin)
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'numberOfFriendsAtVenue)
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'numberOfFriendsAtVenue))
 
-        addTotalTimesCheckedIn(data).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'loc, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+        addTotalTimesCheckedIn(data).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'loc, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
                 .map(('loc) ->('lat, 'lng)) {
             fields: (String) =>
                 val loc = fields
@@ -112,13 +138,13 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
             }
         }
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
                 .map('serProfileID -> 'hasheduser) {
             fields: String =>
                 val user = fields
                 val hashed = md5SumString(user.getBytes("UTF-8"))
                 hashed
-        }.project('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits)
+        }.project(('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
 
     }
 
@@ -142,40 +168,40 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
+        val userIdGroupedFriends = friendsInput.project(('userProfileId, 'serviceProfileId, 'friendName))
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
                 val uIdString = userIdString.trim
                 val serviceId = serviceProfileId.trim
                 (uIdString, serviceId)
-        }.project('uId, 'serviceId)
+        }.project(('uId, 'serviceId))
 
-        val findFriendSonarId = serviceIdsInput.project('row_keyfrnd, 'fbId, 'lnId)
+        val findFriendSonarId = serviceIdsInput.project(('row_keyfrnd, 'fbId, 'lnId))
 
         val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'serviceId, userIdGroupedFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project(('uId, 'row_keyfrnd, 'fbId, 'lnId))
 
         val linkedinFriends = findFriendSonarId.joinWithLarger('lnId -> 'serviceId, userIdGroupedFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project(('uId, 'row_keyfrnd, 'fbId, 'lnId))
 
         val mergedFriends = linkedinFriends.++(facebookFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+                .project(('uId, 'row_keyfrnd, 'fbId, 'lnId))
 
         val friendsCheckins = checkinInput.joinWithSmaller('keyid -> 'row_keyfrnd, mergedFriends)
                 .rename(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour) ->
                 ('friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour))
-                .unique('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour)
+                .unique(('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour))
 
         val matchingCheckins = checkinInput.joinWithSmaller('keyid -> 'uId, friendsCheckins)
-                .filter('venName, 'friendVenName, 'friendDayOfYear, 'dayOfYear, 'friendHour, 'hour) {
+                .filter(('venName, 'friendVenName, 'friendDayOfYear, 'dayOfYear, 'friendHour, 'hour)) {
             fields: (String, String, Int, Int, Double, Double) =>
                 val (originalVenue, friendVenue, friendDay, originalDay, friendHour, originalHour) = fields
                 (originalVenue.equalsIgnoreCase(friendVenue)) && (friendDay == originalDay) && (originalHour <= (friendHour + 1.5)) && (originalHour >= (friendHour - 1.5)) && (originalVenue != null) && (friendVenue != "")
-        }.project('uId, 'friendKey, 'venName, 'friendVenName, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour)
+        }.project(('uId, 'friendKey, 'venName, 'friendVenName, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour))
                 .groupBy('uId) {
             _.size
-        }.rename('size -> 'numberOfFriendsAtVenue).project('uId, 'numberOfFriendsAtVenue)
+        }.rename('size -> 'numberOfFriendsAtVenue).project(('uId, 'numberOfFriendsAtVenue))
 
         matchingCheckins
     }
@@ -185,4 +211,6 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 object CheckinGrouperFunction {
     val CheckinExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
     val CheckinExtractLineWithMessages: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
+    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
+
 }

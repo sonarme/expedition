@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.pipes
 
 import cascading.tuple.Fields
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
-import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO, Checkin}
+import com.sonar.dossier.dto._
 import java.security.MessageDigest
 import cascading.pipe.{Each, Pipe}
 import com.twitter.scalding.TextLine
@@ -16,10 +16,16 @@ import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import com.sonar.expedition.scrawler.objs._
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.restfb.types.Post.Likes
+import scala.Some
+import com.sonar.dossier.dto.UserEducation
+import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.dossier.dto.UserEmployment
 import com.mongodb.util.JSON
 import util.parsing.json.JSONObject
 import twitter4j.json.JSONObjectType
 import cascading.pipe.joiner.LeftJoin
+
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
@@ -131,7 +137,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
     def twitterProfileTuples(twitterPipe: RichPipe): RichPipe = {
         val data = twitterPipe
-                .map('jsondata -> ('twid, 'twServiceProfile, 'twname)){
+                .map('jsondata ->('twid, 'twServiceProfile, 'twname)) {
             twJson: String => {
                 val twServiceProfile = ScrawlerObjectMapper.parseJson(Option(twJson), classOf[ServiceProfileDTO])
                 val twid = getID(twServiceProfile).getOrElse(twJson)
@@ -139,7 +145,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 (twid, twServiceProfile, twname)
             }
         }
-                .project('id, 'twid, 'twname)
+                .project(('id, 'twid, 'twname))
 
 
         data
@@ -158,9 +164,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .rename('id -> 'key)
                 .project(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
 
-        val total = (fblnWithTw++twWithFbln)
+        val total = (fblnWithTw ++ twWithFbln)
                 .unique(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname))
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) -> ('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid)) {
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid)) {
             fields: (String, String, String, String, String, String, String, String, String, String, String, String) => {
                 val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, twid, twname) = fields
                 val key2 = Option(key).getOrElse("")
@@ -224,14 +230,14 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val city = formCityList(fbcity, lncity)
                 (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
         }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
-            fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
+            fields: (String, String, Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
                 val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
                 val edulist = formEducationlist(fbedu, lnedu)
                 val worklist = formWorkHistoryList(fbwork, lnwork)
                 (rowkey, fbname, fbid, lnid, edulist, worklist, city)
         }
                 .project(('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity))
-                .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
+                .mapTo(Fields.ALL ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
             fields: (String, Option[String], Option[String], Option[String], List[UserEducation], List[UserEmployment], List[String]) =>
                 val (rowkey, fbname, fbid, lnid, edu, work, city) = fields
                 val educationschool = getFirstEdu(edu)
@@ -240,12 +246,15 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val workcomp = getFirstWork(work)
                 val worktitle = getWorkTitle(work)
                 val ccity = getcurrCity(city)
+                val workdesc = getWorkSummary(work)
                 //(rowkey, fbname.mkString, md5SumString(fbid.mkString.getBytes("UTF-8")), md5SumString(lnid.mkString.getBytes("UTF-8")), educationschool.mkString, workcomp.mkString, ccity.mkString, edudegree.mkString, eduyear.mkString, worktitle.mkString, workdesc.mkString)
-                (rowkey, fbname, fbid.mkString, lnid.mkString, educationschool, workcomp, ccity, edudegree, eduyear, worktitle)
+                (rowkey, fbname, fbid.mkString, lnid.mkString, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
             //}.project('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
 
-        }.project(('key, 'name, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc))
-                .groupBy('keyid) {
+        }
+                //('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)
+                .project(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc))
+                .groupBy('key) {
             group => group
                     .toList[String]('uname, 'uname).sortBy('uname)
                     .toList[String]('fbid, 'first).sortBy('fbid)
@@ -259,7 +268,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                     .toList[String]('workdesc, 'workdesc).sortBy('workdesc)
 
         }
-                .map(('keyid, 'first, 'second) ->('key, 'fbid, 'lnid)) {
+                .map(('key, 'first, 'second) ->('keyid, 'fbid, 'lnid)) {
             fields: (String, List[String], List[String]) =>
                 val (user, first, second) = fields
                 val filterFirst = first.filter {
@@ -270,8 +279,6 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                     headFirst = filterFirst.tail.head
                 }
 
-
-
                 val filterSecond = second.filter {
                     fi: String => !isNumeric(fi)
                 }
@@ -279,21 +286,122 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 (user, headFirst, headSecond)
         }
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
+                .mapTo(('keyid, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc) ->('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
+            //('key, 'uname, 'fbid, 'lnid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)
             fields: (String, List[String], String, String, List[String], List[String], List[String], List[String], List[String], List[String], List[String]) =>
                 val (key, uname, fbid, lnid, educ, worked, city, edegree, eyear, worktitle, workdesc) = fields
                 (key, uname.head, fbid, lnid, educ.head, worked.head, city.head, edegree.head, eyear.head, worktitle.head, workdesc.head)
-
-//               val myFunction = () => {
-//
-//                    Option("")
-//               }
         }
 
 
         dtoProfilesWithDesc
 
     }
+
+    def getDTOProfileInfoInTuplesCity(datahandle: RichPipe): RichPipe = {
+        val numProfiles = datahandle.groupBy('id) {
+            _.size
+        }.rename('size -> 'numProfiles)
+
+        val profiles = datahandle.joinWithSmaller('id -> 'id, numProfiles)
+
+        val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+
+        val dtoProfilesWithDesc = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, String, String, String) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                //                val fbId = getFBId(serviceType, serviceType2)
+                val fbJson = getFBJson(serviceType, serviceType2, jsondata)
+                //                val lnId = getLinkedInId(serviceType, serviceType2)
+                val lnJson = getLNKDINJson(serviceType, serviceType2, jsondata2)
+                (fields._1, serviceType, fbJson, serviceType2, lnJson)
+        }
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, Option[String], String, Option[String]) =>
+                val (id, serviceType, fbJson, serviceType2, lnJson) = fields
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
+                val fbid = getID(fbServiceProfile)
+                val lnid = getID(lnServiceProfile)
+                (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
+        }
+                .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city)) {
+            fields: (String, Option[String], Option[ServiceProfileDTO], Option[String], Option[ServiceProfileDTO]) =>
+                val (id, fbid, fbJson, lnid, lnJson) = fields
+                val fbedu = getEducation(fbJson)
+                val lnedu = getEducation(lnJson)
+                val fbwork = getWork(fbJson)
+                val lnwork = getWork(lnJson)
+                val fbusername = getUserName(fbJson).getOrElse(getUserName(lnJson).getOrElse(None))
+                val fbcity = getCity(fbJson)
+                val lncity = getCity(lnJson)
+                val city = formCityList(fbcity, lncity)
+                (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city)
+        }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edu, 'work, 'currcity)) {
+            fields: (String, String, Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String]) =>
+                val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city) = fields
+                val edulist = formEducationlist(fbedu, lnedu)
+                val worklist = formWorkHistoryList(fbwork, lnwork)
+                (rowkey, fbname, fbid, lnid, edulist, worklist, city)
+        }
+
+        dtoProfilesWithDesc
+    }
+
+    def getDTOProfileInfoForSuperlativeAnalysis(datahandle: RichPipe): RichPipe = {
+        val numProfiles = datahandle.groupBy('id) {
+            _.size
+        }.rename('size -> 'numProfiles)
+
+        val profiles = datahandle.joinWithSmaller('id -> 'id, numProfiles)
+
+        val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+
+        val dtoProfilesWithDesc = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, String, String, String) =>
+                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
+                //                val fbId = getFBId(serviceType, serviceType2)
+                val fbJson = getFBJson(serviceType, serviceType2, jsondata)
+                //                val lnId = getLinkedInId(serviceType, serviceType2)
+                val lnJson = getLNKDINJson(serviceType, serviceType2, jsondata2)
+                (fields._1, serviceType, fbJson, serviceType2, lnJson)
+        }
+                .mapTo(Fields.ALL -> Fields.ALL) {
+            fields: (String, String, Option[String], String, Option[String]) =>
+                val (id, serviceType, fbJson, serviceType2, lnJson) = fields
+                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
+                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
+                val fbid = getID(fbServiceProfile)
+                val lnid = getID(lnServiceProfile)
+                (fields._1, fbid, fbServiceProfile, lnid, lnServiceProfile)
+        }
+                .mapTo(Fields.ALL ->('rowkey, 'username, 'fbid, 'lnid, 'fbedu, 'lnedu, 'fbwork, 'lnwork, 'city, 'likes)) {
+            fields: (String, Option[String], Option[ServiceProfileDTO], Option[String], Option[ServiceProfileDTO]) =>
+                val (id, fbid, fbJson, lnid, lnJson) = fields
+                val fbedu = getEducation(fbJson)
+                val lnedu = getEducation(lnJson)
+                val fbwork = getWork(fbJson)
+                val lnwork = getWork(lnJson)
+                val fbusername = getUserName(fbJson).getOrElse(getUserName(lnJson).getOrElse(None))
+                val fbcity = getCity(fbJson)
+                val lncity = getCity(lnJson)
+
+                val city = formCityList(fbcity, lncity)
+                val likes = getLikes(fbJson)
+                (fields._1, fbusername, fbid, lnid, fbedu, lnedu, fbwork, lnwork, city, likes)
+        }.map(Fields.ALL ->('skey, 'fbuname, 'fid, 'lid, 'edulist, 'worklist, 'citylist, 'likeslist)) {
+            fields: (String, String, Option[String], Option[String], List[UserEducation], List[UserEducation], List[UserEmployment], List[UserEmployment], List[String], List[UserLike]) =>
+                val (rowkey, fbname, fbid, lnid, fbedu, lnedu, fbwork, lnwork, citylist, likes) = fields
+                val edulist = formEducationlist(fbedu, lnedu)
+                val worklist = formWorkHistoryList(fbwork, lnwork)
+                (rowkey, fbname, fbid, lnid, edulist, worklist, citylist, likes)
+        }
+
+        dtoProfilesWithDesc
+    }
+
 
     def getFirstNonNull(input: List[String]): String = {
         val filtered = input.filter {
@@ -358,6 +466,10 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         serviceProfile.map(_.getEducation().toList).getOrElse(List[UserEducation]())
     }
 
+    def getLikes(serviceProfile: Option[ServiceProfileDTO]): List[UserLike] = {
+        serviceProfile.map(_.getLike().toList).getOrElse(List[UserLike]())
+    }
+
     def getUserName(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getFullName())
     }
@@ -413,6 +525,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getUserId())
     }
+
 
     def prettyPrint(foo: Option[String]): String = foo match {
         case Some(x) => x
