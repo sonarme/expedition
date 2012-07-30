@@ -1,45 +1,41 @@
 package com.sonar.expedition.scrawler.meetup
 
-import org.apache.http.client.HttpClient
+
 import org.apache.http.client.methods.HttpPost
-import org.apache.http.HttpStatus
 import org.apache.http.impl.client.DefaultHttpClient
+import java.net.{URL, URI}
 
-//import org.apache.commons.httpclient.{HttpStatus, HttpClient}
-
+import org.apache.http.client.utils.URLEncodedUtils
 import java.io._;
 import org.jsoup.select.Elements;
 import org.jsoup.nodes.Document;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
+import org.apache.http.util.EntityUtils
+import scala.collection.JavaConversions._
+import util.matching.Regex
+import com.sonar.dossier.dto.{ServiceProfileLink, ServiceType}
 
 
 object ScrawlerUtils {
 
-    def extractContentsfromPageLinks(urlpass: String): String = {
-        var document: Document = null
-        var responseBodyString = ""
-        var results: String = ""
-        //todo: FIx me!!!! We should probably only have a singleton httpClient
-        var httpclient = new DefaultHttpClient();
-        var method = new HttpPost(urlpass);
+    val meetupPageSize = 20
+    val groupname = """http://www.meetup.com/([a-zA-Z\d\-]+)/members/(\d+)/""".r
+    val groupnamefromurl = """http://www.meetup.com/([a-zA-Z\d\-]+)/members/""".r
 
-        // Execute the method.
-        var statusCode = httpclient.execute(method);
-        responseBodyString = method.getEntity.getContent.toString; //bytes
-        //document = Jsoup.connect(urlpass).userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64; rv:5.0) Gecko/20100101 Firefox/5.0").get
-        document = Jsoup.parse(responseBodyString, urlpass);
-        val links: Elements = document.select("a[href]")
-        import scala.collection.JavaConversions._
-        for (link <- links) {
-            val classname: String = link.className
-            if (classname.indexOf("memName") != -1) {
-                val memurl: String = link.attr("abs:href")
-                results += memurl + "\n"
-            }
+    val extractors = List(ServiceType.facebook ->("badge-facebook-24", """http://www.facebook.com/(.+)""".r),
+        ServiceType.twitter ->("badge-twitter-24", """http://twitter.com/(.+)""".r),
+        ServiceType.linkedin ->("badge-linkedin-24", """http://www.linkedin.com/(.+)""".r))
+    //val meetupid=         """http://www.meetup.com/([a-zA-Z\d\-]+)/members/(\d+)/""".r
+    //val profilegroupname= """http://www.meetup.com/([a-zA-Z\d\-]+)/members/(\d+)/""".r
+
+    def extractContentsfromPageLinks(urlpass: String) = {
+        val document = getPageContentsDoc(urlpass)
+        val links = document.select("a[class=memName]")
+        links flatMap {
+            link => Option(link.attr("abs:href"))
         }
-        results
     }
 
     def checkIfProfileURL(url: String): Boolean = {
@@ -48,152 +44,86 @@ object ScrawlerUtils {
         matcher.matches();
     }
 
-    def extractContentsPageLinks(url: String): String = {
-        var results = ""
-        val highestpage = findhighestepageNum(url);
-        val index = url.indexOf("meetup.com") + 11;
-        var groupname: String = url.substring(index, index + url.substring(index).indexOf("/"));
-        if (1 == highestpage) {
-            val tmpurl = "http://www.meetup.com/" + groupname + "/members/";
-            results += tmpurl + "\n";
+    def extractContentsPageLinks(url: String) =
+        url match {
+            case groupnamefromurl(gname) => {
+                val highestpage = findLastMeetupMemberPage(url)
 
-        } else {
-            for (i <- 0 until highestpage + 1) {
-                val tmpurl = "http://www.meetup.com/" + groupname + "/members/?offset=" + i * 20 + "&desc=1&sort=chapter_member.atime";
-                results += tmpurl + "\n";
+                for (i <- 0 to highestpage)
+                yield "http://www.meetup.com/" + gname + "/members/?offset=" + (i * meetupPageSize) + "&desc=1&sort=chapter_member.atime"
             }
+            case _ => List.empty[String]
         }
 
-        results
+    def findLastMeetupMemberPage(url: String) = {
 
-    }
-
-    def findhighestepageNum(url: String): Int = {
-        var highestPage = 1;
-        var tmppage = 1;
-        var page = 1;
-        var memurl = doHttpUrlConnectionAction(url).split("relative_page");
-        if (memurl.isDefinedAt(2)) {
-            if (memurl(2).indexOf("?offset=") != -(1)) {
-                val tmpindex = memurl(2).indexOf("?offset=") + 8;
-                val innertmpind = memurl(2).substring(tmpindex).indexOf("&");
-                tmppage = Integer.parseInt(memurl(2).substring(tmpindex, tmpindex + innertmpind));
-                if (tmppage > highestPage)
-                    highestPage = tmppage;
-            }
-            val page: Int = highestPage match {
-                case 1 => 1
-                case _ => highestPage / 20
-            }
-            println(page);
-            page
-        } else {
-            1
+        val document = getPageContentsDoc(url)
+        val pager = document.select( """ul[class=D_pager border-none]""")
+        val relPagers = pager.select( """li[class=relative_page]""")
+        if (relPagers.isEmpty) 0
+        else {
+            val lastPager = relPagers.last()
+            val lastPagerUrl = lastPager.select("a").attr("href")
+            val nameValuePairs = URLEncodedUtils.parse(new URI(lastPagerUrl), null)
+            nameValuePairs.find(_.getName == "offset").map(_.getValue.toInt / meetupPageSize).getOrElse(0)
         }
 
-
-    }
-
-
-    def doHttpUrlConnectionAction(desiredUrl: String): String = {
-        var responseBodyString = ""
-        var results: String = ""
-        var httpclient = new DefaultHttpClient();
-        var method = new HttpPost(desiredUrl);
-        var statusCode = httpclient.execute(method);
-        responseBodyString = method.getEntity.getContent.toString; //bytes
-        responseBodyString
     }
 
     def getResponse(reader: BufferedReader): Option[String] = {
-        // Wrap the Java result in an Option (this will become a Some or a None)
         Option(reader.readLine().toString);
     }
 
+
     def getProfileInfo(url: String): String = {
         // meetupid , fbid, twitter id, linkedin id, groupname_in meetup,location tuple in CSV
-        var profiledocument: Document = getPageContentsDoc(url);
-        val res: String = extractProfileMeetUpId(url) + "," + extractProfileName(profiledocument) + "," + extractProfileFBId(profiledocument) + "," + extractProfileTWId(profiledocument) + "," + extractProfileLINKEDId(profiledocument) + "," + extractProfileGrpName(url) + "," + extractProfileLocation(profiledocument)
-        res
+        var profiledocument = getPageContentsDoc(url)
+        val serviceProfiles = for ((serviceType, (cssClass, regex)) <- extractors;
+                                   profileId = extractProfileId(regex, profiledocument, cssClass) getOrElse "")
+        yield profileId
+
+        val (name, id) = extractProfileMeetUpId(url) getOrElse("", "")
+        val resultList: List[String] = List(id, extractProfileName(profiledocument) getOrElse "") ++ serviceProfiles ++ List(name, extractProfileLocation(profiledocument).productIterator.toList.mkString("(", ",", ")"))
+        resultList.mkString(",")
+
     }
 
     def getPageContentsDoc(urlpass: String): Document = {
-        var profiledocument: Document = null
-        var responseBodyString = ""
-        var results: String = ""
-        var httpclient = new DefaultHttpClient();
-        var method = new HttpPost(urlpass);
-        var statusCode = httpclient.execute(method);
-        responseBodyString = method.getEntity.getContent.toString; //bytes
-        profiledocument = Jsoup.parse(responseBodyString, urlpass);
-        profiledocument
+        val httpclient = new DefaultHttpClient
+        val method = new HttpPost(urlpass)
+        method.setHeader("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2")
+        val statusCode = httpclient.execute(method)
+        val responseBodyString = EntityUtils.toString(statusCode.getEntity)
+        Jsoup.parse(responseBodyString, urlpass)
+
     }
 
-    def extractProfileName(profiledocument: Document): String = {
-        val span: Elements = profiledocument.select("span");
-        var name: String = "";
-        for (i <- 0 until span.size()) {
-            if (span.get(i).className().trim.equalsIgnoreCase("memName fn"))
-                name = span.get(i).text();
+    def extractProfileName(profiledocument: Document) = {
+
+        val span: Elements = profiledocument.select("span[class=memName fn]");
+        Option(span(0).text())
+
+    }
+
+    def extractProfileMeetUpId(url: String) = {
+        url match {
+            case groupname(name, id) => Some((name, id))
+            case _ => None
         }
-        name;
+
     }
 
-    def extractProfileMeetUpId(url: String): String = {
-        if (url.indexOf("members/").!=(-1))
-            url.substring(url.indexOf("members/") + 8, url.length() - 1);
-        else
-            "0"
-    }
-
-    def extractProfileGrpName(url: String): String = {
-        if (url.indexOf("com/").!=(-1) && url.indexOf("/members/").!=(-1))
-            url.substring(url.indexOf("com/") + 4, url.indexOf("/members/"));
-        else
-            ""
-    }
-
-    def extractProfileFBId(profiledocument: Document): String = {
-        var elem: Elements = profiledocument.getElementsByClass("badge-facebook-24");
-        var urlID: String = elem.attr("abs:href");
-        if (urlID.indexOf("id=").!=(-1)) {
-            urlID.substring(urlID.indexOf("id=") + 3, urlID.length());
-        } else {
-            if (urlID.indexOf("www.facebook.com").!=(-1))
-                urlID.substring(urlID.indexOf("www.facebook.com") + 17);
-            else
-                "0"
+    def extractProfileId(r: Regex, doc: Document, cssClass: String) = {
+        val elem: Elements = doc.getElementsByClass(cssClass)
+        val urlID: String = elem.attr("abs:href")
+        urlID match {
+            case r(id) => Some(id)
+            case _ => None
         }
     }
 
-    def extractProfileTWId(profiledocument: Document): String = {
+    def extractProfileLocation(profiledocument: Document): (String, String, String) = {
+        (profiledocument.getElementsByClass("locality").text(), profiledocument.getElementsByClass("region").text(), profiledocument.getElementsByClass("displaynone country-name").text());
 
-        var elem: Elements = profiledocument.getElementsByClass("badge-twitter-24");
-        var urlID: String = elem.attr("abs:href");
-        if (urlID.indexOf("twitter.com").!=(-1))
-            urlID.substring(urlID.indexOf("twitter.com") + 12, urlID.length() - 1);
-        else "0"
-    }
-
-
-    def extractProfileLINKEDId(profiledocument: Document): String = {
-        var elem: Elements = profiledocument.getElementsByClass("badge-linkedin-24");
-        var urlID: String = elem.attr("abs:href");
-        if (urlID.indexOf("linkedin.com").!=(-1))
-            urlID.substring(urlID.indexOf("linkedin.com") + 16, urlID.length());
-        else "0"
-
-    }
-
-    def extractProfileLocation(profiledocument: Document): String = {
-        var locality: String = ""
-        var region: String = ""
-        var elem: Elements = profiledocument.getElementsByClass("locality");
-        locality = elem.text();
-        elem = profiledocument.getElementsByClass("region");
-        if (elem.text().split(" ").isDefinedAt(0)) {
-            region = elem.text().split(" ")(0);
-            locality + " " + region;
-        } else ""
     }
 }

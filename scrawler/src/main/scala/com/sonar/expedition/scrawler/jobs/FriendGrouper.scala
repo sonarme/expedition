@@ -12,11 +12,11 @@ import util.matching.Regex
 class FriendGrouper(args: Args) extends Job(args) {
     val inputData = "/tmp/friendData.txt"
     val out = "/tmp/userGroupedFriends.txt"
-    val data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
+    val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
         line: String => {
             line match {
-                case DataExtractLine(id, other2, serviceId, serviceType, friendName, other) => (id, serviceType, serviceId, friendName)
-                case _ => ("None", "None", "None", "None")
+                case DataExtractLine(id, other2, serviceId, serviceType, friendName, other) => Some((id, serviceType, serviceId, friendName))
+                case _ => None
             }
         }
     }).pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
