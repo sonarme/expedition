@@ -14,7 +14,7 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
             line: String => {
                 line match {
                     // change when we use prod data
-                    case FriendExtractLine(id, other2, serviceId, serviceType, friendName, other) => (id, serviceType, serviceId, friendName)
+                    case FriendProdExtractLine(id, other2, serviceId, serviceType, friendName, other) => (id, serviceType, serviceId, friendName)
                     case _ => ("None", "None", "None", "None")
                 }
             }
