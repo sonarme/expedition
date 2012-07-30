@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{TextLine, Job, Args}
 import com.sonar.expedition.scrawler.pipes._
-import com.sonar.expedition.scrawler.jobs.DataAnalyser
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class FriendsAtSameVenueTest(args: Args) extends Job(args) {
     val serviceProfileInput = "/tmp/serviceProfileData.txt"
@@ -17,7 +17,7 @@ class FriendsAtSameVenueTest(args: Args) extends Job(args) {
     val data = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case DataAnalyser.ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }

@@ -23,6 +23,7 @@ import cascading.pipe.joiner._
 import com.sonar.dossier.dto.UserEducation
 import com.sonar.dossier.dto.ServiceProfileDTO
 import com.sonar.dossier.dto.UserEmployment
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
@@ -104,6 +105,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val workdesc = getFirstElement[UserEmployment](work, _.getSummary)
                 val ccity = getcurrCity(city)
                 (rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
+                // (rowkey, fbname, md5SumString(fbid.getBytes("UTF-8")), md5SumString(lnid.getBytes("UTF-8")), md5SumString(fsid.getBytes("UTF-8")), twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
         }
 
         output
@@ -247,32 +249,6 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         serviceProfile.map(_.getUserId())
     }
 
-    def md5SumString(bytes: Array[Byte]): String = {
-        val md5 = MessageDigest.getInstance("MD5")
-        md5.reset()
-        md5.update(bytes)
-        md5.digest().map(0xFF & _).map {
-            "%02x".format(_)
-        }.foldLeft("") {
-            _ + _
-        }
-    }
-
-    def getFriendName(friends: List[FriendObjects]): String = {
-        friends.map(_.getFriendName).toString()
-    }
-
-    def getServiceType(friends: List[FriendObjects]): String = {
-        friends.map(_.getServiceType).toString()
-    }
-
-    def getServiceProfileId(friends: List[FriendObjects]): String = {
-        friends.map(_.getServiceProfileId).toString()
-    }
-
-    def getVenue(checkins: List[CheckinObjects]): String = {
-        checkins.map(_.getVenueName).toString
-    }
 
 }
 

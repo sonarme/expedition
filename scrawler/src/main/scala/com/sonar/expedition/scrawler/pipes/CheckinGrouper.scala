@@ -1,8 +1,8 @@
 package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.nio.ByteBuffer
-import CheckinGrouper._
 import util.matching.Regex
 import grizzled.slf4j.Logging
 
@@ -15,7 +15,7 @@ class CheckinGrouper(args: Args) extends Job(args) {
     var data = (TextLine(inputData).read.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude)) {
         line: String => {
             line match {
-                case CheckinGrouperFunction.CheckinExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
+                case CheckinExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
                 case _ => ("None", "None", "None", "None", "None", "None", "None", "None", "None", "None")
             }
         }
@@ -36,14 +36,6 @@ class CheckinGrouper(args: Args) extends Job(args) {
     //            val hashedServiceId = md5SumString(serviceId.getBytes("UTF-8"))
     //            (id, serviceType, hashedServiceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
     //    }.project('ProfileId, 'serType, 'serProfileId, 'serCheckinId, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng).write(TextLine(out))
-    //
-    //
-    //    def md5SumString(bytes : Array[Byte]) : String = {
-    //        val md5 = MessageDigest.getInstance("MD5")
-    //        md5.reset()
-    //        md5.update(bytes)
-    //        md5.digest().map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}
-    //    }
 
 }
 

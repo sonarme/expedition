@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util._
 import com.twitter.scalding._
-import DataAnalyser._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
@@ -37,7 +37,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }
@@ -89,7 +89,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     /*
     if city is not filled up find city form chekcins and friends checkin
      */
-    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
+    var friends = friendGrouper.friendsDataPipe(TextLine(finp).read)
     val friendData = TextLine(finp).read.project('line)
 
     val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
@@ -218,7 +218,5 @@ class DataAnalyser(args: Args) extends Job(args) {
 
 
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|4s) : (.*)""".r
-    val companiesregex: Regex = """(.*):(.*)""".r
 
 }

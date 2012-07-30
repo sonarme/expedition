@@ -6,8 +6,7 @@ import util.matching.Regex
 import com.twitter.scalding._
 import com.twitter.scalding.TextLine
 import com.sonar.expedition.scrawler.util.LuceneIndex
-import CategoriseJobTypeMain._
-import com.sonar.expedition.scrawler.jobs.DataAnalyser._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class CategoriseJobTypeMain(args: Args) extends Job(args) {
 
@@ -42,7 +41,7 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
     val data1 = (TextLine("/tmp/serviceProfileDatasmall.txt").read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }
@@ -61,7 +60,6 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
 }
 
 object CategoriseJobTypeMain {
-    val Profile = """([a-zA-Z\d\- ]+)\t(ln|fb|tw)\t([a-zA-Z\d\- ]+)""".r
-    val Occupation: Regex = """([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)\t([a-zA-Z\d\- ]+)\t(.+)""".r
+
 
 }
