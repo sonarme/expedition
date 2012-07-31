@@ -163,10 +163,7 @@ class DataAnalyser(args: Args) extends Job(args) {
                     (lat.toDouble > 30.130 && lat.toDouble < 30.587 && lng.toDouble > -82.053 && lng.toDouble < -81.384)
     }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .map('uname -> 'hasheduser) {
-        fields: String =>
-            val user = fields
-            val hashed = md5SumString(user.getBytes("UTF-8"))
-            hashed
+        user: String => hashed(user)
     }.project(('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .write(TextLine(jobOutput))
 

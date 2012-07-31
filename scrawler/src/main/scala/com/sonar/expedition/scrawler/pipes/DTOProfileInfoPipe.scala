@@ -99,13 +99,13 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val (rowkey, fbname, fbid, lnid, fsid, twalias, edu, work, city) = fields
                 val educationschool = getFirstElement[UserEducation](edu, _.getSchoolName)
                 val edudegree = getFirstElement[UserEducation](edu, _.getDegree)
-                var eduyear = getFirstElement[UserEducation](edu, _.getYear)
+                val eduyear = getFirstElement[UserEducation](edu, _.getYear)
                 val workcomp = getFirstElement[UserEmployment](work, _.getCompanyName)
                 val worktitle = getFirstElement[UserEmployment](work, _.getTitle)
                 val workdesc = getFirstElement[UserEmployment](work, _.getSummary)
                 val ccity = getcurrCity(city)
                 // (rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
-                (rowkey, fbname, md5SumString(fbid.getBytes("UTF-8")), md5SumString(lnid.getBytes("UTF-8")), md5SumString(fsid.getBytes("UTF-8")), twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
+                (rowkey, fbname, hashed(fbid), hashed(lnid), hashed(fsid), twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
         }
 
         output
@@ -119,7 +119,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 .map('jsondata ->('twid, 'twServiceProfile, 'twname)) {
             twJson: String => {
                 val twServiceProfile = ScrawlerObjectMapper.parseJson(Option(twJson), classOf[ServiceProfileDTO])
-                val twid = getID(twServiceProfile).getOrElse(twJson)
+                val twid = hashed(getID(twServiceProfile).getOrElse(twJson))
                 val twname = getUserName(twServiceProfile).getOrElse("")
                 (twid, twServiceProfile, twname)
             }
