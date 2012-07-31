@@ -9,7 +9,6 @@ import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
 import com.lambdaworks.jacks._
-import java.security.MessageDigest
 import tools.nsc.io.Streamable.Bytes
 
 
@@ -89,7 +88,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     /*
     if city is not filled up find city form chekcins and friends checkin
      */
-    var friends = friendGrouper.friendsDataPipe(TextLine(finp).read)
+    var friends = friendGrouper.groupFriends(TextLine(finp).read)
     val friendData = TextLine(finp).read.project('line)
 
     val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
@@ -193,18 +192,6 @@ class DataAnalyser(args: Args) extends Job(args) {
             size > 1
         }
     }.write(TextLine(geoCount))
-
-    def md5SumString(bytes: Array[Byte]): String = {
-        val md5 = MessageDigest.getInstance("MD5")
-        md5.reset()
-        md5.update(bytes)
-        md5.digest().map(0xFF & _).map {
-            "%02x".format(_)
-        }.foldLeft("") {
-            _ + _
-        }
-    }
-
 
     //           add this to output json lines
 

@@ -10,12 +10,13 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
     def groupFriends(input: RichPipe): RichPipe = {
 
 
-        val data = input.mapTo(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
+        val data = input.flatMapTo(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
             line: String => {
                 line match {
                     // change when we use prod data
-                    case FriendProdExtractLine(id, other2, serviceId, serviceType, friendName, other) => (id, serviceType, serviceId, friendName)
-                    case _ => ("None", "None", "None", "None")
+                    case FriendProdExtractLine(id, serviceType, serviceId, friendName) => Some((id, serviceType, serviceId, friendName))
+                    // case FriendExtractLine(id, other2, serviceId, serviceType, friendName, other) => Some((id, serviceType, serviceId, friendName))
+                    case _ => None
                 }
             }
         }
