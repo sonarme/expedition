@@ -35,11 +35,11 @@ class DataAnalyser(args: Args) extends Job(args) {
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
+    val jobOutput2 = args("output2")
+
     val jobOutputclasslabel = args("outputclassify")
     val placesData = args("placesData")
     val bayestrainingmodel = args("bayestrainingmodel")
-    val malepipe = TextLine(args("male"))
-    val femalepipe = TextLine(args("female"))
     val genderoutput = args("genderoutput")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
@@ -178,7 +178,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     }.project(('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .write(TextLine(jobOutput))
 
-    val jobtypes = filteredProfiles.project('worktitle).rename('worktitle -> 'data).write(TextLine("/tmp/jobtypes"))
+    val jobtypes = filteredProfiles.project('worktitle).rename('worktitle -> 'data).write(TextLine(jobOutput2))
 
     val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields

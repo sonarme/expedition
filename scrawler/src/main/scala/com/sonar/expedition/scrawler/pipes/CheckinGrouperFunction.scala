@@ -80,9 +80,9 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val timeFilter = Calendar.getInstance()
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         timeFilter.setTime(checkinDate)
-                        //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
+                        val venueType = placeType(venueName)
                         Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
                     }
                     case _ => {
@@ -93,6 +93,11 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
             }
         }
         data
+    }
+
+    def placeType(place: String): String = {
+
+        return ""
     }
 
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
