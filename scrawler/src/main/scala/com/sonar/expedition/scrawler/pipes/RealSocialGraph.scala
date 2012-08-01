@@ -14,7 +14,7 @@ group checkins by friends, sort by time, filter by location and
 
 class RealSocialGraph(args: Args) extends Job(args) {
 
-    val havver = new Haversine
+    // val havver = new Haversine
 
 
     // similar to friends at same venue

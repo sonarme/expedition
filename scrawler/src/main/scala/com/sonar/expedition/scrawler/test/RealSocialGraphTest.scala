@@ -4,6 +4,22 @@ import com.twitter.scalding.{TextLine, Job, Args}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
+/*
+inputs : prod exports
+--serviceProfileData
+--twitterServiceProfileData
+--friendData
+--checkinData
+
+output : code with matched friends in real social graph, will have ('keyid, 'keyid2, 'uname, 'uname2, 'size)
+--output
+
+com.sonar.expedition.scrawler.test.RealSocialGraphTest --local --serviceProfileData "/data/serviceProfileData.txt"
+--twitterServiceProfileData "/data/twitterserviceProfileData.txt" --friendData "/data/friendData.txt"
+--checkinData "/data/checkinData.txt" --output "/tmp/matchedFriends.txt"
+
+ */
+
 class RealSocialGraphTest(args: Args) extends Job(args) {
     val serviceProfileInput = args("serviceProfileData")
     val twitterServiceProfileInput = args("twitterServiceProfileData")
