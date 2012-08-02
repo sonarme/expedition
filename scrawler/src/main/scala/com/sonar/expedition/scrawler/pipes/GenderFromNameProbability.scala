@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.pipes
 
 import util.matching.Regex
 
-object GenderFromNameProbablity {
+object GenderFromNameProbability {
 
     def dataFileMap(file: String) = io.Source.fromInputStream(getClass.getResourceAsStream(file)).getLines().flatMap {
         line =>

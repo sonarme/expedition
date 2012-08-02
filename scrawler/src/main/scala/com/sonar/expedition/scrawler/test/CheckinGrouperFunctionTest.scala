@@ -4,6 +4,7 @@ import com.sonar.expedition.scrawler.pipes._
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.jobs.DataAnalyser
 import com.twitter.scalding.TextLine
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class CheckinGrouperFunctionTest(args: Args) extends Job(args) {
     val serviceProfileInput = args("serviceProfileData")
@@ -19,7 +20,7 @@ class CheckinGrouperFunctionTest(args: Args) extends Job(args) {
     val data = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case DataAnalyser.ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }
