@@ -18,6 +18,7 @@ class SampleListTuple(args: Args) extends Job(args) {
 
     //.write(TextLine(out))
 
+
     def getId(input: String): String = {
         input.substring(0, input.indexOf(":")).trim
     }

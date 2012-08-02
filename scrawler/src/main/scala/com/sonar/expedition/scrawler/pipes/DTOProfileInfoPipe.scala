@@ -16,14 +16,17 @@ import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import java.util.Calendar
 import com.sonar.expedition.scrawler.objs._
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.restfb.types.Post.Likes
+import scala.Some
+import com.sonar.dossier.dto.UserEducation
+import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.dossier.dto.UserEmployment
 import com.mongodb.util.JSON
 import util.parsing.json.JSONObject
 import twitter4j.json.JSONObjectType
 import cascading.pipe.joiner._
-import com.sonar.dossier.dto.UserEducation
-import com.sonar.dossier.dto.ServiceProfileDTO
-import com.sonar.dossier.dto.UserEmployment
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
@@ -116,7 +119,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
     def twitterProfileTuples(twitterPipe: RichPipe): RichPipe = {
         val data = twitterPipe
-                .map('jsondata ->('twid, 'twServiceProfile, 'twname)) {
+                .map('jsondata -> ('twid, 'twServiceProfile, 'twname)){
             twJson: String => {
                 val twServiceProfile = ScrawlerObjectMapper.parseJson(Option(twJson), classOf[ServiceProfileDTO])
                 val twid = hashed(getID(twServiceProfile).getOrElse(twJson))
@@ -124,7 +127,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 (twid, twServiceProfile, twname)
             }
         }
-                .project('id, 'twid, 'twname)
+                .project(('id, 'twid, 'twname))
 
 
         data
@@ -220,6 +223,10 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
         serviceProfile.map(_.getEducation().toList).getOrElse(List[UserEducation]())
     }
 
+    def getLikes(serviceProfile: Option[ServiceProfileDTO]): List[UserLike] = {
+        serviceProfile.map(_.getLike().toList).getOrElse(List[UserLike]())
+    }
+
     def getUserName(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getFullName())
     }
@@ -248,6 +255,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getUserId())
     }
+
 
 
 }

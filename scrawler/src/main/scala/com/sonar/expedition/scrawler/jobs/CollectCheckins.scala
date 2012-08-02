@@ -91,20 +91,7 @@ class CollectCheckins(args: Args) extends Job(args) {
             //println("d2 : " + (checkinDate2.getTime() - checkinDate1.getTime()))
             (((checkinDate2.getTime() - checkinDate1.getTime()) < 14400000) && ((checkinDate2.getTime() - checkinDate1.getTime()) > 0))
     }
-            /*.mapTo(('keyid,'venName,'chknTime,'venName2,'chknTime2)->('keyid3,'venName3,'chkindateobj3,'chknTime3,'venName4,'chknTime4,'chkindateobj4)){
-           fields: (String, String,String, String,String) =>
-           val (key, venue1, chkintime1,venue2, chkintime2) = fields
-           val parsedCheckinTime1 = chkintime1.replaceFirst("T","").reverse.replaceFirst(":","").reverse
-           val parsedCheckinTime2 = chkintime2.replaceFirst("T","").reverse.replaceFirst(":","").reverse
-           val checkinDate1 = CheckinTimeFilter.parseDateTime(parsedCheckinTime1)
-           val checkinTime2 = CheckinTimeFilter.parseDateTime(parsedCheckinTime2)
-           (key, venue1, chkintime1,checkinDate1,venue2, chkintime2,checkinDate2)
-           }.filter('chkindateobj3,'chkindateobj4){
-                fields: (util.Date, util.Date) =>
-                fields._1.
 
-           => chkindateobjs._1.get
-           } */
             .groupBy(Fields.ALL) {
         _.sortBy('keyid)
     }

@@ -20,11 +20,11 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
             _.toList[(String, String)](('venName, 'loc) -> 'checkinList)
         }
 
-        val output = joinedPipe.flatMap(('loc2, 'checkinList) -> ('venName, 'loc, 'score)) {
+//        val output = joinedPipe.flatMap(('loc2, 'checkinList) -> ('venName, 'loc, 'score)) {
+//
+//        }
 
-        }
-
-        output
+        joinedPipe
 
     }
 

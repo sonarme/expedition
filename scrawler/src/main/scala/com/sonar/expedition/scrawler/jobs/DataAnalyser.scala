@@ -8,6 +8,7 @@ import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
+import cascading.tuple.Fields
 import com.lambdaworks.jacks._
 import tools.nsc.io.Streamable.Bytes
 
@@ -18,6 +19,11 @@ import tools.nsc.io.Streamable.Bytes
 run the code with two arguments passed to it.
 input : the  file path from which the already parsed profile links are taken
 output : the file to which the non visited profile links will be written to
+com.sonar.expedition.scrawler.jobs.DataAnalyser --local --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt" --checkinData "/tmp/checkinDatatest.txt"
+--placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --male "/tmp/male.txt"
+--female "/tmp/female.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe"
+--bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"
+-- profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt
 
  */
 
@@ -28,7 +34,12 @@ class DataAnalyser(args: Args) extends Job(args) {
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
+    val jobOutputclasslabel = args("outputclassify")
     val placesData = args("placesData")
+    val bayestrainingmodel = args("bayestrainingmodel")
+    val malepipe = TextLine(args("male"))
+    val femalepipe = TextLine(args("female"))
+    val genderoutput = args("genderoutput")
     val profileCount = args("profileCount")
     val serviceCount = args("serviceCount")
     val geoCount = args("geoCount")
@@ -57,10 +68,10 @@ class DataAnalyser(args: Args) extends Job(args) {
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
     val scorer = new LocationScorer
+    val trainer = new BayesModelPipe(args)
 
-
+    val gendperpipe = new GenderInfoReadPipe(args)
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
-
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
             .map('worked ->('stemmedWorked, 'mtphnWorked)) {
         fields: String =>
@@ -109,7 +120,6 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
-
     filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
             .map('mtphnWorked -> 'worked) {
         fields: (String) =>
@@ -145,7 +155,6 @@ class DataAnalyser(args: Args) extends Job(args) {
             val certainty = certaintyList.max
             (certainty._1, certainty._2, certainty._3)
     }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
-
             .joinWithSmaller('key -> 'userProfileId, numberOfFriends, joiner = new LeftJoin)
             .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .filter(('lat, 'long)) {
@@ -190,14 +199,26 @@ class DataAnalyser(args: Args) extends Job(args) {
         }
     }.write(TextLine(geoCount))
 
-    //           add this to output json lines
 
-    //          .map(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude) -> ('json)) {
-    //        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-    //            val (key, uname, fbid, lnid, city, worktitle, lat, long, worked, stemmedWorked, certaintyScore, geometryLatitude, geometryLongitude) = fields
-    //            val json = JacksMapper.writeValueAsString(Map("key" -> key, "uname" -> uname, "Ids" -> List("fbid" -> fbid, "lnid" -> lnid), "city" -> city, "work" -> List("worktitle" -> worktitle, "lat" -> lat, "long" -> long, "worked" -> worked, "stemmedWorked" -> stemmedWorked), "certaintyScore" -> certaintyScore, "place" -> List("geometryLatitude" -> geometryLatitude, "geometryLongitude" -> geometryLongitude)))
-    //            json
-    //    }.project('json).write(TextLine(jobOutput))
+    val jobtypes = filteredProfiles.project('worktitle).rename('worktitle -> 'data).write(TextLine("/tmp/jobtypes"))
+
+    val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+
+    }
+    val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('data1, 'key1, 'weight1)).write(TextLine("/tmp")) //project('data, 'key, 'weight)
+
+    val classifiedjobs = filteredProfiles.joinWithSmaller('worktitle -> 'data1, trained)
+            .project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1))
+            .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1) ->('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)) {
+        fields: (String, String, String, String, String, String, String, String, String, String, String) =>
+            val (key, uname, fbid, lnid, stemmedWorked, mtphnWorked, city, worktitle, data1, key1, weight1) = fields
+            val (gender, probability) = GenderFromNameProbability.gender(uname)
+            (key, uname, gender, probability, fbid, lnid, stemmedWorked, mtphnWorked, city, worktitle, data1, key1, weight1)
+    }.project(('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2))
+
+            .write(TextLine(jobOutputclasslabel))
+
 }
 
 
