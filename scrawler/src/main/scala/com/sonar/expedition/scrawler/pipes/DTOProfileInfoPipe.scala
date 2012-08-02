@@ -25,33 +25,48 @@ import com.mongodb.util.JSON
 import util.parsing.json.JSONObject
 import twitter4j.json.JSONObjectType
 import cascading.pipe.joiner.LeftJoin
+import DTOProfileInfoPipe._
 
+object DTOProfileInfoPipe {
+    def zipServiceTypeAndJson(id: String, serviceTypes: List[String], jsonProfiles: List[String]) = {
+        require(serviceTypes.length == jsonProfiles.length)
+        val map = (serviceTypes zip jsonProfiles) groupBy {
+            case (serviceType, jsonProfile) => serviceType
+        } mapValues {
+            case (_, firstProfile) :: _ => firstProfile
+            case _ => throw new RuntimeException("cannot happen")
+        }
+        (id, map.get("fb"), map.get("ln"))
+    }
+}
 
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
 
     def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
-        val numProfiles = datahandle.groupBy('id) {
-            _.size
-        }.rename('size -> 'numProfiles)
+        /*  val numProfiles = datahandle.groupBy('id) {
+              _.size
+          }.rename('size -> 'numProfiles)
 
-        val profiles = datahandle.joinWithSmaller('id -> 'id, numProfiles)
+          val profiles = datahandle.joinWithSmaller('id -> 'id, numProfiles)
 
-        val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+          val dupProfiles = profiles.rename(('id, 'serviceType, 'jsondata, 'numProfiles) ->('id2, 'serviceType2, 'jsondata2, 'numProfiles2))
+        */
 
-        val dtoProfiles = profiles.joinWithSmaller('id -> 'id2, dupProfiles).project(('id, 'serviceType, 'jsondata, 'serviceType2, 'jsondata2))
-                .mapTo(Fields.ALL -> Fields.ALL) {
-            fields: (String, String, String, String, String) =>
-                val (id, serviceType, jsondata, serviceType2, jsondata2) = fields
-                //                val fbId = getFBId(serviceType, serviceType2)
-                val fbJson = getFBJson(serviceType, serviceType2, jsondata)
-                //                val lnId = getLinkedInId(serviceType, serviceType2)
-                val lnJson = getLNKDINJson(serviceType, serviceType2, jsondata2)
-                (fields._1, serviceType, fbJson, serviceType2, lnJson)
-        }
-                .mapTo(Fields.ALL -> Fields.ALL) {
-            fields: (String, String, Option[String], String, Option[String]) =>
-                val (id, serviceType, fbJson, serviceType2, lnJson) = fields
+        //'id,'serviceType,'jsondata
+        val dtoProfiles = datahandle.groupBy('id) {
+            _
+                    .toList[String]('serviceType, 'sType)
+                    .toList[String]('jsondata, 'json)
+
+        }.project(('id, 'sType, 'json)).mapTo(('id, 'sType, 'json) ->('id, 'jsondata, 'jsondata2)) {
+            fields: (String, List[String], List[String]) =>
+                val (id, serviceType, jsondata) = fields
+                zipServiceTypeAndJson(id, serviceType, jsondata)
+
+        }.mapTo(Fields.ALL ->('id, 'fbid, 'jsondata, 'lnid, 'jsondata2)) {
+            fields: (String, Option[String], Option[String]) =>
+                val (id, fbJson, lnJson) = fields
                 val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
                 val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
                 val fbid = getID(fbServiceProfile)

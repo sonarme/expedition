@@ -21,6 +21,8 @@ import java.text.DecimalFormat
 
 
  com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalyse --hdfs --checkindata "/tmp/checkin_nomsg.txt" --output "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodel "/tmp/bayestrainingmodel" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis""
+
+ // need to integrate the data from cloudmade and cross join with the output of dataanalyser to get the male and user profile info
 */
 class LocationBehaviourAnalyse(args: Args) extends LocationBehaviourAnalysePipe(args) {
 
@@ -58,7 +60,7 @@ class LocationBehaviourAnalyse(args: Args) extends LocationBehaviourAnalysePipe(
                     )
     }
 
-    val placeFromjoin = placesPipe.joinWithSmaller('geohash -> 'ghashFrom, classificationByBayesModel)
+    val placeFromClassification = placesPipe.joinWithSmaller('geohash -> 'ghashFrom, classificationByBayesModel)
             .project(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
             .mapTo(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo) ->
             ('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo)) {
@@ -72,7 +74,7 @@ class LocationBehaviourAnalyse(args: Args) extends LocationBehaviourAnalysePipe(
     }.unique(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
 
 
-    val placesToJoin = placesPipe.joinWithSmaller('geohash -> 'ghashTo, placeFromjoin)
+    val placesToClassification = placesPipe.joinWithSmaller('geohash -> 'ghashTo, placeFromClassification)
             .project(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
             .mapTo(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo) ->
             ('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo)) {
