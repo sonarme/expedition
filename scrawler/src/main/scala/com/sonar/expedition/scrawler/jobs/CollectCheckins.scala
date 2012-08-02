@@ -104,9 +104,5 @@ class CollectCheckins(args: Args) extends Job(args) {
 // rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
 
 object CollectCheckins {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs):(.*)""".r
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)::(.*)""".r
-    val companiesregex: Regex = """(.*):(.*)""".r
-    val chkinDataExtractLine: Regex = """(.*)\t(.*)\t(.*)\t(.*)\t(.*)\t(.*)\t(.*)\t(.*)\t(.*)\t(.*)""".r
 
 }

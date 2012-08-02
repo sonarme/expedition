@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util._
 import com.twitter.scalding._
-import DataAnalyser._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
@@ -34,7 +34,7 @@ class InternalAnalysis(args: Args) extends Job(args) {
     val data = TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }

@@ -1,9 +1,9 @@
-package com.sonar.expedition.scrawler.jobs
+/*package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{TextLine, Job, Args}
 import com.sonar.expedition.scrawler.pipes.{DTOProfileInfoPipe, CheckinGrouperFunction}
 import cascading.tuple.Fields
-import DataAnalyser._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class Superlatives(args: Args) extends Job(args) {
 
@@ -42,7 +42,7 @@ class Superlatives(args: Args) extends Job(args) {
     val data = (servprofin.read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }
@@ -168,4 +168,4 @@ class Superlatives(args: Args) extends Job(args) {
 
 
 }
-
+*/

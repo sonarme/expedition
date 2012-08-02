@@ -3,34 +3,29 @@ package com.sonar.expedition.scrawler.jobs
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util._
 import com.twitter.scalding._
-import DataAnalyser._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
-import java.security.MessageDigest
 import cascading.tuple.Fields
 import com.lambdaworks.jacks._
-import java.security.MessageDigest
 import tools.nsc.io.Streamable.Bytes
 
 
 /*
 
 
-    run the code with two arguments passed to it.
-            input : the  file path from which the already parsed profile links are taken
-            output : the file to which the non visited profile links will be written to
-    com.sonar.expedition.scrawler.jobs.DataAnalyser --local --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt" --checkinData "/tmp/checkinDatatest.txt"
-    --placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --male "/tmp/male.txt"
-    --female "/tmp/female.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe"
-    --bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"
-    --jobtype
-        1 for only no gender and job classification
-        2 for only gender
-        3 for only job classification
-        4 for both
-    */
+run the code with two arguments passed to it.
+input : the  file path from which the already parsed profile links are taken
+output : the file to which the non visited profile links will be written to
+com.sonar.expedition.scrawler.jobs.DataAnalyser --local --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt" --checkinData "/tmp/checkinDatatest.txt"
+--placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --male "/tmp/male.txt"
+--female "/tmp/female.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe"
+--bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"
+-- profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt
+
+ */
 
 
 class DataAnalyser(args: Args) extends Job(args) {
@@ -39,17 +34,20 @@ class DataAnalyser(args: Args) extends Job(args) {
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
-    val jobOutput2 = args("outputjobtypes")
     val jobOutputclasslabel = args("outputclassify")
     val placesData = args("placesData")
     val bayestrainingmodel = args("bayestrainingmodel")
+    val malepipe = TextLine(args("male"))
+    val femalepipe = TextLine(args("female"))
     val genderoutput = args("genderoutput")
+    val profileCount = args("profileCount")
+    val serviceCount = args("serviceCount")
+    val geoCount = args("geoCount")
     val jobtypeToRun = args("jobtype")
-
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }
@@ -72,6 +70,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val gendperpipe = new GenderInfoReadPipe(args)
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
     val certainityScore = new CertainityScorePipe(args);
+    val jobTypeToRun = new JobTypeToRun(args)
 
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
@@ -126,11 +125,35 @@ class DataAnalyser(args: Args) extends Job(args) {
     val filteredProfilesWithScore = certainityScore.stemmingAndScore(filteredProfiles, findcityfromchkins, placesPipe, numberOfFriends)
             .write(TextLine(jobOutput))
 
-    val jobTypeToRun = new JobTypeToRun(args)
     jobTypeToRun.jobTypeToRun(jobtypeToRun, filteredProfilesWithScore, bayestrainingmodel).write(TextLine(jobOutputclasslabel))
+
+    val stcount = data.groupBy('serviceType) {
+        _.size
+    }.write(TextLine(serviceCount))
+
+    val pfcount = data.unique('id).groupAll {
+        _.size
+    }.write(TextLine(profileCount))
+
+    val gcount = joinedProfiles.map('city -> 'cityCleaned) {
+        city: String => {
+            StemAndMetaphoneEmployer.removeStopWords(city)
+        }
+    }
+            .project(('key, 'cityCleaned))
+            .groupBy('cityCleaned) {
+        _.size
+    }
+            .filter('size) {
+        size: Int => {
+            size > 1
+        }
+    }.write(TextLine(geoCount))
+
 
 
 }
+
 
 
 object DataAnalyser {
