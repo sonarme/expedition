@@ -3,15 +3,13 @@ package com.sonar.expedition.scrawler.jobs
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util._
 import com.twitter.scalding._
-import DataAnalyser._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
 import com.twitter.scalding.TextLine
-import java.security.MessageDigest
 import cascading.tuple.Fields
 import com.lambdaworks.jacks._
-import java.security.MessageDigest
 import tools.nsc.io.Streamable.Bytes
 
 
@@ -25,6 +23,7 @@ com.sonar.expedition.scrawler.jobs.DataAnalyser --local --serviceProfileData "/t
 --placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --male "/tmp/male.txt"
 --female "/tmp/female.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe"
 --bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"
+-- profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt
 
  */
 
@@ -41,11 +40,14 @@ class DataAnalyser(args: Args) extends Job(args) {
     val malepipe = TextLine(args("male"))
     val femalepipe = TextLine(args("female"))
     val genderoutput = args("genderoutput")
+    val profileCount = args("profileCount")
+    val serviceCount = args("serviceCount")
+    val geoCount = args("geoCount")
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }
@@ -97,7 +99,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     /*
     if city is not filled up find city form chekcins and friends checkin
      */
-    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
+    var friends = friendGrouper.groupFriends(TextLine(finp).read)
     val friendData = TextLine(finp).read.project('line)
 
     val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
@@ -157,7 +159,6 @@ class DataAnalyser(args: Args) extends Job(args) {
             .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .filter(('lat, 'long)) {
         fields: (String, String) =>
-
             val (lat, lng) = fields
             (lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8) ||
                     (lat.toDouble > 40.489 && lat.toDouble < 40.924 && lng.toDouble > -74.327 && lng.toDouble < -73.723) ||
@@ -171,12 +172,33 @@ class DataAnalyser(args: Args) extends Job(args) {
                     (lat.toDouble > 30.130 && lat.toDouble < 30.587 && lng.toDouble > -82.053 && lng.toDouble < -81.384)
     }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .map('uname -> 'hasheduser) {
-        fields: String =>
-            val user = fields
-            val hashed = md5SumString(user.getBytes("UTF-8"))
-            hashed
+        user: String => hashed(user)
     }.project(('key, 'hasheduser, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
             .write(TextLine(jobOutput))
+
+    val stcount = data.groupBy('serviceType) {
+        _.size
+    }.write(TextLine(serviceCount))
+
+    val pfcount = data.unique('id).groupAll {
+        _.size
+    }.write(TextLine(profileCount))
+
+    val gcount = joinedProfiles.map('city -> 'cityCleaned) {
+        city: String => {
+            StemAndMetaphoneEmployer.removeStopWords(city)
+        }
+    }
+            .project(('key, 'cityCleaned))
+            .groupBy('cityCleaned) {
+        _.size
+    }
+            .filter('size) {
+        size: Int => {
+            size > 1
+        }
+    }.write(TextLine(geoCount))
+
 
     val jobtypes = filteredProfiles.project('worktitle).rename('worktitle -> 'data).write(TextLine("/tmp/jobtypes"))
 
@@ -191,29 +213,15 @@ class DataAnalyser(args: Args) extends Job(args) {
             .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle, 'data1, 'key1, 'weight1) ->('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2)) {
         fields: (String, String, String, String, String, String, String, String, String, String, String) =>
             val (key, uname, fbid, lnid, stemmedWorked, mtphnWorked, city, worktitle, data1, key1, weight1) = fields
-            val (gender, probability) = GenderFromNameProbablity.gender(uname)
+            val (gender, probability) = GenderFromNameProbability.gender(uname)
             (key, uname, gender, probability, fbid, lnid, stemmedWorked, mtphnWorked, city, worktitle, data1, key1, weight1)
     }.project(('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'mtphnWorked2, 'city2, 'worktitle2, 'data2, 'key2, 'weight2))
 
             .write(TextLine(jobOutputclasslabel))
 
-    def md5SumString(bytes: Array[Byte]): String = {
-        val md5 = MessageDigest.getInstance("MD5")
-        md5.reset()
-        md5.update(bytes)
-        md5.digest().map(0xFF & _).map {
-            "%02x".format(_)
-        }.foldLeft("") {
-            _ + _
-        }
-    }
-
-
 }
 
 
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
-    val companiesregex: Regex = """(.*):(.*)""".r
 
 }

@@ -7,6 +7,7 @@ import CheckinGrouperFunction._
 import cascading.pipe.joiner.LeftJoin
 import java.security.MessageDigest
 import ch.hsr.geohash.{WGS84Point, BoundingBox}
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class CheckinGrouperFunction(args: Args) extends Job(args) {
 
@@ -71,28 +72,18 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def unfilteredCheckinsLatLon(input: RichPipe): RichPipe = {
 
-
-        val data = input
-                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)) {
-            line: String => {
-                line match {
-                    case DataExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
-                        val timeFilter = Calendar.getInstance()
-                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
-                        timeFilter.setTime(checkinDate)
-                        //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
-                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, time))
-                    }
-                    case _ => {
-                        println("Coudn't extract line using regex: " + line)
-                        None
-                    }
-                }
-            }
+        val data = unfilteredCheckins(input)
+                .map(('loc) ->('lat, 'lng)) {
+            fields: (String) =>
+                val loc = fields
+                val lat = loc.split(":").head
+                val long = loc.split(":").last
+                (lat, long)
         }
+                .discard('loc)
+        
         data
+        
     }
 
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
@@ -209,8 +200,4 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 }
 
 object CheckinGrouperFunction {
-    val CheckinExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
-    val CheckinExtractLineWithMessages: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
-    val DataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
-
 }

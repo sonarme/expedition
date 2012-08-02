@@ -1,9 +1,9 @@
 package com.sonar.expedition.scrawler.objs.serializable
 
-import GenderFromNameProbablity._
+import GenderFromNameProbability._
 import util.matching.Regex
 
-object GenderFromNameProbablity {
+object GenderFromNameProbability {
 
     private var malelist: java.util.Map[String, String] = new java.util.HashMap[String, String]
     private var femalelist: java.util.Map[String, String] = new java.util.HashMap[String, String]
@@ -11,7 +11,7 @@ object GenderFromNameProbablity {
 
 }
 
-class GenderFromNameProbablity extends Serializable {
+class GenderFromNameProbability extends Serializable {
 
     def addMaleItems(name: String, freq: String) {
 
