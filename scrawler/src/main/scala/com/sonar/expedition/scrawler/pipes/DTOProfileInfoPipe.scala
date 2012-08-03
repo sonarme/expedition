@@ -107,7 +107,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val worktitle = getFirstElement[UserEmployment](work, _.getTitle)
                 val workdesc = getFirstElement[UserEmployment](work, _.getSummary)
                 val ccity = getcurrCity(city)
-                // (rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
+                //(rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
                 (rowkey, fbname, hashed(fbid), hashed(lnid), hashed(fsid), twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
         }
 
@@ -119,7 +119,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
     def twitterProfileTuples(twitterPipe: RichPipe): RichPipe = {
         val data = twitterPipe
-                .map('jsondata -> ('twid, 'twServiceProfile, 'twname)){
+                .map('jsondata ->('twid, 'twServiceProfile, 'twname)) {
             twJson: String => {
                 val twServiceProfile = ScrawlerObjectMapper.parseJson(Option(twJson), classOf[ServiceProfileDTO])
                 val twid = hashed(getID(twServiceProfile).getOrElse(twJson))
@@ -151,6 +151,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
             }
 
         }
+
                 .discard('key)
                 .rename('mainkey -> 'key)
                 .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
@@ -255,7 +256,6 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {
         serviceProfile.map(_.getUserId())
     }
-
 
 
 }

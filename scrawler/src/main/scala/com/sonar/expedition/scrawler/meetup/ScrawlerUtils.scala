@@ -27,8 +27,6 @@ object ScrawlerUtils {
     val extractors = List(ServiceType.facebook ->("badge-facebook-24", """http://www.facebook.com/(.+)""".r),
         ServiceType.twitter ->("badge-twitter-24", """http://twitter.com/(.+)""".r),
         ServiceType.linkedin ->("badge-linkedin-24", """http://www.linkedin.com/(.+)""".r))
-    //val meetupid=         """http://www.meetup.com/([a-zA-Z\d\-]+)/members/(\d+)/""".r
-    //val profilegroupname= """http://www.meetup.com/([a-zA-Z\d\-]+)/members/(\d+)/""".r
 
     def extractContentsfromPageLinks(urlpass: String) = {
         val document = getPageContentsDoc(urlpass)

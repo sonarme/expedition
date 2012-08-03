@@ -227,7 +227,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
 
                 val fuzzyemp = StemAndMetaphoneEmployer.getStemmed(emp)
                 fuzzyemp
-        }.project('emp, 'key)
+        }.project(('emp, 'key))
 
         val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {

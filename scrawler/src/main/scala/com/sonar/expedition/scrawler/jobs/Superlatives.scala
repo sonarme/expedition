@@ -51,11 +51,11 @@ class Superlatives(args: Args) extends Job(args) {
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoForSuperlativeAnalysis(data)
             //('skey, 'fbuname, 'fid, 'lid, 'edulist, 'worklist, 'citylist,'likeslist)
             .joinWithSmaller('skey -> 'keyid, chkinpipe)
-            .project('skey, 'fbuname, 'fid, 'lid, 'edulist, 'worklist, 'citylist, 'likeslist, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour)
+            .project(('skey, 'fbuname, 'fid, 'lid, 'edulist, 'worklist, 'citylist, 'likeslist, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour))
 
 
-    val mostchkins = joinedProfiles.project('skey, 'fbuname, 'venName)
-            .groupBy('skey, 'fbuname) {
+    val mostchkins = joinedProfiles.project(('skey, 'fbuname, 'venName))
+            .groupBy(('skey, 'fbuname)) {
         _
                 .toList[String]('venName -> 'venName1)
 
@@ -70,7 +70,7 @@ class Superlatives(args: Args) extends Job(args) {
     }
             .write(servprofout)
 
-    val mosteducated = joinedProfiles.project('skey, 'edulist)
+    val mosteducated = joinedProfiles.project(('skey, 'edulist))
             .mapTo(('skey, 'edulist) -> (('skey1, 'edulistsize))) {
         fields: (String, List[String]) =>
             val (skey, list) = fields
@@ -88,7 +88,7 @@ class Superlatives(args: Args) extends Job(args) {
         _.sortBy('edulistsize2).reverse.take(100)
     }.write(mosteducatedout)
 
-    val mostjobexperienced = joinedProfiles.project('skey, 'worklist)
+    val mostjobexperienced = joinedProfiles.project(('skey, 'worklist))
             .mapTo(('skey, 'worklist) -> (('skey1, 'worklistsize))) {
         fields: (String, List[String]) =>
             val (skey, list) = fields
@@ -106,7 +106,7 @@ class Superlatives(args: Args) extends Job(args) {
     }.write(mostjobexperiencedout)
 
 
-    val mostjobexperiencedgeohash = joinedProfiles.project('skey, 'worklist, 'ghash)
+    val mostjobexperiencedgeohash = joinedProfiles.project(('skey, 'worklist, 'ghash))
             .mapTo(('skey, 'worklist, 'ghash) -> (('skey1, 'worklistsize, 'ghash1))) {
         fields: (String, List[String], String) =>
             val (skey, list, geo) = fields
@@ -124,7 +124,7 @@ class Superlatives(args: Args) extends Job(args) {
             (skey, list.max)
     }
             .joinWithSmaller('skey2 -> 'skey1, mostjobexperiencedgeohash)
-            .project('skey2, 'worklistsize2, 'ghash1)
+            .project(('skey2, 'worklistsize2, 'ghash1))
             .unique(('skey2, 'worklistsize2, 'ghash1)).groupAll {
         _.sortBy('worklistsize2).reverse
     }.write(mostjobexperiencedgeohashout)
@@ -149,7 +149,7 @@ class Superlatives(args: Args) extends Job(args) {
         fields: (String, String, String) =>
             val (key, worklistsize, geohash) = fields
 
-            (key, worklistsize, geohash.substring(0, 2))
+            (key, worklistsize, geohash.substring(0, geohash.length - 2))
 
     }.rename(('skey3, 'worklistsize3, 'ghashtrimmed3) ->('skey2, 'worklistsize2, 'ghash1)).groupBy('ghash1) {
         _
