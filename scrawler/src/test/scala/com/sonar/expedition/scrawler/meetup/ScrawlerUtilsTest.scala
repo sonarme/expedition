@@ -19,21 +19,16 @@ class ScrawlerUtilsTest extends FlatSpec with ShouldMatchers {
     it should "print all member links contents" in {
         val res = ScrawlerUtils.extractContentsfromPageLinks("http://www.meetup.com/Drumming-in-Plympton/members/")
 
-        assert(res !== null)
+        assert(res != null)
     }
 
 
     it should "print all member links" in {
         val res = ScrawlerUtils.extractContentsPageLinks("http://www.meetup.com/NYCSOCCER/members/")
 
-        assert(res !== null)
+        assert(res != null)
     }
 
-    it should "profile name grp name" in {
-        val res = ScrawlerUtils.extractProfileGrpName("http://www.meetup.com/Drumming-in-Plympton/members/15946481/")
-
-        assert(res !== null)
-    }
 
     it should "profile name meetup id" in {
         val (local, resgion, country) = ScrawlerUtils.extractProfileLocation(ScrawlerUtils.getPageContentsDoc("http://www.meetup.com/members/11363609/"))
