@@ -19,7 +19,7 @@ class FriendInfoPipe(args: Args) extends Job(args) {
                     case _ => ("None", "None", "None", "None")
                 }
             }
-        }).project('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
+        }).project(('userProfileId, 'serviceType, 'serviceProfileId, 'friendName))
 
         //        Use the code below when md5 hashing is needed
 

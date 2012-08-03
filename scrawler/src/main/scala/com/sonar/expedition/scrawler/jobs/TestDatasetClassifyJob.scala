@@ -32,7 +32,7 @@ class TestDatasetClassifyJob(args: Args) extends Job(args) {
             }
 
 
-    }.project('code, 'job, 'desc).filter('code, 'job, 'desc) {
+    }.project(('code, 'job, 'desc)).filter(('code, 'job, 'desc)) {
         fields: (String, String, String) =>
             val (code, job, desc) = fields
             (code != "None")

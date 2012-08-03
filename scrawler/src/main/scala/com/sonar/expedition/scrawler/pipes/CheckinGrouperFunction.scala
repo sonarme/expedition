@@ -18,14 +18,13 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 .filter('dayOfWeek) {
             dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour) {
-            hour: Double => hour > 8.5 && hour < 18.5
+            hour: Double => hour > 8 && hour < 22 //user may checkin in 9-10 p.m for dinner
         }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
         data
     }
 
     def unfilteredCheckins(input: RichPipe): RichPipe = {
-
 
         val data = input
                 .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'latitude, 'longitude, 'dayOfYear, 'dayOfWeek, 'hour)) {
@@ -35,7 +34,6 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val timeFilter = Calendar.getInstance()
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         timeFilter.setTime(checkinDate)
-                        //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
@@ -45,7 +43,6 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val timeFilter = Calendar.getInstance()
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         timeFilter.setTime(checkinDate)
-                        //                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
@@ -81,9 +78,9 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 (lat, long)
         }
                 .discard('loc)
-        
+
         data
-        
+
     }
 
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
@@ -133,22 +130,12 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 .map('serProfileID -> 'hasheduser) {
             fields: String =>
                 val user = fields
-                val hashed = md5SumString(user.getBytes("UTF-8"))
-                hashed
+                val hash = hashed(user)
+                hash
         }.project(('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
 
     }
 
-    def md5SumString(bytes: Array[Byte]): String = {
-        val md5 = MessageDigest.getInstance("MD5")
-        md5.reset()
-        md5.update(bytes)
-        md5.digest().map(0xFF & _).map {
-            "%02x".format(_)
-        }.foldLeft("") {
-            _ + _
-        }
-    }
 
     def addTotalTimesCheckedIn(input: RichPipe): RichPipe = {
         val counter = input.groupBy('loc) {

@@ -15,13 +15,13 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
                 line match {
                     // change when we use prod data
                     case FriendProdExtractLine(id, serviceType, serviceId, friendName) => Some((id, serviceType, hashed(serviceId), friendName))
-                    // case FriendExtractLine(id, other2, serviceId, serviceType, friendName, other) => Some((id, serviceType, serviceId, friendName))
+                    //case FriendExtractLine(id, other2, serviceId, serviceType, friendName, other) => Some((id, serviceType, serviceId, friendName))
                     case _ => None
                 }
             }
         }
 
-                .project('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
+                .project(('userProfileId, 'serviceType, 'serviceProfileId, 'friendName))
 
         data
     }
