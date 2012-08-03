@@ -107,8 +107,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val worktitle = getFirstElement[UserEmployment](work, _.getTitle)
                 val workdesc = getFirstElement[UserEmployment](work, _.getSummary)
                 val ccity = getcurrCity(city)
-                (rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
-            //(rowkey, fbname, hashed(fbid), hashed(lnid), hashed(fsid), twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
+                //(rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
+                (rowkey, fbname, hashed(fbid), hashed(lnid), hashed(fsid), twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
         }
 
         output

@@ -26,7 +26,6 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 .map(('lat, 'lng) -> 'loc) {
             fields: (String, String) =>
                 val (lat, lng) = fields
-                // println("location " +lat + ","+ lng)
 
                 (lat + ":" + lng)
 
@@ -36,7 +35,6 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)) {
             fields: (String, String, String, String, String, String, String, String, String) =>
                 val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
-                //val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
                 val hashedServiceID = serviceID
                 (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
         }
@@ -78,7 +76,6 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         }.mapTo(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'locList) ->('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln)) {
             fields: (String, String, String, String, String, String, String, List[String]) =>
                 val (key, uname, fbid, lnid, worked, city, worktitle, chkinlist) = fields
-                //println("city" + city + chkinlist)
                 if (city == "null") {
                     val chkcity = findCityFromChkins(chkinlist)
                     (worked, uname, chkcity, worktitle, fbid, lnid)
