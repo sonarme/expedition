@@ -1,19 +1,8 @@
 package com.sonar.expedition.scrawler.apis
 
-import com.twitter.scalding.{Job, Args}
 import cascading.tuple.Fields
-import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
-import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO, Checkin}
-import java.security.MessageDigest
-import cascading.pipe.{Each, Pipe}
-import com.twitter.scalding.TextLine
-import cascading.flow.FlowDef
 import com.twitter.scalding._
-import java.nio.ByteBuffer
 import util.matching.Regex
-import grizzled.slf4j.Logging
-import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
-import java.util.Calendar
 import APICalls._
 
 
@@ -22,7 +11,6 @@ class APICalls(args: Args) extends Job(args) {
     def fourSquareCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
         val resp = new HttpClientRest()
         val location = resp.getFSQWorkplaceLatLongWithKeys(workplace, locationCityLat, locationCityLong);
-        //val location = "0:0:0"
         location
     }
 
