@@ -54,7 +54,7 @@ class DataAnalyser(args: Args) extends Job(args) {
                 case _ => List.empty
             }
         }
-    }).project(('id, 'serviceType, 'jsondata)).write(TextLine("/tmp/data"))
+    }).project(('id, 'serviceType, 'jsondata))
 
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
@@ -85,7 +85,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             val mtphnWorked = StemAndMetaphoneEmployer.getStemmedMetaphone(worked)
 
             (stemmedWorked, mtphnWorked)
-    }.project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle)).write(TextLine("/tmp/output107"))
+    }.project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle))
 
     val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
             .project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
@@ -108,23 +108,23 @@ class DataAnalyser(args: Args) extends Job(args) {
     val friendData = TextLine(finp).read.project('line)
 
 
-    val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read).write(TextLine("/tmp/output106"))
+    val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
 
-    val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)).write(TextLine("/tmp/output105"))
+    val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
     val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project(('key, 'worked))
 
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
 
-    val friendsForCoworker = friendGrouper.groupFriends(friendData).write(TextLine("/tmp/output101"))
+    val friendsForCoworker = friendGrouper.groupFriends(friendData)
 
     val numberOfFriends = friendsForCoworker.groupBy('userProfileId) {
         _.size
-    }.rename('size -> 'numberOfFriends).project(('userProfileId, 'numberOfFriends)).write(TextLine("/tmp/output102"))
+    }.rename('size -> 'numberOfFriends).project(('userProfileId, 'numberOfFriends))
 
-    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata).write(TextLine("/tmp/output103"))
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
-    val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins)).write(TextLine("/tmp/output104"))
+    val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
 
     val filteredProfilesWithScore = certainityScore.stemmingAndScore(filteredProfiles, findcityfromchkins, placesPipe, numberOfFriends)
