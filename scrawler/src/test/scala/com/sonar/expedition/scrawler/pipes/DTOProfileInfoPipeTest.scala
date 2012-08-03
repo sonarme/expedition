@@ -1,3 +1,4 @@
+/*
 package com.sonar.expedition.scrawler.pipes
 
 
@@ -42,3 +43,4 @@ class DTOProfileInfoPipeTest extends FlatSpec with ShouldMatchers {
 
     }
 }
+*/

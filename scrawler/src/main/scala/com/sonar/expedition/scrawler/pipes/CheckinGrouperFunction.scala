@@ -81,9 +81,9 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 (lat, long)
         }
                 .discard('loc)
-        
+
         data
-        
+
     }
 
     def checkinTuple(input: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
@@ -133,22 +133,12 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 .map('serProfileID -> 'hasheduser) {
             fields: String =>
                 val user = fields
-                val hashed = md5SumString(user.getBytes("UTF-8"))
-                hashed
+                val hash = hashed(user)
+                hash
         }.project(('keyid, 'serType, 'hasheduser, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'latitude, 'longitude, 'city, 'numberOfFriendsAtVenue, 'numberOfVenueVisits))
 
     }
 
-    def md5SumString(bytes: Array[Byte]): String = {
-        val md5 = MessageDigest.getInstance("MD5")
-        md5.reset()
-        md5.update(bytes)
-        md5.digest().map(0xFF & _).map {
-            "%02x".format(_)
-        }.foldLeft("") {
-            _ + _
-        }
-    }
 
     def addTotalTimesCheckedIn(input: RichPipe): RichPipe = {
         val counter = input.groupBy('loc) {

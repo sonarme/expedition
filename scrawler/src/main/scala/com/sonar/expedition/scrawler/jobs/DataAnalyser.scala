@@ -15,15 +15,18 @@ import tools.nsc.io.Streamable.Bytes
 
 /*
 
+      com.sonar.expedition.scrawler.jobs.DataAnalyser --hdfs --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt"  --checkinData "/tmp/checkinDatatest.txt" --placesData "/tmp/places_dump_US.geojson.txt"
+        --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --male "/tmp/male.txt" --female "/tmp/female.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe"
+        --genderdataOutpipe "/tmp/genderdataOutpipe" --bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"  --outputjobtypes "/tmp/outputjobtypes"  --jobtype "3"
+         --profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt
 
-run the code with two arguments passed to it.
-input : the  file path from which the already parsed profile links are taken
-output : the file to which the non visited profile links will be written to
-com.sonar.expedition.scrawler.jobs.DataAnalyser --local --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt" --checkinData "/tmp/checkinDatatest.txt"
---placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --male "/tmp/male.txt"
---female "/tmp/female.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe"
---bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"
--- profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt
+     --jobtype "3"
+        1 for only no gender and job classification
+        2 for only gender
+        3 for only job classification
+        4 for both
+
+        com.sonar.expedition.scrawler.jobs.DataAnalyser --hdfs --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt" --checkinData "/tmp/checkinDatatest.txt" --placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe" --bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"  --outputjobtypes "/tmp/outputjobtypes"  --jobtype "3"  --profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt"
 
  */
 
@@ -37,13 +40,13 @@ class DataAnalyser(args: Args) extends Job(args) {
     val jobOutputclasslabel = args("outputclassify")
     val placesData = args("placesData")
     val bayestrainingmodel = args("bayestrainingmodel")
-    val malepipe = TextLine(args("male"))
-    val femalepipe = TextLine(args("female"))
     val genderoutput = args("genderoutput")
     val profileCount = args("profileCount")
     val serviceCount = args("serviceCount")
     val geoCount = args("geoCount")
     val jobtypeToRun = args("jobtype")
+    var trainedseqmodel = args("trainedseqmodel")
+
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
@@ -51,7 +54,7 @@ class DataAnalyser(args: Args) extends Job(args) {
                 case _ => List.empty
             }
         }
-    }).project(('id, 'serviceType, 'jsondata))
+    }).project(('id, 'serviceType, 'jsondata)).write(TextLine("/tmp/data"))
 
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
@@ -69,8 +72,9 @@ class DataAnalyser(args: Args) extends Job(args) {
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
     val gendperpipe = new GenderInfoReadPipe(args)
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
-    val certainityScore = new CertainityScorePipe(args);
+    val certainityScore = new CertainityScorePipe(args)
     val jobTypeToRun = new JobTypeToRun(args)
+    val internalAnalysisJob = new InternalAnalysisJob(args)
 
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
@@ -125,39 +129,22 @@ class DataAnalyser(args: Args) extends Job(args) {
     val filteredProfilesWithScore = certainityScore.stemmingAndScore(filteredProfiles, findcityfromchkins, placesPipe, numberOfFriends)
             .write(TextLine(jobOutput))
 
-    jobTypeToRun.jobTypeToRun(jobtypeToRun, filteredProfilesWithScore, bayestrainingmodel).write(TextLine(jobOutputclasslabel))
 
-    val stcount = data.groupBy('serviceType) {
-        _.size
-    }.write(TextLine(serviceCount))
+    val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
-    val pfcount = data.unique('id).groupAll {
-        _.size
-    }.write(TextLine(profileCount))
-
-    val gcount = joinedProfiles.map('city -> 'cityCleaned) {
-        city: String => {
-            StemAndMetaphoneEmployer.removeStopWords(city)
-        }
     }
-            .project(('key, 'cityCleaned))
-            .groupBy('cityCleaned) {
-        _.size
-    }
-            .filter('size) {
-        size: Int => {
-            size > 1
-        }
-    }.write(TextLine(geoCount))
 
+    jobTypeToRun.jobTypeToRun(jobtypeToRun, filteredProfilesWithScore, seqModel, trainedseqmodel).write(TextLine(jobOutputclasslabel))
+
+    internalAnalysisJob.internalAnalysisGroupByServiceType(data).write(TextLine(serviceCount))
+    internalAnalysisJob.internalAnalysisUniqueProfiles(data).write(TextLine(profileCount))
+    internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles).write(TextLine(geoCount))
 
 
 }
 
 
-
 object DataAnalyser {
-    val ExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|fs) : (.*)""".r
-    val companiesregex: Regex = """(.*):(.*)""".r
 
 }

@@ -151,6 +151,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
             }
 
         }
+
                 .discard('key)
                 .rename('mainkey -> 'key)
                 .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
