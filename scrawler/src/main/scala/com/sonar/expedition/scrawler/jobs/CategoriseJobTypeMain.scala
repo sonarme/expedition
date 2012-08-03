@@ -28,14 +28,14 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
         }
 
     }
-            .project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)
+            .project(('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite))
             .mapTo(('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite) ->('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)) {
         fields: (String, String, String, String) =>
             val (matrixocccode, matrixocctitle, cpscode, cpsocctite) = fields
             lucene.addItems(cpsocctite, matrixocctitle)
             (matrixocccode, matrixocctitle, cpscode, cpsocctite)
     }
-            .project('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)
+            .project(('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1))
 
 
     val data1 = (TextLine(args("serviceProfileData")).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
@@ -45,18 +45,18 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
                 case _ => List.empty
             }
         }
-    }).project('id, 'serviceType, 'jsondata)
+    }).project(('id, 'serviceType, 'jsondata))
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data1)
-    val filteredProfiles = joinedProfiles.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle).map('worktitle -> 'worktitle1) {
+    val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle)).map('worktitle -> 'worktitle1) {
         fields: (String) =>
             val (job) = fields
             val jobtype = lucene.search(job.mkString.trim)
             jobtype
-    }.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1).filter('worktitle1) {
+    }.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1)).filter('worktitle1) {
         work: String => (!work.equalsIgnoreCase("unclassified"))
-    }.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1).write(output3)
+    }.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1)).write(output3)
 }
 
 object CategoriseJobTypeMain {

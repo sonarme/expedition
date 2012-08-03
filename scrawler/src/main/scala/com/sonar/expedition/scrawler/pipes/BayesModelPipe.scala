@@ -16,10 +16,7 @@ class BayesModelPipe(args: Args) extends Job(args) {
             token: String => StemAndMetaphoneEmployer.removeStopWords(stripEnglishPlural(token.replaceAll( """\p{P}""", " ")))
         }.discard('token).rename('token2 -> 'token)
 
-
-
         // input has 'key, 'token, and 'doc
-
         // *************
         // featuredriver
         // *************
@@ -208,14 +205,12 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 (weightKey._1, weightKey._2)
 
 
+        }.filter('data) {
+            data: String =>
+                (data != null)
         }
                 .project(('data, 'key, 'weight))
-                .filter(('data, 'key, 'weight)) {
-            fields: (String, String, String) =>
-                val (data, key, weight) = fields
-                (data != null)
 
-        }.project(('data, 'key, 'weight))
     }
 
 

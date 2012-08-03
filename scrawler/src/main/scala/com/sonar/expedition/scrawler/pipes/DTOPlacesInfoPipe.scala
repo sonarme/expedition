@@ -7,12 +7,21 @@ import scala.Array
 
 class DTOPlacesInfoPipe(args: Args) extends Job(args) {
 
+
     def getPlacesInfo(placesData: RichPipe): RichPipe = {
 
-        val parsedPlaces = placesData.map('line ->('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)) {
-            fields: (String) =>
-                val (data) = fields
+
+        val parsedPlaces = placesPipe(placesData).project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+                'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
+
+        parsedPlaces
+    }
+
+    def placesPipe(places: RichPipe): RichPipe = {
+        val placesData = places.map(('line, 'offset) ->('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+                'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)) {
+            fields: (String, String) =>
+                val (data) = fields._1
                 val placesJson = parseJson(Option(data))
                 val geometryType = getGeometryType(placesJson)
                 val geometryLongitude = getGeometryCoordinates(placesJson).head
@@ -34,17 +43,9 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args) {
                 val propertiesPostcode = getPropertiesPostcode(placesJson)
 
                 (geometryType, geometryLatitude, geometryLongitude, placeType, id, propertiesProvince, propertiesCity, propertiesName, propertiesTags, propertiesCountry,
-                        classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode)
-        }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-            'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
-                .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
-            fields: (String, String, String) =>
-                val (state, lat, lng) = fields
-                state == "NY" && lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8
-
+                        classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, fields._2.toInt)
         }
-
-        parsedPlaces
+        placesData
     }
 
     def parseJson(jsonStringOption: Option[String]): Option[PlacesDTO] = {

@@ -19,23 +19,8 @@ class CheckinGrouper(args: Args) extends Job(args) {
                 case _ => None
             }
         }
-    }) /*.pack[CheckinObjects](('serviceType, 'serviceProfileId, 'serviceCheckinId, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'latitude, 'longitude) -> 'checkin).groupBy('userProfileId) {
-        group => group.toList[CheckinObjects]('checkin,'checkindata)
-    }.map(Fields.ALL -> ('ProfileId, 'venue)){
-        fields : (String,List[CheckinObjects]) =>
-            val (userid ,checkin) = fields
-            val venue = checkin.map(_.getVenueName)
-            (userid,venue)
-    }.project('ProfileId,'venue).write(TextLine(out))*/
-            .project(('userProfileId, 'venueName, 'latitude, 'longitude)).write(TextLine(out))
+    }).project(('userProfileId, 'venueName, 'latitude, 'longitude)).write(TextLine(out))
 
-
-    //     .project(Fields.ALL).discard(0).map(Fields.ALL -> ('ProfileId, 'serType, 'serProfileId, 'serCheckinId, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng)){
-    //        fields : (String, String, String, String, String, String, String, String, String, String) =>
-    //            val (id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)    = fields
-    //            val hashedServiceId = md5SumString(serviceId.getBytes("UTF-8"))
-    //            (id, serviceType, hashedServiceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng)
-    //    }.project('ProfileId, 'serType, 'serProfileId, 'serCheckinId, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng).write(TextLine(out))
 
 }
 
