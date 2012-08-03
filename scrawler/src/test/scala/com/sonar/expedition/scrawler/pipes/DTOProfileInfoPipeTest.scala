@@ -1,10 +1,9 @@
-/*
 package com.sonar.expedition.scrawler.pipes
 
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
-import DTOProfileInfoPipe._
+import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe._
 
 class DTOProfileInfoPipeTest extends FlatSpec with ShouldMatchers {
 
@@ -43,4 +42,4 @@ class DTOProfileInfoPipeTest extends FlatSpec with ShouldMatchers {
 
     }
 }
-*/
+

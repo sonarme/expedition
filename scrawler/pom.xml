@@ -385,7 +385,7 @@
             </resource>
         </resources>
         <sourceDirectory>src/main/scala</sourceDirectory>
-        <testSourceDirectory>src/main/scala</testSourceDirectory>
+        <testSourceDirectory>src/test/scala</testSourceDirectory>
 
 
         <plugins>
