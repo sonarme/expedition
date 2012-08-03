@@ -8,18 +8,19 @@ class InternalAnalysisJob(args: Args) extends Job(args) {
 
     def internalAnalysisGroupByServiceType(data: RichPipe): RichPipe = {
 
-        data.groupBy('serviceType) {
+        val retdata = data.groupBy('serviceType) {
             _.size
         }
-        data
+
+        retdata
 
     }
 
     def internalAnalysisUniqueProfiles(data: RichPipe): RichPipe = {
-        data.unique('id).groupAll {
+        val retdata = data.unique('id).groupAll {
             _.size
         }
-        data
+        retdata
 
     }
 

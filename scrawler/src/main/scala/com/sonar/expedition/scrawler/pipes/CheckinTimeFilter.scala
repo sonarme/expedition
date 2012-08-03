@@ -37,7 +37,7 @@ object CheckinTimeFilter {
 
     def parseDateTime(timestamp: String): Date = {
         val parsedTimestamp = removeTrailingTimezoneColon(timestamp)
-        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSZ")
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'")
         val parsedDate = try {
             simpleDateFormat.parse(parsedTimestamp)
         }
