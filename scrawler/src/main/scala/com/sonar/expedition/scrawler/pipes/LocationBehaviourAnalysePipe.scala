@@ -8,6 +8,9 @@ import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 
+/*
+com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindata "/tmp/checkinDatatest.txt" --output "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"  --timedifference "24" --geohashsectorsize "20"
+ */
 class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
 
     def getLocationInfo(placesData: RichPipe): RichPipe = {
@@ -30,7 +33,6 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
         timeFilter2.setTime(checkinDate2)
         val date2 = timeFilter2.get(Calendar.DAY_OF_YEAR)
         val time2 = timeFilter2.get(Calendar.HOUR_OF_DAY) + timeFilter2.get(Calendar.MINUTE) / 60.0
-
         if (date1.equals(date2)) {
             // need to include the timing too, which simple, if same date, check diff in time, normally we dont want checkins in border timings like 12 am.
             if ((time2.toDouble - time1.toDouble) < timediff.toInt)

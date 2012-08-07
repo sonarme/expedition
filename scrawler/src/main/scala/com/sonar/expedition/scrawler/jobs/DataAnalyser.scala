@@ -11,6 +11,7 @@ import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 import com.lambdaworks.jacks._
 import tools.nsc.io.Streamable.Bytes
+import ch.hsr.geohash.GeoHash
 
 
 /*
@@ -19,6 +20,9 @@ import tools.nsc.io.Streamable.Bytes
         --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --male "/tmp/male.txt" --female "/tmp/female.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe"
         --genderdataOutpipe "/tmp/genderdataOutpipe" --bayestrainingmodel "/tmp/bayestrainingmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"  --outputjobtypes "/tmp/outputjobtypes"  --jobtype "3"
          --profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt
+         --debug1 "/tmp/debug1" --debug2 "/tmp/debug2"  --debug3 "/tmp/debug3" --debug4 "/tmp/debug4" --debug5 "/tmp/debug5" --debug6 "/tmp/debug6"  --debug7 "/tmp/debug7" --debug8 "/tmp/debug8" --debug8 "/tmp/debug9"
+         --geohashsectorsize "20"
+
 
      --jobtype "3"
         1 for only no gender and job classification
@@ -44,8 +48,14 @@ class DataAnalyser(args: Args) extends Job(args) {
     val profileCount = args("profileCount")
     val serviceCount = args("serviceCount")
     val geoCount = args("geoCount")
-    val jobtypeToRun = args("jobtype")
-    var trainedseqmodel = args("trainedseqmodel")
+    val jobtypeTorun = args("jobtype")
+    val trainedseqmodel = args("trainedseqmodel")
+    val geohashsectorsize = args.getOrElse("geohashsectorsize", "20").toInt
+    val geoHash = args("geoHash")
+    val groupworktitle = args("groupworktitle")
+    val groupcountry = args("groupcountry")
+    val groupcity = args("groupcity")
+
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -76,6 +86,16 @@ class DataAnalyser(args: Args) extends Job(args) {
     val jobTypeToRun = new JobTypeToRun(args)
     val internalAnalysisJob = new InternalAnalysisJob(args)
 
+    val debug1 = args("debug1")
+    val debug2 = args("debug2")
+    val debug3 = args("debug3")
+    val debug4 = args("debug4")
+    val debug5 = args("debug5")
+    val debug6 = args("debug6")
+    val debug7 = args("debug7")
+    val debug8 = args("debug8")
+    val debug9 = args("debug9")
+
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
             .map('worked ->('stemmedWorked, 'mtphnWorked)) {
@@ -85,7 +105,7 @@ class DataAnalyser(args: Args) extends Job(args) {
             val mtphnWorked = StemAndMetaphoneEmployer.getStemmedMetaphone(worked)
 
             (stemmedWorked, mtphnWorked)
-    }.project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle))
+    }.project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'mtphnWorked, 'city, 'worktitle)).write(TextLine(debug1))
 
     val placesPipe = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
             .project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
@@ -98,33 +118,28 @@ class DataAnalyser(args: Args) extends Job(args) {
             (stemmedName, mtphnName)
     }.project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'stemmedName, 'mtphnName, 'propertiesTags, 'propertiesCountry,
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
+            .write(TextLine(debug2))
 
-    //find companies with uqniue coname and city
-    //val unq_cmp_city = tmpcompanies.unique('mtphnWorked, 'city, 'fbid, 'lnid)
-    /*
-    if city is not filled up find city form chekcins and friends checkin
-     */
-    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
+    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read).write(TextLine(debug3))
     val friendData = TextLine(finp).read.project('line)
 
+    val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read).write(TextLine(debug4))
 
-    val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
+    val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)).write(TextLine(debug5))
 
-    val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-
-    val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project(('key, 'worked))
+    val employerGroupedServiceProfiles = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data).project(('key, 'worked)).write(TextLine(debug6))
 
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
 
-    val friendsForCoworker = friendGrouper.groupFriends(friendData)
+    val friendsForCoworker = friendGrouper.groupFriends(friendData).write(TextLine(debug7))
 
     val numberOfFriends = friendsForCoworker.groupBy('userProfileId) {
         _.size
     }.rename('size -> 'numberOfFriends).project(('userProfileId, 'numberOfFriends))
 
-    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata).write(TextLine(debug8))
 
-    val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+    val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins)).write(TextLine(debug9))
 
 
     val filteredProfilesWithScore = certainityScore.stemmingAndScore(filteredProfiles, findcityfromchkins, placesPipe, numberOfFriends)
@@ -136,12 +151,16 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     }
 
-    jobTypeToRun.jobTypeToRun(jobtypeToRun, filteredProfilesWithScore, seqModel, trainedseqmodel).write(TextLine(jobOutputclasslabel))
-
+    jobTypeToRun.jobTypeToRun(jobtypeTorun, filteredProfilesWithScore, seqModel, trainedseqmodel).write(TextLine(jobOutputclasslabel))
     internalAnalysisJob.internalAnalysisGroupByServiceType(data).write(TextLine(serviceCount))
     internalAnalysisJob.internalAnalysisUniqueProfiles(data).write(TextLine(profileCount))
     internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles).write(TextLine(geoCount))
 
+
+    val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisJob.internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
+    returnpipework.write(TextLine(groupworktitle))
+    returnpipecountry.write(TextLine(groupcountry))
+    returnpipecity.write(TextLine(groupcity))
 
 }
 

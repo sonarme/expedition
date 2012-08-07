@@ -19,7 +19,8 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
             dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour) {
             hour: Double => hour > 8 && hour < 22 //user may checkin in 9-10 p.m for dinner
-        }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+        }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+
 
         data
     }

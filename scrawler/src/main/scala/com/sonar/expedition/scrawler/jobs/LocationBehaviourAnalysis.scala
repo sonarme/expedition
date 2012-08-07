@@ -20,7 +20,11 @@ import java.text.DecimalFormat
  com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype"
 
 
- com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --timedifference "6" --checkindata "/tmp/checkin_nomsg.txt" --output "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodel "/tmp/bayestrainingmodel" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis""
+ com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --timedifference "6" --checkindata "/tmp/checkin_nomsg.txt" --
+
+
+
+  "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodel "/tmp/bayestrainingmodel" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis""
 
  // need to integrate the data from cloudmade and cross join with the output of dataanalyser to get the male and user profile info
 */
@@ -75,6 +79,5 @@ class LocationBehaviourAnalysis(args: Args) extends LocationBehaviourAnalysePipe
             (keyidS, countTIMES, venNameFROM, placetypeFrom, ghashFrom, geohash, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, weightFrom, venNameTO, ghashTo, placeToType, weightTo)
     }.unique(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
             .write(TextLine(locationBehaviourAnalysis))
-
 
 }
