@@ -24,10 +24,11 @@ object CommonFunctions {
     }
 
     def hashed(str: String): String = {
-        if (str.equals(""))
-            ""
-        else
-            md5SumString(str.getBytes("UTF-8"))
+//        if (str.equals(""))
+//            ""
+//        else
+//            md5SumString(str.getBytes("UTF-8"))
+        str
     }
 
 }
