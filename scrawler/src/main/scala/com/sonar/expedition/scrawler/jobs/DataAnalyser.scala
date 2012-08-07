@@ -132,10 +132,7 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
-
     val filteredProfilesWithScore = certainityScore.stemmingAndScore(filteredProfiles, findcityfromchkins, placesPipe, numberOfFriends)
-            .write(TextLine(jobOutput))
-
 
     val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
@@ -143,17 +140,16 @@ class DataAnalyser(args: Args) extends Job(args) {
     }
 
     val jobRunPipeResults = jobTypeToRun.jobTypeToRun(jobtypeTorun, filteredProfilesWithScore, seqModel, trainedseqmodel)
-    jobRunPipeResults.write(TextLine(jobOutputclasslabel))
-
-    internalAnalysisJob.internalAnalysisGroupByServiceType(data).write(TextLine(serviceCount))
-    internalAnalysisJob.internalAnalysisUniqueProfiles(data).write(TextLine(profileCount))
-    internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles).write(TextLine(geoCount))
-
-
+    val groupByServiceType = internalAnalysisJob.internalAnalysisGroupByServiceType(data)
+    val uniqueProfiles = internalAnalysisJob.internalAnalysisUniqueProfiles(data)
+    val groupByCity = internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles)
     val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisJob.internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, jobRunPipeResults, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
-    returnpipework.write(TextLine(groupworktitle))
-    returnpipecountry.write(TextLine(groupcountry))
-    returnpipecity.write(TextLine(groupcity))
+
+    val PipeToText = Map(returnpipework -> groupworktitle, returnpipecountry -> groupcountry, returnpipecity -> groupcity,
+        jobRunPipeResults -> jobOutputclasslabel, groupByServiceType -> serviceCount, uniqueProfiles -> profileCount, groupByCity -> geoCount, filteredProfilesWithScore -> jobOutput)
+    PipeToText foreach {
+        case (pipe, fileName) => pipe.write(TextLine(fileName))
+    }
 
 }
 
