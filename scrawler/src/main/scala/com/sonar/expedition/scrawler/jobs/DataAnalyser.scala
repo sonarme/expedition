@@ -142,13 +142,15 @@ class DataAnalyser(args: Args) extends Job(args) {
 
     }
 
-    jobTypeToRun.jobTypeToRun(jobtypeTorun, filteredProfilesWithScore, seqModel, trainedseqmodel).write(TextLine(jobOutputclasslabel))
+    val jobRunPipeResults = jobTypeToRun.jobTypeToRun(jobtypeTorun, filteredProfilesWithScore, seqModel, trainedseqmodel)
+    jobRunPipeResults.write(TextLine(jobOutputclasslabel))
+
     internalAnalysisJob.internalAnalysisGroupByServiceType(data).write(TextLine(serviceCount))
     internalAnalysisJob.internalAnalysisUniqueProfiles(data).write(TextLine(profileCount))
     internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles).write(TextLine(geoCount))
 
 
-    val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisJob.internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
+    val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisJob.internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, jobRunPipeResults, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
     returnpipework.write(TextLine(groupworktitle))
     returnpipecountry.write(TextLine(groupcountry))
     returnpipecity.write(TextLine(groupcity))

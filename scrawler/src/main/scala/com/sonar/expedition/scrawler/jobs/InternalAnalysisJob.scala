@@ -46,7 +46,7 @@ class InternalAnalysisJob(args: Args) extends Job(args) {
         returnpipe
     }
 
-    def internalAnalysisGroupByCityCountryWorktitle(joinedProfiles: RichPipe, placesPipe: RichPipe, geoHashSectorSize: Int): (RichPipe, RichPipe, RichPipe) = {
+    def internalAnalysisGroupByCityCountryWorktitle(joinedProfiles: RichPipe, placesPipe: RichPipe, jobRunPipeResults: RichPipe, geoHashSectorSize: Int): (RichPipe, RichPipe, RichPipe) = {
         //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
 
         val returnpipe = internalAnalyisPlaces(joinedProfiles, placesPipe, geoHashSectorSize)
@@ -63,7 +63,7 @@ class InternalAnalysisJob(args: Args) extends Job(args) {
             _.sortBy('size)
         }
 
-        val returnpipework = returnpipe.groupBy('worktitle) {
+        val returnpipework = jobRunPipeResults.groupBy('stemmedWorked) {
             _.size
         }.groupAll {
             _.sortBy('size)
@@ -85,7 +85,6 @@ class InternalAnalysisJob(args: Args) extends Job(args) {
             fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
                 val (properties) = fields
 
-                println(GeoHash.withBitPrecision(properties._2.toDouble, properties._3.toDouble, geoHashSectorSize * 100).longValue())
 
                 (properties._1, GeoHash.withBitPrecision(properties._2.toDouble, properties._3.toDouble, geoHashSectorSize * 100).longValue(), properties._4, properties._5, properties._6, properties._7, properties._8, properties._9, properties._10, properties._11, properties._12, properties._13)
 
