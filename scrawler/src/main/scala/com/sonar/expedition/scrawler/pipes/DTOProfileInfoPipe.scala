@@ -1,29 +1,12 @@
 package com.sonar.expedition.scrawler.pipes
 
-import cascading.tuple.Fields
-import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import com.sonar.dossier.dto._
-import java.security.MessageDigest
-import cascading.pipe.{Each, Pipe}
-import com.twitter.scalding.TextLine
-import cascading.flow.FlowDef
 import com.twitter.scalding._
-import java.nio.ByteBuffer
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
-import util.matching.Regex
-import grizzled.slf4j.Logging
-import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
-import java.util.Calendar
-import com.sonar.expedition.scrawler.objs._
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.restfb.types.Post.Likes
-import scala.Some
 import com.sonar.dossier.dto.UserEducation
 import com.sonar.dossier.dto.ServiceProfileDTO
 import com.sonar.dossier.dto.UserEmployment
-import com.mongodb.util.JSON
-import util.parsing.json.JSONObject
-import twitter4j.json.JSONObjectType
 import cascading.pipe.joiner._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 

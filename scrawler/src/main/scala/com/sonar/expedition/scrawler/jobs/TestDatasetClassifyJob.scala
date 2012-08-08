@@ -1,7 +1,5 @@
 package com.sonar.expedition.scrawler.jobs
 
-import org.scalatest.FlatSpec
-import org.scalatest.matchers.ShouldMatchers
 import com.twitter.scalding.{Tsv, TextLine, Job, Args}
 
 //convert data to inout format required for tarining tha bayes model

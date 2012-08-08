@@ -1,10 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.sonar.dossier.dto.{UserEmployment, UserEducation, ServiceProfileDTO, Checkin}
-import cascading.pipe.{Each, Pipe}
 import com.twitter.scalding._
 import util.matching.Regex
-import com.sonar.dossier.dao.cassandra.{CheckinDao, ServiceProfileDao}
 import FriendInfoPipe._
 
 import com.twitter.scalding.{Job, Args}
