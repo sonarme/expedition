@@ -383,6 +383,12 @@
             <version>0.7</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.sonar</groupId>
+            <artifactId>scalding-cassandra</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+
 
     </dependencies>
 

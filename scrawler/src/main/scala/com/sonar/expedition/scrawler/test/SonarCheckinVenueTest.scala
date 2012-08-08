@@ -6,13 +6,17 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 /*
 inputs : prod exports
+--serviceProfileData
+--twitterServiceProfileData
+--friendData
 --checkinData
 
-output : code with matched friends in real social graph, will have ('keyid, 'keyid2, 'uname, 'uname2, 'size)
+output : code with matched venues, top three flattened, has venue details and a weight
 --output
 
-com.sonar.expedition.scrawler.test.RealSocialGraphTest --local --checkinData "/data/checkinData.txt"
---output "/tmp/matchedVenues.txt"
+com.sonar.expedition.scrawler.test.SonarCheckinVenueTest --local --serviceProfileData "/data/serviceProfileData.txt"
+--twitterServiceProfileData "/data/twitterserviceProfileData.txt" --friendData "/data/friendData.txt"
+--checkinData "/data/checkinData.txt" --output "/tmp/matchedFriends.txt"
 
  */
 

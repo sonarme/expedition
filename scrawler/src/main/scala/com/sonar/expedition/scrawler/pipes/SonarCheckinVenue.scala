@@ -29,16 +29,17 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
             key: String => 1.0
         }
 
-        // ('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+        // ('uId, 'friendKey, 'uname, 'uname2, 'size)
         val mergedFriends = merger
-                .mergeFriends(serviceProfiles, friends)
-                .project(('uId, 'friendkey))
+                .friendsNearbyByFriends(friends, checkins, serviceProfiles)
+                .project(('uId, 'friendKey))
+
         val friendCheckins = checkins
                 .filter('serType) {
             serType: String => !serType.equals("sonar")
         }
-                .joinWithSmaller('keyid -> 'friendkey, mergedFriends)
-                .discard(('keyid, 'friendkey))
+                .joinWithSmaller('keyid -> 'friendKey, mergedFriends)
+                .discard(('keyid, 'friendKey))
                 .rename('uId -> 'keyid)
                 .map('keyid -> 'weight) {
             key: String => 0.25

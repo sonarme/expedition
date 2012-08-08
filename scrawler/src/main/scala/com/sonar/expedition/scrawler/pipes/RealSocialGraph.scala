@@ -54,10 +54,8 @@ class RealSocialGraph(args: Args) extends Job(args) {
                     None
             }
         }
-                .discard('timeChunk)
-                .rename('timeChunk2 -> 'timeChunk)
-                .discard('hour)
-                .rename('hour2 -> 'hour)
+                .discard(('timeChunk, 'hour))
+                .rename(('timeChunk2, 'hour2) -> ('timeChunk, 'hour))
                 .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'timeChunk))
 
         val mergedCheckins = (chunkedCheckins ++ crossDayCheckins)
