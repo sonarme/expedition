@@ -7,6 +7,7 @@ import com.twitter.scalding.{RichPipe, Job, Args}
 
 class CoworkerFinderFunction(args: Args) extends Job(args) {
 
+    /*
     def findCoworkers(serviceProfileInput: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         val employerGroupedEmployeeUserIds = (serviceProfileInput.flatMap(('line) ->('employer, 'workers)) {
@@ -217,6 +218,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
 
         mergedCoworkerCheckins
     }
+    */
 
     def findCoworkerCheckinsPipe(userEmployer: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe, PipeCheckIns: RichPipe): RichPipe = {
 

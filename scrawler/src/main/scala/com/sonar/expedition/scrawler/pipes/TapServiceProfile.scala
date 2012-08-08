@@ -1,11 +1,11 @@
-package com.sonar.expedition.scrawler.pipes
+/*package com.sonar.expedition.scrawler.pipes
 
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sun.tools.javac.util.ByteBuffer
-import org.codehaus.jackson.map.ser.std.StringSerializer
-import com.twitter.scalding.Tsv
+import com.twitter.scalding.{Job, Args, Tsv}
+import com.esotericsoftware.kryo.serializers.DefaultSerializers.StringSerializer
 
-class TapServiceProfile {
+class TapServiceProfile(args: Args) extends Job(args) {
 
     CassandraSource(
         rpcHost = "yourCassandraIp",
@@ -23,4 +23,4 @@ class TapServiceProfile {
         }
     }.write(Tsv("/tmp/casstapout.txt"))
 
-}
+}*/
