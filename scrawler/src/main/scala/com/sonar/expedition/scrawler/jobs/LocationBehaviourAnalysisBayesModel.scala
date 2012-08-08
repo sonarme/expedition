@@ -8,10 +8,10 @@ import com.twitter.scalding.TextLine
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 
 /*
-com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalyseBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype"
+com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype"
 
  */
-class LocationBehaviourAnalyseBayesModel(args: Args) extends LocationBehaviourAnalysePipe(args) {
+class LocationBehaviourAnalysisBayesModel(args: Args) extends LocationBehaviourAnalysePipe(args) {
 
     val trainingmodel = args("bayestrainingmodelforlocationtype")
     val placesData = args("placesData")
