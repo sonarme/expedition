@@ -137,9 +137,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 .discard('key)
                 .rename('mainkey -> 'key)
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
-            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String) => {
-                val (key, uname, fbid, lnid, fsid, twalias, educ, worked, city, edegree, eyear, worktitle, twid, twname) = fields
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname, 'workdesc) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
+            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) => {
+                val (key, uname, fbid, lnid, fsid, twalias, educ, worked, city, edegree, eyear, worktitle, twid, twname, workdesc) = fields
                 val key2 = Option(key).getOrElse("")
                 val uname2 = Option(uname).getOrElse(twname)
                 val fbid2 = Option(fbid).getOrElse("")
@@ -151,8 +151,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val edegree2 = Option(edegree).getOrElse("")
                 val eyear2 = Option(eyear).getOrElse("")
                 val worktitle2 = Option(worktitle).getOrElse("")
+                val workdesc2 = Option(workdesc).getOrElse("")
                 val twid2 = Option(twid).getOrElse(twalias)
-                (key2, uname2, fbid2, lnid2, fsid2, twid2, educ2, worked2, city2, edegree2, eyear2, worktitle2)
+                (key2, uname2, fbid2, lnid2, fsid2, twid2, educ2, worked2, city2, edegree2, eyear2, worktitle2, workdesc2)
             }
         }
 

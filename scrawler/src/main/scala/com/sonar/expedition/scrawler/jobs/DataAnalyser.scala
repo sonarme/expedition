@@ -39,6 +39,7 @@ import ch.hsr.geohash.GeoHash
 class DataAnalyser(args: Args) extends Job(args) {
 
     val inputData = args("serviceProfileData")
+    val twitterInputData = args("twitterServiceProfileData")
     val finp = args("friendData")
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
@@ -68,6 +69,15 @@ class DataAnalyser(args: Args) extends Job(args) {
         }
     }).project(('id, 'serviceType, 'jsondata))
 
+    val twitterdata = (TextLine(twitterInputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+        line: String => {
+            line match {
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case _ => List.empty
+            }
+        }
+    }).project(('id, 'serviceType, 'jsondata))
+
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val employerGroupedServiceProfilePipe = new DTOProfileInfoPipe(args)
@@ -83,7 +93,8 @@ class DataAnalyser(args: Args) extends Job(args) {
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
     val gendperpipe = new GenderInfoReadPipe(args)
-    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
+    val joinedProfiles = dtoProfileGetPipe.getTotalProfileTuples(data, twitterdata)
+    val serviceIdsGraph = joinedProfiles.rename('key ->'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
     val certainityScore = new CertainityScorePipe(args)
     val jobTypeToRun = new JobTypeToRun(args)
     val internalAnalysisJob = new InternalAnalysisJob(args)
@@ -148,7 +159,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val uniqueProfiles = internalAnalysisJob.internalAnalysisUniqueProfiles(data)
     val groupByCity = internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles)
     val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisJob.internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, jobRunPipeResults, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
-    val realSocialGraph = realGraph.friendsNearbyByFriends(friendPipe, unfilteredCheckins, joinedProfiles)
+    val realSocialGraph = realGraph.friendsNearbyByFriends(friendPipe, unfilteredCheckins, serviceIdsGraph)
 
     val PipeToText = Map(returnpipework -> groupworktitle,
         returnpipecountry -> groupcountry,
