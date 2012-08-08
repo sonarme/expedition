@@ -21,13 +21,13 @@ class JobTypeToRun(args: Args) extends Job(args) {
                         .project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight1))
 
             case 3 =>
-                filteredProfilesWithScore.mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle) ->('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'city2, 'worktitle2)) {
+                filteredProfilesWithScore.mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle) ->('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle)) {
                     fields: (String, String, String, String, String, String, String) =>
                         val (key, uname, fbid, lnid, stemmedWorked, city, worktitle) = fields
                         val (gender, probability) = GenderFromNameProbability.gender(uname)
                         (key, uname, gender, probability, fbid, lnid, stemmedWorked, city, worktitle)
                 }
-                        .project(('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'city2, 'worktitle2))
+                        .project(('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle))
 
 
             case 4 =>
@@ -39,13 +39,13 @@ class JobTypeToRun(args: Args) extends Job(args) {
 
                 filteredProfilesWithScore.joinWithSmaller('worktitle -> 'data, trained)
                         .project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight1))
-                        .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight1) ->('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'city2, 'worktitle2, 'data2, 'jobtypeclassified2, 'weight2)) {
+                        .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight1) ->('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight)) {
                     fields: (String, String, String, String, String, String, String, String, String, String) =>
                         val (key, uname, fbid, lnid, stemmedWorked, city, worktitle, data, key1, weight1) = fields
                         val (gender, probability) = GenderFromNameProbability.gender(uname)
                         (key, uname, gender, probability, fbid, lnid, stemmedWorked, city, worktitle, data, key1, weight1)
                 }
-                        .project(('key1, 'uname2, 'gender, 'genderprob, 'fbid2, 'lnid2, 'stemmedWorked2, 'city2, 'worktitle2, 'data2, 'jobtypeclassified2, 'weight2))
+                        .project(('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight))
 
 
             case _ => filteredProfilesWithScore
