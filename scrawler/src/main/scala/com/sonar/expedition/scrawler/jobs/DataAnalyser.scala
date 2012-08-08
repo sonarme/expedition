@@ -145,8 +145,15 @@ class DataAnalyser(args: Args) extends Job(args) {
     val groupByCity = internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles)
     val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisJob.internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, jobRunPipeResults, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
 
-    val PipeToText = Map(returnpipework -> groupworktitle, returnpipecountry -> groupcountry, returnpipecity -> groupcity,
-        jobRunPipeResults -> jobOutputclasslabel, groupByServiceType -> serviceCount, uniqueProfiles -> profileCount, groupByCity -> geoCount, filteredProfilesWithScore -> jobOutput)
+    val PipeToText = Map(returnpipework -> groupworktitle,
+        returnpipecountry -> groupcountry,
+        returnpipecity -> groupcity,
+        jobRunPipeResults -> jobOutputclasslabel,
+        groupByServiceType -> serviceCount,
+        uniqueProfiles -> profileCount,
+        groupByCity -> geoCount,
+        filteredProfilesWithScore -> jobOutput)
+
     PipeToText foreach {
         case (pipe, fileName) => pipe.write(TextLine(fileName))
         case _ =>
