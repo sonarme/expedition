@@ -149,6 +149,7 @@ class DataAnalyser(args: Args) extends Job(args) {
         jobRunPipeResults -> jobOutputclasslabel, groupByServiceType -> serviceCount, uniqueProfiles -> profileCount, groupByCity -> geoCount, filteredProfilesWithScore -> jobOutput)
     PipeToText foreach {
         case (pipe, fileName) => pipe.write(TextLine(fileName))
+        case _ =>
     }
 
 }
