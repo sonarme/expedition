@@ -1,7 +1,5 @@
 package com.sonar.expedition.scrawler.jobs
 
-import org.scalatest.FlatSpec
-import org.scalatest.matchers.ShouldMatchers
 import com.twitter.scalding.{Tsv, TextLine, Job, Args}
 
 //convert data to inout format required for tarining tha bayes model
@@ -32,7 +30,7 @@ class TestDatasetClassifyJob(args: Args) extends Job(args) {
             }
 
 
-    }.project('code, 'job, 'desc).filter('code, 'job, 'desc) {
+    }.project(('code, 'job, 'desc)).filter(('code, 'job, 'desc)) {
         fields: (String, String, String) =>
             val (code, job, desc) = fields
             (code != "None")

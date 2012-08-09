@@ -23,7 +23,7 @@ class TrainBayesModel(args: Args) extends Job(args) {
     val input = args("jobtraininginput")
     val trainingmodel = args("bayestrainingmodel")
 
-    val reading = TextLine(input).read.project('offset, 'line)
+    val reading = TextLine(input).read.project(('offset, 'line))
             .flatMapTo(('line, 'offset) ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle, 'offset1)) {
         fields: (String, String) =>
             val (line, offset) = fields
@@ -35,7 +35,7 @@ class TrainBayesModel(args: Args) extends Job(args) {
             }
 
 
-    }.project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle, 'offset1)
+    }.project(('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle, 'offset1))
             .rename('offset1 -> 'doc)
             .rename('cpsocctitle -> 'key)
             .flatMap('matrixocctitle -> 'token) {
@@ -51,7 +51,7 @@ class TrainBayesModel(args: Args) extends Job(args) {
             //println(key + token + doc)
             (key.trim, token.trim, doc.trim)
     }
-            .project('key1, 'token1, 'doc1).rename(('key1, 'token1, 'doc1) ->('key, 'token, 'doc)).project('key, 'token, 'doc)
+            .project(('key1, 'token1, 'doc1)).rename(('key1, 'token1, 'doc1) ->('key, 'token, 'doc)).project(('key, 'token, 'doc))
 
     val trainer = new BayesModelPipe(args)
     val model = trainer.trainBayesModel(reading);

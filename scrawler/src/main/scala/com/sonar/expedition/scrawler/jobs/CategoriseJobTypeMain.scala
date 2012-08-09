@@ -5,8 +5,7 @@ import util.matching.Regex
 
 import com.twitter.scalding._
 import com.twitter.scalding.TextLine
-import CategoriseJobTypeMain._
-import com.sonar.expedition.scrawler.jobs.DataAnalyser._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 
 /*  com.sonar.expedition.scrawler.jobs.CategoriseJobTypeMain --hdfs --occupationCodetsv "/tmp/occupationCodetsv.txt" --JobClassifiedOutput "/tmp/JobClassifiedOutput" --serviceProfileData "/tmp/serviceProfileData.txt"
@@ -29,40 +28,38 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
         }
 
     }
-            .project('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)
+            .project(('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite))
             .mapTo(('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite) ->('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)) {
         fields: (String, String, String, String) =>
             val (matrixocccode, matrixocctitle, cpscode, cpsocctite) = fields
             lucene.addItems(cpsocctite, matrixocctitle)
             (matrixocccode, matrixocctitle, cpscode, cpsocctite)
     }
-            .project('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1)
+            .project(('matrixocccode1, 'matrixocctitle1, 'cpscode1, 'cpsocctite1))
 
 
     val data1 = (TextLine(args("serviceProfileData")).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
-                case ExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
                 case _ => List.empty
             }
         }
-    }).project('id, 'serviceType, 'jsondata)
+    }).project(('id, 'serviceType, 'jsondata))
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data1)
-    val filteredProfiles = joinedProfiles.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle).map('worktitle -> 'worktitle1) {
+    val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle)).map('worktitle -> 'worktitle1) {
         fields: (String) =>
             val (job) = fields
             val jobtype = lucene.search(job.mkString.trim)
             jobtype
-    }.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1).filter('worktitle1) {
+    }.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1)).filter('worktitle1) {
         work: String => (!work.equalsIgnoreCase("unclassified"))
-    }.project('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1).write(output3)
+    }.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'worktitle1)).write(output3)
 }
 
 object CategoriseJobTypeMain {
-    val Profile = """([a-zA-Z\d\- ]+)\t(ln|fb|tw)\t([a-zA-Z\d\- ]+)""".r
-    val Occupation: Regex = """([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)\t([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)""".r
 
 }
 

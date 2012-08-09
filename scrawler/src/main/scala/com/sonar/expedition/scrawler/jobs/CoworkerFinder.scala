@@ -1,3 +1,4 @@
+/*
 package com.sonar.expedition.scrawler.jobs
 
 import util.matching.Regex
@@ -122,3 +123,4 @@ object CoworkerFinder {
     val ExtractFromList: Regex = """(.*)List\((.*)\)""".r
     val ExtractIds: Regex = """(.*)\t(.*)\t(.*)""".r
 }
+*/

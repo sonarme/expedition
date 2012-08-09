@@ -8,6 +8,7 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import com.sonar.expedition.scrawler.clustering.KMeans
 import org.joda.time.DateTime
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class CheckinInfoPipe(args: Args) extends Job(args) {
 
@@ -16,30 +17,28 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val chkindata = (checkinInput.project('line).flatMap(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
             line: String => {
                 line match {
-                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng))
+                    case CheckinExtractLineWithMessages(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng))
                     case _ => None
                 }
             }
         })
-                .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)
+                .project(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng))
                 .map(('lat, 'lng) -> 'loc) {
             fields: (String, String) =>
                 val (lat, lng) = fields
-                // println("location " +lat + ","+ lng)
 
                 (lat + ":" + lng)
 
         }
                 .discard(('lat, 'lng))
-                .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location)
+                .project(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location))
                 .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)) {
             fields: (String, String, String, String, String, String, String, String, String) =>
                 val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
-                //val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
                 val hashedServiceID = serviceID
                 (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
         }
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
         chkindata
 
@@ -50,26 +49,26 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val chkindata = (checkinInput.project('line).flatMap(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
             line: String => {
                 line match {
-                    case chkinDataExtractLine(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng))
+                    case CheckinExtractLineWithMessages(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng))
                     case _ => None
                 }
             }
         })
-                .project('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)
+                .project(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng))
                 .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)) {
             fields: (String, String, String, String, String, String, String, String, String, String) =>
                 val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lon) = fields
-                val hashedServiceID = md5SumString(serviceID.getBytes("UTF-8"))
-                //val hashedServiceID = serviceID
+                //val hashedServiceID = hashed(serviceID)
+                val hashedServiceID = serviceID
                 (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lon)
         }
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
         chkindata
 
     }
 
     def findCityofUserFromChkins(chkins: RichPipe): RichPipe = {
-        val citypipe = chkins.groupBy('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle) {
+        val citypipe = chkins.groupBy(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle)) {
             _
                     //.mapReduceMap('key->'key1), todo understand mapreducemap api
                     .toList[String]('loc -> 'locList)
@@ -77,7 +76,6 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         }.mapTo(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'locList) ->('workco, 'name, 'wrkcity, 'wrktitle, 'fb, 'ln)) {
             fields: (String, String, String, String, String, String, String, List[String]) =>
                 val (key, uname, fbid, lnid, worked, city, worktitle, chkinlist) = fields
-                //println("city" + city + chkinlist)
                 if (city == "null") {
                     val chkcity = findCityFromChkins(chkinlist)
                     (worked, uname, chkcity, worktitle, fbid, lnid)
@@ -88,7 +86,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
             fields: (String, String, String, String, String, String) =>
                 val (worked, uname, city, worktitle, fbid, lnid) = fields
                 (worked, uname, city, worktitle, fbid, lnid)
-        }.project('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid)
+        }.project(('mtphnWorked, 'uname, 'city, 'worktitle, 'fbid, 'lnid))
 
         citypipe
     }
@@ -131,17 +129,8 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
 
     }
 
-    def md5SumString(bytes: Array[Byte]): String = {
-        val md5 = MessageDigest.getInstance("MD5")
-        md5.reset()
-        md5.update(bytes)
-        md5.digest().map(0xFF & _).map {
-            "%02x".format(_)
-        }.foldLeft("") {_ + _}
-    }
-
 }
 
 object CheckinInfoPipe {
-    val chkinDataExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
+
 }
