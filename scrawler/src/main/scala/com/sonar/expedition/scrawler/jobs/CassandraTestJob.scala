@@ -9,11 +9,15 @@ import me.prettyprint.cassandra.serializers.StringSerializer
 // RUN: mvn clean source:jar install -pl dto -am
 // on dossier master, if you don't have the serializers required in here
 // SPL means ServiceProfileLink
+// Use args:
+// STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
+// STAG deploy: --rpcHost 10.4.103.222
 class CassandraTestJob(args: Args) extends Job(args) {
+    val rpcHostArg = args("rpcHost")
+    val ppmap = args.getOrElse("ppmap","")
     CassandraSource(
-        //rpcHost = "184.73.11.214",
-        rpcHost = "10.4.103.222",
-        //privatePublicIpMap = Map("10.4.103.222" -> "184.73.11.214", "10.96.143.88" -> "50.16.106.193"),
+        rpcHost = rpcHostArg,
+        privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "SonarUser", // ProfileView
         scheme = WideRowScheme(keyField = 'privacySPLB,
@@ -27,11 +31,10 @@ class CassandraTestJob(args: Args) extends Job(args) {
     }.project('spl).groupBy('spl) {
         _.size
     }
-            .write(
-        CassandraSource(
-            //rpcHost = "184.73.11.214",
-            rpcHost = "10.4.103.222",
-            //privatePublicIpMap = Map("10.4.103.222" -> "184.73.11.214", "10.96.143.88" -> "50.16.106.193"),
+            .write(           Tsv("testout")
+       CassandraSource(
+            rpcHost = rpcHostArg,
+            privatePublicIpMap = ppmap,
             keyspaceName = "dossier_ben",
             columnFamilyName = "BenTest",
             scheme = NarrowRowScheme(keyField = 'spl, nameFields = 'size, columnNames = List("count"))
