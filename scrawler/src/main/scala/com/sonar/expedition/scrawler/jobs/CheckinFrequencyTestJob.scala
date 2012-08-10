@@ -26,16 +26,15 @@ class CheckinFrequencyTestJob(args: Args) extends Job(args) {
             .flatMap(('checkinIdB, 'venueIdB, 'checkinTimeB) ->('venueId, 'checkinTimeHour)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {
             // filter out checkins without venue
-            Option(StringSerializer.get().fromByteBuffer(in._2)) map {
-                venueId => (venueId, LongSerializer.get().fromByteBuffer(in._3) / 1000 / 60 / 60)
-            }
+            for (venueId <- Option(StringSerializer.get().fromByteBuffer(in._2)) if venueId.nonEmpty)
+            yield (venueId, LongSerializer.get().fromByteBuffer(in._3) / 1000 / 60 / 60)
 
         }
     }.groupBy(('venueId, 'checkinTimeHour)) {
         _.size
-    }.map('venueId -> 'metricName) {
-        venueId: String => venueId + "-checkinFrequencyPerMin"
-    }.project(('metricName, 'checkinTimeHour, 'size))
+    }.map(('venueId, 'size) -> ('metricName, 'sizeAsDouble)) {
+        in: (String, Long) => (in._1 + "-checkinFrequencyPerMin", in._2.toDouble)
+    }.project(('metricName, 'checkinTimeHour, 'sizeAsDouble))
             .write(//Tsv("testout")
         CassandraSource(
             rpcHost = rpcHostArg,
