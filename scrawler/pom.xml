@@ -510,8 +510,7 @@
                         <artifactId>mapreduce-maven-plugin</artifactId>
                         <version>0.2.7-RC5</version>
                         <configuration>
-                            <s3Bucket>scrawler</s3Bucket>
-                            <s3Key>${project.build.finalName}-${maven.build.timestamp}.jar</s3Key>
+                            <path>s3://scrawler/${project.build.finalName}-${maven.build.timestamp}.jar</path>
                             <verbose>true</verbose>
                         </configuration>
                         <executions>
