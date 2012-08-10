@@ -39,7 +39,7 @@ class CheckinFrequencyTestJob(args: Args) extends Job(args) {
     }.groupBy(('venueId, 'checkinTimeHour)) {
         _.size
     }.map(('venueId, 'size) ->('metricName, 'sizeAsDouble)) {
-        in: (String, Int) => (in._1 + "-checkinFrequencyPerMin", in._2.toDouble)
+        in: (String, Int) => (in._1 + "-checkinFrequencyPerHour", in._2.toDouble)
     }.project(('metricName, 'checkinTimeHour, 'sizeAsDouble)) // maek sure triples in the correct byte buffers are written to WideRowScheme
             .write(
         CassandraSource(
