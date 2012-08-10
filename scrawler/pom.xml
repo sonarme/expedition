@@ -488,6 +488,25 @@
                 <plugins>
                     <plugin>
                         <groupId>br.com.ingenieux</groupId>
+                        <artifactId>beanstalk-maven-plugin</artifactId>
+                        <version>0.2.7-RC5</version>
+                        <configuration>
+                            <s3Bucket>scrawler</s3Bucket>
+                            <s3Key>${project.build.finalName}-${maven.build.timestamp}.jar</s3Key>
+                            <verbose>true</verbose>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>deploy-new-version-1</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>upload-source-bundle</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>br.com.ingenieux</groupId>
                         <artifactId>mapreduce-maven-plugin</artifactId>
                         <version>0.2.7-RC5</version>
                         <configuration>
@@ -497,10 +516,9 @@
                         </configuration>
                         <executions>
                             <execution>
-                                <id>deploy-new-version</id>
+                                <id>deploy-new-version-2</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <goal>upload-source-bundle</goal>
                                     <goal>run-job-flow</goal>
                                 </goals>
                             </execution>
