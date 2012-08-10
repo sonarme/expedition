@@ -513,8 +513,10 @@
                             <path>s3://scrawler/${project.build.finalName}-${maven.build.timestamp}.jar</path>
                             <verbose>true</verbose>
                             <mainClass>com.sonar.expedition.scrawler.jobs.CassandraTestJob</mainClass>
-                            <args>--hdfs</args>
-                            <args>--rpcHost 184.73.11.214</args>
+                            <args>
+                                <arg>--hdfs</arg>
+                                <arg>--rpcHost 184.73.11.214</arg>
+                            </args>
                         </configuration>
                         <executions>
                             <execution>
