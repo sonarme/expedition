@@ -483,7 +483,7 @@
     </build>
     <profiles>
         <profile>
-            <id>deploy</id>
+            <id>runJob</id>
             <build>
                 <plugins>
                     <plugin>
@@ -497,7 +497,7 @@
                         </configuration>
                         <executions>
                             <execution>
-                                <id>deploy-new-version-1</id>
+                                <id>run-new-job-1</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>upload-source-bundle</goal>
@@ -512,7 +512,6 @@
                         <configuration>
                             <path>s3://scrawler/${project.build.finalName}-${maven.build.timestamp}.jar</path>
                             <verbose>true</verbose>
-                            <mainClass>com.sonar.expedition.scrawler.jobs.CassandraTestJob</mainClass>
                             <args>
                                 <arg>--hdfs</arg>
                                 <arg>--rpcHost 184.73.11.214</arg>
@@ -520,7 +519,7 @@
                         </configuration>
                         <executions>
                             <execution>
-                                <id>deploy-new-version-2</id>
+                                <id>run-new-job-2</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>run-job-flow</goal>
