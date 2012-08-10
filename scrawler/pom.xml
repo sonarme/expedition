@@ -30,7 +30,11 @@
         <encoding>UTF-8</encoding>
     </properties>
     <dependencies>
-
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
+            <version>0.20.2</version>
+        </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.9.1</artifactId>
@@ -477,5 +481,33 @@
         </plugins>
 
     </build>
-
+    <profiles>
+        <profile>
+            <id>deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>br.com.ingenieux</groupId>
+                        <artifactId>mapreduce-maven-plugin</artifactId>
+                        <version>0.2.7-RC5</version>
+                        <configuration>
+                            <s3Bucket>scrawler</s3Bucket>
+                            <s3Key>${project.build.finalName}-${maven.build.timestamp}.jar</s3Key>
+                            <verbose>true</verbose>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>deploy-new-version</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>upload-source-bundle</goal>
+                                    <goal>run-job-flow</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
