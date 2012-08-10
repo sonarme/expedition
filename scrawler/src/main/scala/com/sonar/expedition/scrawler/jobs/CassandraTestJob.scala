@@ -31,7 +31,7 @@ class CassandraTestJob(args: Args) extends Job(args) {
     }.project('spl).groupBy('spl) {
         _.size
     }
-            .write( //          Tsv("testout")
+            .write(     //     Tsv("testout")
        CassandraSource(
             rpcHost = rpcHostArg,
             privatePublicIpMap = ppmap,
