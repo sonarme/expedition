@@ -30,7 +30,11 @@
         <encoding>UTF-8</encoding>
     </properties>
     <dependencies>
-
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
+            <version>0.20.2</version>
+        </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.9.1</artifactId>
@@ -477,5 +481,60 @@
         </plugins>
 
     </build>
-
+    <profiles>
+        <profile>
+            <id>runJob</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>br.com.ingenieux</groupId>
+                        <artifactId>beanstalk-maven-plugin</artifactId>
+                        <version>0.2.7-RC5</version>
+                        <configuration>
+                            <s3Bucket>scrawler</s3Bucket>
+                            <s3Key>${project.build.finalName}-${maven.build.timestamp}.jar</s3Key>
+                            <verbose>true</verbose>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>run-new-job-1</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <!-- upload do S3 -->
+                                    <goal>upload-source-bundle</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>br.com.ingenieux</groupId>
+                        <artifactId>mapreduce-maven-plugin</artifactId>
+                        <version>0.2.7-RC5</version>
+                        <configuration>
+                            <path>s3://scrawler/${project.build.finalName}-${maven.build.timestamp}.jar</path>
+                            <verbose>true</verbose>
+                            <logUri>s3://scrawler/debuglogs</logUri>
+                            <!--<hadoopVersion>0.20.205.0</hadoopVersion> getting an error about the AMI when using this-->
+                            <args>
+                                <arg>--enable-debugging</arg>
+                                <arg>--hdfs</arg>
+                                <arg>--rpcHost 184.73.11.214</arg>
+                                <!-- this is cassandra stag -->
+                            </args>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>run-new-job-2</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <!-- run the job -->
+                                    <goal>run-job-flow</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
