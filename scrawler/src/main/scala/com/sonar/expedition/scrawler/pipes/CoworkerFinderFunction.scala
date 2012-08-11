@@ -218,15 +218,13 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         mergedCoworkerCheckins
     }
 
-    def findCoworkerCheckinsPipe(userEmployer: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe, PipeCheckIns: RichPipe): RichPipe = {
+    def findCoworkerCheckinsPipe(userEmployer: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe, pipeCheckIns: RichPipe): RichPipe = {
 
         val employerGroupedEmployeeUserIds = userEmployer.map('worked -> 'emp) {
-            fields: (String) =>
-                val (employer) = fields
-                val emp = employer.trim
+            employer: String =>
+            /*if (employer == null) null else TODO */
+                StemAndMetaphoneEmployer.getStemmed(employer.trim).take(30)
 
-                val fuzzyemp = StemAndMetaphoneEmployer.getStemmed(emp)
-                fuzzyemp.take(30)
         }.project(('emp, 'key))
 
         val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
@@ -274,7 +272,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val mergedCoworkers = linkedinCoworkers.++(facebookCoworkers)
                 .project('originalUId, 'friendUId, 'employer)
 
-        val mergedCoworkerCheckins = PipeCheckIns.joinWithSmaller('keyid -> 'friendUId, mergedCoworkers)
+        val mergedCoworkerCheckins = pipeCheckIns.joinWithSmaller('keyid -> 'friendUId, mergedCoworkers)
                 .rename('keyid -> 'key)
                 .project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
                 .unique('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)

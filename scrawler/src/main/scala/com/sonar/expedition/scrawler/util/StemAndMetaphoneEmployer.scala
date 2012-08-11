@@ -1,19 +1,26 @@
 package com.sonar.expedition.scrawler.util
 
 import org.apache.commons.codec.language._
+import scala.transient
 
 class StemAndMetaphoneEmployer extends Serializable {
 
 }
 
 object StemAndMetaphoneEmployer extends Serializable {
+    @transient
+    val metaphone = new DoubleMetaphone
+
+    @transient
+    val metaphoneWithCodeLength = new DoubleMetaphone
+    metaphoneWithCodeLength.setMaxCodeLen(6)
 
     @transient
     def metaphoner(maxCodeLength: Option[Int] = None) = {
-        @transient
-        val metaphone = new DoubleMetaphone
-        maxCodeLength.map(codeLength => metaphone.setMaxCodeLen(codeLength))
-        metaphone
+        maxCodeLength match {
+            case Some(6) => metaphoneWithCodeLength
+            case _ => metaphone
+        }
     }
 
     /* removes stop words, punctuation and extra whitespace from a employer string */
