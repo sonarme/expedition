@@ -32,7 +32,7 @@ class AgeEducationPipe(args: Args) extends Job(args){
         val firstWord = list.headOption.getOrElse("")
         val secondWord = list.tail.headOption.getOrElse("")
         val seconddegree = secondWord match {
-            case "" => "O"
+            case "" => "NA"
             case HS(str) => "H"
             case Associate(str) => "A"
             case MBA() => "MBA"
@@ -44,7 +44,7 @@ class AgeEducationPipe(args: Args) extends Job(args){
             case _ => "O"
         }
         val degree = firstWord match {
-            case "" => "O"
+            case "" => "NA"
             case HS(str) => "H"
             case Associate(str) => "A"
             case MBA() => "MBA"
@@ -68,7 +68,8 @@ class AgeEducationPipe(args: Args) extends Job(args){
             "J" -> 27,
             "P" -> 37,
             "B" -> 22,
-            "O" -> 22
+            "O" -> 22,
+            "NA" -> 22
         )
 
         if (isNumeric(degree) && !degree.equals(""))
