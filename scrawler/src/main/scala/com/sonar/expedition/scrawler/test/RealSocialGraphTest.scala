@@ -57,7 +57,7 @@ class RealSocialGraphTest(args: Args) extends Job(args) {
     val serviceIds = joinedProfiles.rename('key ->'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
     val chkindata = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinsInput).read)
 
-    val findFriendsAtTheSameVenue = friendsNearby.friendsNearbyByChunks(friends, chkindata, serviceIds)
+    val findFriendsAtTheSameVenue = friendsNearby.friendsNearbyByFriends(friends, chkindata, serviceIds)
             .write(TextLine(matchedFriends))
 
 
