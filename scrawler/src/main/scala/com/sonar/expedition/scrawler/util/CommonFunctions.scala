@@ -15,6 +15,10 @@ object CommonFunctions {
     val FriendExtractLine: Regex = """([a-zA-Z\d\-]+):(.*?)"id":"(.*?)","service_type":"(.*?)","name":"(.*?)","photo(.*)""".r
     val FriendProdExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\d\-]+)::(.*)""".r
 
+    val College: Regex = """(A|B|O)""".r
+    val NoCollege: Regex = """(H)""".r
+    val Grad: Regex = """(D|M|MBA|J|P)""".r
+
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
         md5.reset()

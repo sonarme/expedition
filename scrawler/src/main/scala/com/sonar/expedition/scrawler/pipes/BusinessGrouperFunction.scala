@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.pipes
 import com.twitter.scalding.{RichPipe, Job, Args}
 import java.util.Calendar
 import util.matching.Regex
-import BusinessGrouperFunction._
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class BusinessGrouperFunction(args: Args) extends Job(args) {
 
@@ -22,7 +22,10 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 (hour, day)
             }
         }
-                .project('keyid, 'impliedGender, 'age, 'degree, 'loc, 'hourChunk, 'dayChunk)
+                .map('loc -> 'venueKey) {
+            loc: String => loc
+        }
+                .project('keyid, 'impliedGender, 'age, 'degree, 'venueKey, 'hourChunk, 'dayChunk)
     }
 
     def byAge(combinedInput: RichPipe): RichPipe = {
@@ -34,27 +37,29 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 else if (age < 18)
                     "< 18"
                 else if (age < 25)
-                    "18-24"
-                else if (age < 31)
-                    "25-30"
-                else if (age < 41)
-                    "31 - 40"
-                else if (age < 51)
-                    "41 - 50"
+                    "18 - 24"
+                else if (age < 35)
+                    "25 - 34"
+                else if (age < 45)
+                    "35 - 44"
+                else if (age < 55)
+                    "45 - 54"
+                else if (age < 65)
+                    "55 - 64"
                 else
-                    "> 50"
+                    "> 65"
             }
         }
-                .groupBy('ageBracket, 'loc) {
-            // .groupBy('ageBracket, 'loc, 'hourChunk) {
+                .groupBy('ageBracket, 'venueKey) {
+            // .groupBy('ageBracket, 'venueKey, 'hourChunk) {
             _.size
         }
     }
 
     def byGender(combinedInput: RichPipe): RichPipe = {
         combinedInput
-                // .groupBy('impliedGender, 'loc, 'hourChunk) {
-                .groupBy('impliedGender, 'loc) {
+                // .groupBy('impliedGender, 'venueKey, 'hourChunk) {
+                .groupBy('impliedGender, 'venueKey) {
             _.size
         }
     }
@@ -65,22 +70,16 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
             degree: String => {
                 degree match {
                     case College(str) => "College"
-                    case None(str) => "No College"
+                    case NoCollege(str) => "No College"
                     case Grad(str) => "Grad School"
                     case _ => "unknown"
                 }
             }
         }
-                // .groupBy('degreeCat, 'loc, 'hourChunk) {
-                .groupBy('degreeCat, 'loc) {
+                // .groupBy('degreeCat, 'venueKey, 'hourChunk) {
+                .groupBy('degreeCat, 'venueKey) {
             _.size
         }
     }
 
-}
-
-object BusinessGrouperFunction {
-    val College: Regex = """(A|B|O)""".r
-    val None: Regex = """(H)""".r
-    val Grad: Regex = """(D|M|MBA|J|P)""".r
 }

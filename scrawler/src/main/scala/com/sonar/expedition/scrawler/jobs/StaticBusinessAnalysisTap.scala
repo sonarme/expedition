@@ -59,11 +59,11 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
 
 //    val byAge = businessGroup.byAge(combined)
-//            .map(('loc, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+//            .map(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
 //        in: (String, String, Int) =>
-//            val (loc, ageBracket, frequency) = in
+//            val (venueKey, ageBracket, frequency) = in
 //
-//            val targetVenueGoldenId = loc + "_age"
+//            val targetVenueGoldenId = venueKey + "_age"
 //            val column = ageBracket
 //            val value = frequency.toDouble
 //
@@ -81,11 +81,11 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 //    )
 //
 //    val byGender = businessGroup.byGender(combined)
-//            .map(('loc, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+//            .map(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
 //        in: (String, String, Int) =>
-//            val (loc, impliedGender, frequency) = in
+//            val (venueKey, impliedGender, frequency) = in
 //
-//            val targetVenueGoldenId = loc + "_gender"
+//            val targetVenueGoldenId = venueKey + "_gender"
 //            val column = impliedGender
 //            val value = frequency.toDouble
 //
@@ -103,11 +103,11 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 //    )
 
     val byDegree = businessGroup.byDegree(combined)
-            .map(('loc, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+            .map(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, String, Int) =>
-            val (loc, degreeCat, frequency) = in
+            val (venueKey, degreeCat, frequency) = in
 
-            val targetVenueGoldenId = loc + "_education"
+            val targetVenueGoldenId = venueKey + "_education"
             val column = degreeCat
             val value = frequency.toDouble
 
