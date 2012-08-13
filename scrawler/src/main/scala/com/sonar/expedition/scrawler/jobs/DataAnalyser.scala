@@ -48,7 +48,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     val genderoutput = args("genderoutput")
     val profileCount = args("profileCount")
     val serviceCount = args("serviceCount")
-    val geoCount = args("geoCount")
     val jobtypeTorun = args("jobtype")
     val trainedseqmodel = args("trainedseqmodel")
     val geohashsectorsize = args.getOrElse("geohashsectorsize", "20").toInt
@@ -58,7 +57,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     val groupcity = args("groupcity")
     val twitterInputData = args("twitterServiceProfileData")
     val graphOutput = args("realsocialgraph")
-
 
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {

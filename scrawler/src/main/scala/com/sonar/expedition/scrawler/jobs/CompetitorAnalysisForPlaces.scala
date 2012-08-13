@@ -7,6 +7,9 @@ import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumn, 
 import com.sonar.dossier.dto.CompetitiveAnalysisType
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 
+// Use args:
+// STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
+// STAG deploy: --rpcHost 10.4.103.222
 class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
