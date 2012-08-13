@@ -7,7 +7,6 @@ import java.security.MessageDigest
 
 class CertainityScorePipe(args: Args) extends Job(args) {
 
-    val scorer = new LocationScorer
 
     def stemmingAndScore(filteredProfiles: RichPipe, findcityfromchkins: RichPipe, placesPipe: RichPipe, numberOfFriends: RichPipe): RichPipe = {
         val filteredProfilesWithScore = filteredProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle, 'centroid, 'stemmedWorked))
@@ -31,8 +30,8 @@ class CertainityScorePipe(args: Args) extends Job(args) {
                 .map(('stemmedWorked, 'lat, 'long, 'stemmedName, 'geometryLatitude, 'geometryLongitude) ->('score, 'certainty)) {
             fields: (String, String, String, String, String, String) =>
                 val (work, workLatitude, workLongitude, place, placeLatitude, placeLongitude) = fields
-                val score = scorer.getScore(work, workLatitude, workLongitude, place, placeLatitude, placeLongitude)
-                val certainty = scorer.certaintyScore(score, work, place)
+                val score = LocationScorer.getScore(work, workLatitude, workLongitude, place, placeLatitude, placeLongitude)
+                val certainty = LocationScorer.certaintyScore(score, work, place)
                 (score, certainty)
         }
                 .groupBy(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked)) {

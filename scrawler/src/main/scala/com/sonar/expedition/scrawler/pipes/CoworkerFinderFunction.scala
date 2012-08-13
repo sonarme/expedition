@@ -19,14 +19,14 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         }).project('employer, 'workers).map('employer -> 'emp) {
             fields: (String) =>
                 val (employer) = fields
-                val emp = employer.trim
+                val emp = employer
                 val fuzzyemp = StemAndMetaphoneEmployer.getStemmedMetaphone(emp)
                 fuzzyemp
 
         }.flatMap('workers -> ('listofworkers)) {
             fields: (String) =>
                 val (workerString) = fields
-                val employees = workerString.trim.split(", ")
+                val employees = workerString.split(", ")
                 employees
         }.project('emp, 'listofworkers)
 
@@ -57,7 +57,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         }.project('userId, 'listoffriends).map('userId, 'uId) {
             fields: (String) =>
                 val (userIdString) = fields
-                val uIdString = userIdString.trim
+                val uIdString = userIdString
                 uIdString
         }.project('uId, 'listoffriends)
 
@@ -124,13 +124,13 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .project('employer, 'workers).map('employer -> 'emp) {
             fields: (String) =>
                 val (employer) = fields
-                val emp = employer.trim
+                val emp = employer
                 val fuzzyemp = StemAndMetaphoneEmployer.getStemmedMetaphone(emp)
                 fuzzyemp
         }.flatMap('workers -> ('listofworkers)) {
             fields: (String) =>
                 val (workerString) = fields
-                val employees = workerString.trim.split(", ")
+                val employees = workerString.split(", ")
                 employees
         }.project('emp, 'listofworkers)
 
@@ -158,7 +158,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         }.project('userId, 'listoffriends).map('userId, 'uId) {
             fields: (String) =>
                 val (userIdString) = fields
-                val uIdString = userIdString.trim
+                val uIdString = userIdString
                 uIdString
         }.project('uId, 'listoffriends)
 
@@ -223,7 +223,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val employerGroupedEmployeeUserIds = userEmployer.map('worked -> 'emp) {
             employer: String =>
             /*if (employer == null) null else TODO */
-                StemAndMetaphoneEmployer.getStemmed(employer.trim).take(30)
+                println("findCoworkerCheckinsPipe export");
+                StemAndMetaphoneEmployer.getStemmed(employer).take(30)
 
         }.project(('emp, 'key))
 
@@ -231,8 +232,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
-                val uIdString = userIdString.trim
-                val serviceId = serviceProfileId.trim
+                val uIdString = userIdString
+                val serviceId = serviceProfileId
                 (uIdString, serviceId)
         }.project('uId, 'serviceId)
 

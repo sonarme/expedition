@@ -39,7 +39,7 @@ class InternalAnalysisJob(args: Args) extends Job(args) {
                 size > 0
             }
         }.groupAll {
-            _.sortBy('size)
+            _.sortBy('size).reverse
         }
 
         returnpipe

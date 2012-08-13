@@ -259,7 +259,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val friendGrouper = new FriendGrouperFunction(args)
     val dtoPlacesInfoPipe = new DTOPlacesInfoPipe(args)
     val gendperpipe = new GenderInfoReadPipe(args)
-    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data).write(TextLine("/tmp/debug11"))
+    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
     val certainityScore = new CertainityScorePipe(args)
     val jobTypeToRun = new JobTypeToRun(args)
     val internalAnalysisJob = new InternalAnalysisJob(args)
@@ -288,7 +288,6 @@ class DataAnalyser(args: Args) extends Job(args) {
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
 
 
-    var friends = friendInfoPipe.friendsDataPipe(TextLine(finp).read)
     val friendData = TextLine(finp).read.project('line)
 
     val chkindata = checkinGrouperPipe.groupCheckins(TextLine(chkininputData).read)
