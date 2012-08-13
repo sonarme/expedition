@@ -95,8 +95,12 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 //(rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
                 (rowkey, fbname, hashed(fbid), hashed(lnid), hashed(fsid), hashed(twalias), educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
         }
+                .map('uname -> ('impliedGender, 'impliedGenderProb)){
+            name: String => GenderFromNameProbability.gender(name)
+        }
 
         ageEducation.ageEducationPipe(output)
+                .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
 
     }
 
@@ -139,9 +143,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 .discard('key)
                 .rename('mainkey -> 'key)
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname, 'workdesc, 'age, 'degree) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'age, 'catDegree)) {
-            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, Int, String) => {
-                val (key, uname, fbid, lnid, fsid, twalias, educ, worked, city, edegree, eyear, worktitle, twid, twname, workdesc, age, catdegree) = fields
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname, 'workdesc, 'age, 'degree, 'impliedGender) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'age, 'catDegree, 'impliedGender)) {
+            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, Int, String, String) => {
+                val (key, uname, fbid, lnid, fsid, twalias, educ, worked, city, edegree, eyear, worktitle, twid, twname, workdesc, age, catdegree, gender) = fields
                 val key2 = Option(key).getOrElse("")
                 val uname2 = Option(uname).getOrElse(twname)
                 val fbid2 = Option(fbid).getOrElse("")
@@ -157,7 +161,8 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val twid2 = Option(twid).getOrElse(twalias)
                 val age2 = Option(age).getOrElse(-1)
                 val catdegree2 = Option(catdegree).getOrElse("O")
-                (key2, uname2, fbid2, lnid2, fsid2, twid2, educ2, worked2, city2, edegree2, eyear2, worktitle2, workdesc2, age2, catdegree2)
+                val gender2 = Option(gender).getOrElse(Gender.unknown)
+                (key2, uname2, fbid2, lnid2, fsid2, twid2, educ2, worked2, city2, edegree2, eyear2, worktitle2, workdesc2, age2, catdegree2, gender2)
             }
         }
 
