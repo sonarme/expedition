@@ -11,7 +11,6 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
 
         val default = ("", "", 0.0, 0.0, 0)
         val cutoff = 3
-        val havver = new Haversine
         val merger = new RealSocialGraph(args)
 
         val sonarPipe = checkins
@@ -19,7 +18,7 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
             serType: String => serType.equals("sonar")
         }
                 .unique(('keyid, 'loc))
-                .rename(('keyid, 'loc) -> ('keyid2, 'loc2))
+                .rename(('keyid, 'loc) ->('keyid2, 'loc2))
 
         val nonSonarPipe = checkins
                 .filter('serType) {
@@ -64,8 +63,8 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
             _.toList[(String, String, String)](('venName, 'loc, 'weight) -> 'checkinList)
         }
 
-        val output = joinedPipe.flatMap('checkinList -> ('venName, 'loc, 'weight)) {
-                list: List[(String, String, String)] => list
+        val output = joinedPipe.flatMap('checkinList ->('venName, 'loc, 'weight)) {
+            list: List[(String, String, String)] => list
         }
                 .discard('checkinList)
                 .map(('loc2, 'loc) -> 'score) {
@@ -75,7 +74,7 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
                 val sonarLng = sonarLoc.split(":").last.toDouble
                 val lat = loc.split(":").head.toDouble
                 val lng = loc.split(":").last.toDouble
-                val dist = havver.haversine(sonarLat, sonarLng, lat, lng)
+                val dist = Haversine.haversine(sonarLat, sonarLng, lat, lng)
 
                 dist
             }
@@ -104,7 +103,7 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
             }
         }
                 .discard('infoList)
-                .flatMap('topThree -> ('loc, 'venName, 'score, 'adjustedScore, 'weight)) {
+                .flatMap('topThree ->('loc, 'venName, 'score, 'adjustedScore, 'weight)) {
             list: List[(String, String, Double, Double, Double)] => {
                 list
             }
