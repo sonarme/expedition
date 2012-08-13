@@ -2,11 +2,14 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{TextLine, Job, Args}
 import com.sonar.expedition.scrawler.pipes.CheckinGrouperFunction
-import com.sonar.dossier.dto.CompetitiveVenue
+import com.sonar.dossier.dto._
 import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumn, CompetitiveVenueColumnSerializer}
-import com.sonar.dossier.dto.CompetitiveVenueAnalysisType
+import com.sonar.dossier.dto.CompetitiveAnalysisType
+import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 
 class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
+    val rpcHostArg = args("rpcHost")
+    val ppmap = args.getOrElse("ppmap", "")
 
     val chkininputData = args("checkinData")
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
@@ -30,25 +33,33 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
         in: (String, String, Int) =>
             var (venueGoldenId, venueName, frequency) = in
 
-            var analysisType = CompetitiveVenueAnalysisType.competitor
-
-            val column = CompetitiveVenueColumn(venueGoldenId = venueGoldenId, frequency = frequency)
+            val analysisType = com.sonar.dossier.dto.CompetitiveAnalysisType.competitor
+            val targetVenueGoldenId = "id_" + venueName
+            val column = CompetitiveVenueColumn(venueGoldenId = targetVenueGoldenId, frequency = frequency)
             val dto = new CompetitiveVenue(
-                dto.analysisType = analysisType,
-                venueId = "id_" + venueName,
+                analysisType = analysisType,
+                venueId = targetVenueGoldenId,
                 venueName = venueName,
                 venueType = "undefined",
-                dto.frequency = frequency
+                frequency = frequency
             )
 
 
             val columnB = CompetitiveVenueColumnSerializer toByteBuffer (column)
             val dtoB = new JSONSerializer(classOf[CompetitiveVenue]) toByteBuffer (dto)
 
-            (venueGoldenId + "-" + analysisType.name, column, dto.venueName)
+            (venueGoldenId + "-" + analysisType.name, columnB, dtoB)
 
-        //(goldenVenueId, columnB, dtoB)
     }.project(('rowKey, 'columnName, 'columnValue))
-            .write(TextLine("/tmp/companalyse"))
+            //.write(TextLine("/tmp/companalyse"))
+            .write(
+        CassandraSource(
+            rpcHost = rpcHostArg,
+            privatePublicIpMap = ppmap,
+            keyspaceName = "dossier",
+            columnFamilyName = "MetricsVenueCompetitiveAnalysis",
+            scheme = WideRowScheme(keyField = 'rowKey)
+        )
+    )
 }
 

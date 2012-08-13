@@ -60,7 +60,6 @@ class DataAnalyser(args: Args) extends Job(args) {
     val graphOutput = args("realsocialgraph")
 
 
-
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
@@ -97,9 +96,8 @@ class DataAnalyser(args: Args) extends Job(args) {
     val jobTypeToRun = new JobTypeToRun(args)
     val internalAnalysisJob = new InternalAnalysisJob(args)
     val joinedProfiles = dtoProfileGetPipe.getTotalProfileTuples(data, twitterdata)
-    val serviceIdsGraph = joinedProfiles.rename('key ->'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
+    val serviceIdsGraph = joinedProfiles.rename('key -> 'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
     val realGraph = new RealSocialGraph(args)
-
 
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
@@ -158,9 +156,13 @@ class DataAnalyser(args: Args) extends Job(args) {
     val groupByCity = internalAnalysisJob.internalAnalysisGroupByCity(joinedProfiles)
     val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisJob.internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, jobRunPipeResults, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
 
+    val friendPipe = friendGrouper.groupFriends(friendData)
+    val checkinData = TextLine(chkininputData).read
+    val unfilteredCheckins = checkinGrouperPipe.unfilteredCheckins(checkinData)
+
     val realSocialGraph = realGraph.friendsNearbyByFriends(friendPipe, unfilteredCheckins, serviceIdsGraph)
 
-    
+
     val PipeToText = Map(returnpipework -> groupworktitle,
         returnpipecountry -> groupcountry,
         returnpipecity -> groupcity,
