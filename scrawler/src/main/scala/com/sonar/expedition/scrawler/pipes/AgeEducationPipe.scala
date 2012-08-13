@@ -15,7 +15,7 @@ class AgeEducationPipe(args: Args) extends Job(args){
             fields: (String, String) => {
                 val (eyear, edegree) = fields
                 val parsedDegree = parseDegree(edegree)
-                val age = getAge(eyear, parsedDegree)
+                val age = getAge(eyear, parsedDegree, edegree)
                 (age, parsedDegree)
 
             }
@@ -58,7 +58,7 @@ class AgeEducationPipe(args: Args) extends Job(args){
         degree
     }
 
-    def getAge(eYear: String, parsedDegree: String): Int = {
+    def getAge(eYear: String, parsedDegree: String, degree: String): Int = {
         val agefunction = Map[String, Int](
             "H" -> 18,
             "A" -> 20,
@@ -71,8 +71,9 @@ class AgeEducationPipe(args: Args) extends Job(args){
             "O" -> 22
         )
 
-
-        if (!isNumeric(eYear) || eYear.equals(""))
+        if (isNumeric(degree) && !degree.equals(""))
+            2012 - degree.toInt + 22
+        else if (!isNumeric(eYear) || eYear.equals(""))
             -1
         else
             2012 - eYear.toInt + agefunction.get(parsedDegree).get

@@ -65,11 +65,11 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val fbedu = getEducation(fbJson)
                 val lnedu = getEducation(lnJson)
                 val fsedu = getEducation(fsJson)
-                val edu = fbedu.toList ++ lnedu.toList ++ fsedu.toList
+                val edu = sortEducation(fbedu ++ lnedu ++ fsedu)
                 val fbwork = getWork(fbJson)
                 val lnwork = getWork(lnJson)
                 val fswork = getWork(fsJson)
-                val work = fbwork.toList ++ lnwork.toList ++ fswork.toList
+                val work = lnwork.toList ++ fbwork.toList ++ fswork.toList
                 val username = getUserName(fbJson).getOrElse(getUserName(lnJson).getOrElse(getUserName(fsJson).getOrElse("")))
                 val fbcity = getCity(fbJson)
                 val lncity = getCity(lnJson)
@@ -198,6 +198,11 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
             ""
         else
             Option(func(first.get)).getOrElse("")
+    }
+
+    def sortEducation(list: List[UserEducation]): List[UserEducation] = {
+        val filteredList = list.filter(!Option(_).isEmpty).sortBy[String](x => Option(x.getYear).getOrElse("")).reverse
+        filteredList
     }
 
     def getWork(serviceProfile: Option[ServiceProfileDTO]): List[UserEmployment] = {

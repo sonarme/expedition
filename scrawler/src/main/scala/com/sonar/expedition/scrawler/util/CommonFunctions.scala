@@ -27,10 +27,11 @@ object CommonFunctions {
     }
 
     def hashed(str: String): String = {
-        if (str == "")
-            ""
-        else
-            md5SumString(str.getBytes("UTF-8"))
+//        if (str == "")
+//            ""
+//        else
+//            md5SumString(str.getBytes("UTF-8"))
+        str
     }
 
     def isNumeric(input: String): Boolean = input.forall(_.isDigit)
