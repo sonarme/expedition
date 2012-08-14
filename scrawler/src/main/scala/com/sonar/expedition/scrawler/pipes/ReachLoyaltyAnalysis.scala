@@ -18,8 +18,8 @@ class ReachLoyaltyAnalysis(args: Args) extends Job(args) {
                 val homelong = home.split(":").last
                 val worklat = work.split(":").head
                 val worklong = work.split(":").last
-                val homedist = Haversine.haversine(loclat, loclong, homelat, homelong)
-                val workdist = Haversine.haversine(loclat, loclong, worklat, worklong)
+                val homedist = Haversine.haversine(loclat.toDouble, loclong.toDouble, homelat.toDouble, homelong.toDouble)
+                val workdist = Haversine.haversine(loclat.toDouble, loclong.toDouble, worklat.toDouble, worklong.toDouble)
                 (math.min(homedist, workdist), homedist < workdist)
 
             }
