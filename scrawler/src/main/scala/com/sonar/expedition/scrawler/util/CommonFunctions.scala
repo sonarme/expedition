@@ -12,7 +12,7 @@ object CommonFunctions {
 
     val ServiceProfileExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|4s)\s:\s(.*)""".r
     val Occupation: Regex = """([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)\t([a-zA-Z\d\- ]+)\t(.+)""".r
-    val FriendExtractLine: Regex = """([a-zA-Z\d\-]+):(.*)"id":"(.*)","service_type":"(.*)","name":"(.*)","photo(.*)""".r
+    val FriendExtractLine: Regex = """([a-zA-Z\d\-]+):(.*?)"id":"(.*?)","service_type":"(.*?)","name":"(.*?)","photo(.*)""".r
     val FriendProdExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\d\-]+)::(.*)""".r
     val ServiceProfileExtractLineCheck: Regex = """^([a-zA-Z\d\-]+)_(fb|ln|tw|4s)\s:\s(.*)$""".r
 
@@ -33,5 +33,7 @@ object CommonFunctions {
         else
             md5SumString(str.getBytes("UTF-8"))
     }
+
+    def isNumeric(input: String): Boolean = input.forall(_.isDigit)
 
 }

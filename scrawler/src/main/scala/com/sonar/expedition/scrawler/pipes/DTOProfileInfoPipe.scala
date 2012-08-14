@@ -144,9 +144,9 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
                 .discard('key)
                 .rename('mainkey -> 'key)
-                .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle)) {
-            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String) => {
-                val (key, uname, fbid, lnid, fsid, twalias, educ, worked, city, edegree, eyear, worktitle, twid, twname) = fields
+                .mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'twid, 'twname, 'workdesc, 'age, 'degree, 'impliedGender) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'age, 'catDegree, 'impliedGender)) {
+            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, Int, String, String) => {
+                val (key, uname, fbid, lnid, fsid, twalias, educ, worked, city, edegree, eyear, worktitle, twid, twname, workdesc, age, catdegree, gender) = fields
                 val key2 = Option(key).getOrElse("")
                 val uname2 = Option(uname).getOrElse(twname)
                 val fbid2 = Option(fbid).getOrElse("")
@@ -158,8 +158,12 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 val edegree2 = Option(edegree).getOrElse("")
                 val eyear2 = Option(eyear).getOrElse("")
                 val worktitle2 = Option(worktitle).getOrElse("")
+                val workdesc2 = Option(workdesc).getOrElse("")
                 val twid2 = Option(twid).getOrElse(twalias)
-                (key2, uname2, fbid2, lnid2, fsid2, twid2, educ2, worked2, city2, edegree2, eyear2, worktitle2)
+                val age2 = Option(age).getOrElse(-1)
+                val catdegree2 = Option(catdegree).getOrElse("O")
+                val gender2 = Option(gender).getOrElse(Gender.unknown)
+                (key2, uname2, fbid2, lnid2, fsid2, twid2, educ2, worked2, city2, edegree2, eyear2, worktitle2, workdesc2, age2, catdegree2, gender2)
             }
         }
 
@@ -204,6 +208,11 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
             ""
         else
             Option(func(first.get)).getOrElse("")
+    }
+
+    def sortEducation(list: List[UserEducation]): List[UserEducation] = {
+        val filteredList = list.filter(!Option(_).isEmpty).sortBy[String](x => Option(x.getYear).getOrElse("")).reverse
+        filteredList
     }
 
     def getWork(serviceProfile: Option[ServiceProfileDTO]): List[UserEmployment] = {
