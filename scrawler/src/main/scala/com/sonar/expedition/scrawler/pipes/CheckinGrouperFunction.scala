@@ -38,7 +38,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, dayOfWeek, time))
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName.toLowerCase(), venueAddress, checkinTime, geoHash, lat, lng, date, dayOfWeek, time))
                     }
                     case CheckinExtractLine(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng) => {
                         val timeFilter = Calendar.getInstance()
@@ -47,7 +47,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, dayOfWeek, time))
+                        Some((id, serviceType, serviceId, serviceCheckinId, venueName.toLowerCase(), venueAddress, checkinTime, geoHash, lat, lng, date, dayOfWeek, time))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)

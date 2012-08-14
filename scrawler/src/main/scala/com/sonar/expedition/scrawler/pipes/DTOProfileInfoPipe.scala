@@ -11,6 +11,20 @@ import cascading.pipe.joiner._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 
+case class ProfileData(key: String,
+                       name: String = "",
+                       var fbid: String = "",
+                       var lnid: String = "",
+                       var fsid: String = "",
+                       var twalias: String = "",
+                       educationschool: String = "",
+                       workcomp: String = "",
+                       ccity: String = "",
+                       edudegree: String = "",
+                       eduyear: String = "",
+                       worktitle: String = "",
+                       workdesc: String = "")
+
 class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
     // updated to include foursquare data
@@ -19,84 +33,76 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
 
         val dtoProfiles = datahandle
-                .mapTo(('id, 'serviceType, 'jsondata) ->('id, 'serviceType, 'fbJson, 'lnJson, 'fsJson)) {
-            fields: (String, String, String) =>
-                val (id, serviceType, jsondata) = fields
-                val fbJson = getJson(serviceType, jsondata, "fb")
-                val lnJson = getJson(serviceType, jsondata, "ln")
-                val fsJson = getJson(serviceType, jsondata, "4s")
-                (id, serviceType, fbJson, lnJson, fsJson)
+                .flatMap(('id, 'serviceType, 'jsondata) ->('priority, 'profile)) {
+            in: (String, String, String) =>
+                val (rowkey, serviceType, json) = in
+                ScrawlerObjectMapper.parseJson(Some(json), classOf[ServiceProfileDTO]) map {
+                    parsed =>
+
+                        val priority = if (serviceType == "ln") 0 else 1
+                        val work = parsed.work.headOption
+                        val education = parsed.education.headOption
+                        val profileData = new ProfileData(
+                            key = rowkey,
+                            name = Option(parsed.fullName).getOrElse(""),
+                            workcomp = work.map(_.companyName).getOrElse(""), // TODO, don't use empty string
+                            worktitle = work.map(_.title).getOrElse(""),
+                            educationschool = education.map(_.schoolName).getOrElse(""),
+                            eduyear = education.map(_.getYear()).getOrElse(""),
+                            edudegree = education.map(_.getDegree()).getOrElse(""),
+                            workdesc = work.map(_.getSummary()).getOrElse(""),
+                            ccity = Option(parsed.getLocation()).getOrElse("") // TODO, don't use empty string
+                        )
+
+                        serviceType match {
+                            case "ln" => profileData.lnid = Option(hashed(parsed.userId)).getOrElse("")
+                            case "fb" => profileData.fbid = Option(hashed(parsed.userId)).getOrElse("")
+
+                            profileData.twalias = getAliasID(Option(parsed), _.getTwitter())
+                            case "4s" => profileData.fsid = Option(hashed(parsed.userId)).getOrElse("")
+
+                        }
+
+                        (priority, profileData)
+                }
+
         }
 
-        val combinedProfiles = dtoProfiles
+        val combinedProfiles = dtoProfiles.project('id, 'priority, 'profile)
+
                 .groupBy('id) {
-            _
-                    .toList[Option[String]]('fbJson -> 'fbJsonList)
-                    .toList[Option[String]]('lnJson -> 'lnJsonList)
-                    .toList[Option[String]]('fsJson -> 'fsJsonList)
+            _.sortBy('priority)
+                    .reduce('profile -> 'combinedProfile) {
+                (profileAcc: ProfileData, profile: ProfileData) =>
+                    val profileData = new ProfileData(
+                        key = profileAcc.key,
+                        name = if (profileAcc.name != "") profileAcc.name else profile.name,
+                        workdesc = if (profileAcc.workdesc != "") profileAcc.workdesc else profile.workdesc,
+                        workcomp = if (profileAcc.workcomp != "") profileAcc.workcomp else profile.workcomp,
+                        worktitle = if (profileAcc.worktitle != "") profileAcc.worktitle else profile.worktitle,
+                        educationschool = if (profileAcc.educationschool != "") profileAcc.educationschool else profile.educationschool,
+                        eduyear = if (profileAcc.eduyear != "") profileAcc.eduyear else profile.eduyear,
+                        edudegree = if (profileAcc.edudegree != "") profileAcc.edudegree else profile.edudegree,
+                        ccity = if (profileAcc.ccity != "") profileAcc.ccity else profile.ccity
 
-        }
-                .map(('fbJsonList, 'lnJsonList, 'fsJsonList) ->('fbJson, 'lnJson, 'fsJson)) {
-            fields: (List[Option[String]], List[Option[String]], List[Option[String]]) =>
-                val (fbJsonList, lnJsonList, fsJsonList) = fields
-                val fbJson = getFirstNonNullOption(fbJsonList)
-                val lnJson = getFirstNonNullOption(lnJsonList)
-                val fsJson = getFirstNonNullOption(fsJsonList)
-                (fbJson, lnJson, fsJson)
-        }
-                .rename('id -> 'key)
-                .project(('key, 'fbJson, 'lnJson, 'fsJson))
+                    )
+                    profileData.fbid = if (profileAcc.fbid != "") profileAcc.fbid else profile.fbid
+                    profileData.fsid = if (profileAcc.fsid != "") profileAcc.fsid else profile.fsid
+                    profileData.lnid = if (profileAcc.lnid != "") profileAcc.lnid else profile.lnid
+                    profileData.twalias = if (profileAcc.twalias != "") profileAcc.twalias else profile.twalias
 
-        val output = combinedProfiles
-                .map(('fbJson, 'lnJson, 'fsJson) ->('fbid, 'fbServiceProfile, 'lnid, 'lnServiceProfile, 'fsid, 'fsServiceProfile)) {
-            fields: (Option[String], Option[String], Option[String]) =>
-                val (fbJson, lnJson, fsJson) = fields
-                val fbServiceProfile = ScrawlerObjectMapper.parseJson(fbJson, classOf[ServiceProfileDTO])
-                val lnServiceProfile = ScrawlerObjectMapper.parseJson(lnJson, classOf[ServiceProfileDTO])
-                val fsServiceProfile = ScrawlerObjectMapper.parseJson(fsJson, classOf[ServiceProfileDTO])
-                val fbid = getID(fbServiceProfile).getOrElse(fbJson.getOrElse(""))
-                val lnid = getID(lnServiceProfile).getOrElse(lnJson.getOrElse(""))
-                val fsid = getID(fsServiceProfile).getOrElse(fsJson.getOrElse(""))
-                (fbid, fbServiceProfile, lnid, lnServiceProfile, fsid, fsServiceProfile)
-        }
-                .mapTo(('key, 'fbid, 'fbServiceProfile, 'lnid, 'lnServiceProfile, 'fsid, 'fsServiceProfile) ->('key, 'username, 'fbid, 'lnid, 'fsid, 'twalias, 'edu, 'work, 'city)) {
-            fields: (String, String, Option[ServiceProfileDTO], String, Option[ServiceProfileDTO], String, Option[ServiceProfileDTO]) =>
-                val (id, fbid, fbJson, lnid, lnJson, fsid, fsJson) = fields
-                val fbedu = getEducation(fbJson)
-                val lnedu = getEducation(lnJson)
-                val fsedu = getEducation(fsJson)
-                val edu = sortEducation(fbedu ++ lnedu ++ fsedu)
-                val fbwork = getWork(fbJson)
-                val lnwork = getWork(lnJson)
-                val fswork = getWork(fsJson)
-                val work = lnwork.toList ++ fbwork.toList ++ fswork.toList
-                val username = getUserName(fbJson).getOrElse(getUserName(lnJson).getOrElse(getUserName(fsJson).getOrElse("")))
-                val fbcity = getCity(fbJson)
-                val lncity = getCity(lnJson)
-                val fscity = getCity(fsJson)
-                val fsfbid = getAliasID(fsJson, _.getFacebook)
-                val fstwid = getAliasID(fsJson, _.getTwitter)
-                val fbidnew = selectNonNullString(fbid, fsfbid)
-                val city = fbcity.toList ++ lncity.toList ++ fscity.toList
-                (id, username, fbidnew, lnid, fsid, fstwid, edu, work, city)
-        }
-                .mapTo(('key, 'username, 'fbid, 'lnid, 'fsid, 'twalias, 'edu, 'work, 'city) ->('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)) {
-            fields: (String, String, String, String, String, String, List[UserEducation], List[UserEmployment], List[String]) =>
-                val (rowkey, fbname, fbid, lnid, fsid, twalias, edu, work, city) = fields
-                val educationschool = getFirstElement[UserEducation](edu, _.getSchoolName)
-                val edudegree = getFirstElement[UserEducation](edu, _.getDegree)
-                val eduyear = getFirstElement[UserEducation](edu, _.getYear)
-                val workcomp = getFirstElement[UserEmployment](work, _.getCompanyName)
-                val worktitle = getFirstElement[UserEmployment](work, _.getTitle)
-                val workdesc = getFirstElement[UserEmployment](work, _.getSummary)
-                val ccity = getcurrCity(city)
-                //(rowkey, fbname, fbid, lnid, fsid, twalias, educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
-                (rowkey, fbname, hashed(fbid), hashed(lnid), hashed(fsid), hashed(twalias), educationschool, workcomp, ccity, edudegree, eduyear, worktitle, workdesc)
-        }
+                    profileData
+            }
 
-        output
+
+        }.unpack[ProfileData]('combinedProfile ->('key, 'name, 'fbid, 'lnid, 'fsid, 'twalias, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear, 'worktitle, 'workdesc))
+                .rename(('name, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear) ->('uname, 'educ, 'worked, 'city, 'edegree, 'eyear))
+                .project('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+
+        combinedProfiles
 
     }
+
 
     // twitter pipe
 

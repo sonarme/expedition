@@ -20,14 +20,14 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         }).project('employer, 'workers).map('employer -> 'emp) {
             fields: (String) =>
                 val (employer) = fields
-                val emp = employer.trim
+                val emp = employer
                 val fuzzyemp = StemAndMetaphoneEmployer.getStemmedMetaphone(emp)
                 fuzzyemp
 
         }.flatMap('workers -> ('listofworkers)) {
             fields: (String) =>
                 val (workerString) = fields
-                val employees = workerString.trim.split(", ")
+                val employees = workerString.split(", ")
                 employees
         }.project('emp, 'listofworkers)
 
@@ -58,7 +58,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         }.project('userId, 'listoffriends).map('userId, 'uId) {
             fields: (String) =>
                 val (userIdString) = fields
-                val uIdString = userIdString.trim
+                val uIdString = userIdString
                 uIdString
         }.project('uId, 'listoffriends)
 
@@ -125,13 +125,13 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .project('employer, 'workers).map('employer -> 'emp) {
             fields: (String) =>
                 val (employer) = fields
-                val emp = employer.trim
+                val emp = employer
                 val fuzzyemp = StemAndMetaphoneEmployer.getStemmedMetaphone(emp)
                 fuzzyemp
         }.flatMap('workers -> ('listofworkers)) {
             fields: (String) =>
                 val (workerString) = fields
-                val employees = workerString.trim.split(", ")
+                val employees = workerString.split(", ")
                 employees
         }.project('emp, 'listofworkers)
 
@@ -159,7 +159,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         }.project('userId, 'listoffriends).map('userId, 'uId) {
             fields: (String) =>
                 val (userIdString) = fields
-                val uIdString = userIdString.trim
+                val uIdString = userIdString
                 uIdString
         }.project('uId, 'listoffriends)
 
@@ -220,23 +220,22 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
     }
     */
 
-    def findCoworkerCheckinsPipe(userEmployer: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe, PipeCheckIns: RichPipe): RichPipe = {
+    def findCoworkerCheckinsPipe(userEmployer: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe, pipeCheckIns: RichPipe): RichPipe = {
 
         val employerGroupedEmployeeUserIds = userEmployer.map('worked -> 'emp) {
-            fields: (String) =>
-                val (employer) = fields
-                val emp = employer.trim
+            employer: String =>
+            /*if (employer == null) null else TODO */
+                println("findCoworkerCheckinsPipe export");
+                StemAndMetaphoneEmployer.getStemmed(employer).take(30)
 
-                val fuzzyemp = StemAndMetaphoneEmployer.getStemmed(emp)
-                fuzzyemp.take(30)
         }.project(('emp, 'key))
 
         val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
-                val uIdString = userIdString.trim
-                val serviceId = serviceProfileId.trim
+                val uIdString = userIdString
+                val serviceId = serviceProfileId
                 (uIdString, serviceId)
         }.project('uId, 'serviceId)
 
@@ -276,7 +275,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val mergedCoworkers = linkedinCoworkers.++(facebookCoworkers)
                 .project('originalUId, 'friendUId, 'employer)
 
-        val mergedCoworkerCheckins = PipeCheckIns.joinWithSmaller('keyid -> 'friendUId, mergedCoworkers)
+        val mergedCoworkerCheckins = pipeCheckIns.joinWithSmaller('keyid -> 'friendUId, mergedCoworkers)
                 .rename('keyid -> 'key)
                 .project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
                 .unique('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)

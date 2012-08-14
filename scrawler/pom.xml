@@ -45,6 +45,7 @@
             <groupId>com.twitter</groupId>
             <artifactId>scalding_2.9.1</artifactId>
             <version>0.7.3</version>
+
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
@@ -97,14 +98,6 @@
 
 
         <!-- END: dependencies that are shaded -->
-
-        <dependency>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-            <version>1.2.16</version>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
 
         <!-- We don't use this since the publish pom is then messed up -->
