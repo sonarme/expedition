@@ -69,16 +69,9 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 //
 //            (targetVenueGoldenId, column, value)
 //
-//    }.project(('rowKey, 'columnName, 'columnValue))
-//            .write(
-//        CassandraSource(
-//            rpcHost = rpcHostArg,
-//            privatePublicIpMap = ppmap,
-//            keyspaceName = "dossier",
-//            columnFamilyName = "MetricsVenueStatic",
-//            scheme = WideRowScheme(keyField = 'rowKey)
-//        )
-//    )
+//    }
+//            .project(('rowKey, 'columnName, 'columnValue))
+//
 //
 //    val byGender = businessGroup.byGender(combined)
 //            .map(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
@@ -91,7 +84,37 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 //
 //            (targetVenueGoldenId, column, value)
 //
-//    }.project(('rowKey, 'columnName, 'columnValue))
+//    }
+//            .project(('rowKey, 'columnName, 'columnValue))
+//
+//    val byDegree = businessGroup.byDegree(combined)
+//            .map(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+//        in: (String, String, Int) =>
+//            val (venueKey, degreeCat, frequency) = in
+//
+//            val targetVenueGoldenId = venueKey + "_education"
+//            val column = degreeCat
+//            val value = frequency.toDouble
+//
+//            (targetVenueGoldenId, column, value)
+//
+//    }
+//            .project(('rowKey, 'columnName, 'columnValue))
+//
+//    val byIncome = businessGroup.byIncome(combined)
+//            .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+//        in: (String, String, Int) =>
+//            val (venueKey, income, frequency) = in
+//
+//            val targetVenueGoldenId = venueKey + "_income"
+//            val column = income
+//            val value = frequency.toDouble
+//
+//            (targetVenueGoldenId, column, value)
+//    }
+//            .project(('rowKey, 'columnName, 'columnValue))
+//
+//    val staticOutput = byAge.++(byDegree).++(byGender)
 //            .write(
 //        CassandraSource(
 //            rpcHost = rpcHostArg,
@@ -102,24 +125,28 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 //        )
 //    )
 
-    val byDegree = businessGroup.byDegree(combined)
-            .map(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, String, Int) =>
-            val (venueKey, degreeCat, frequency) = in
+    val byTime = businessGroup.timeSeries(combined)
+            .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, Int, String, Int) =>
+            val (venueKey, hour, serviceType, frequency) = in
 
-            val targetVenueGoldenId = venueKey + "_education"
-            val column = degreeCat
-            val value = frequency.toDouble
+            val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
+            val column = hour.toLong * 3600000
+            val value = frequency * 1.0
 
             (targetVenueGoldenId, column, value)
 
-    }.project(('rowKey, 'columnName, 'columnValue))
+    }
+            .project(('rowKey, 'columnName, 'columnValue))
+
+
+    val timeSeriesOutput = byTime
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
             privatePublicIpMap = ppmap,
             keyspaceName = "dossier",
-            columnFamilyName = "MetricsVenueStatic",
+            columnFamilyName = "MetricsVenueTimeseries",
             scheme = WideRowScheme(keyField = 'rowKey)
         )
     )

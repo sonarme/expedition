@@ -25,7 +25,13 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 .map('loc -> 'venueKey) {
             loc: String => loc
         }
-                .project('keyid, 'impliedGender, 'age, 'degree, 'venueKey, 'hourChunk, 'dayChunk)
+                .project('keyid, 'serType, 'impliedGender, 'age, 'degree, 'venueKey, 'hourChunk, 'dayChunk)
+    }
+
+    def timeSeries(combinedInput: RichPipe): RichPipe = {
+        combinedInput.groupBy('venueKey, 'hourChunk, 'serType) {
+            _.size
+        }
     }
 
     def byAge(combinedInput: RichPipe): RichPipe = {
@@ -35,19 +41,19 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 if (age < 0)
                     "unknown"
                 else if (age < 18)
-                    "< 18"
+                    "<18"
                 else if (age < 25)
-                    "18 - 24"
+                    "18-24"
                 else if (age < 35)
-                    "25 - 34"
+                    "25-34"
                 else if (age < 45)
-                    "35 - 44"
+                    "35-44"
                 else if (age < 55)
-                    "45 - 54"
+                    "45-54"
                 else if (age < 65)
-                    "55 - 64"
+                    "55-64"
                 else
-                    "> 65"
+                    "65+"
             }
         }
                 .groupBy('ageBracket, 'venueKey) {
@@ -80,6 +86,23 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 .groupBy('degreeCat, 'venueKey) {
             _.size
         }
+    }
+
+    def byIncome(combinedInput: RichPipe): RichPipe = {
+        combinedInput
+                .map('income -> 'incomeBracket) {
+            income: Int => {
+                if (income < 50000)
+                    "$0-50k"
+                else if (income < 100000)
+                    "$50-100k"
+                else if (income < 150000)
+                    "$100-150k"
+                else
+                    "$150k+"
+            }
+        }
+
     }
 
 }
