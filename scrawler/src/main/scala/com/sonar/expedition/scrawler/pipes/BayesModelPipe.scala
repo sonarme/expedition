@@ -204,7 +204,6 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 val weightKey = weightKeyList.max
                 (weightKey._1, weightKey._2)
 
-
         }.filter('data) {
             data: String =>
                 (data != null)

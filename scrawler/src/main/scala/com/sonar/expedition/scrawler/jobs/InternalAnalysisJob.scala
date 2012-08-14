@@ -9,10 +9,9 @@ class InternalAnalysisJob(args: Args) extends Job(args) {
 
     def internalAnalysisGroupByServiceType(data: RichPipe): RichPipe = {
 
-        val retdata = data.groupBy('serviceType) {
+        val retdata = data.unique('id, 'serviceType).groupBy('serviceType) {
             _.size
         }
-
         retdata
 
     }
@@ -40,7 +39,7 @@ class InternalAnalysisJob(args: Args) extends Job(args) {
                 size > 0
             }
         }.groupAll {
-            _.sortBy('size)
+            _.sortBy('size).reverse
         }
 
         returnpipe
