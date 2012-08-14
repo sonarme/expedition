@@ -48,6 +48,7 @@ class DataAnalyser(args: Args) extends Job(args) {
     val genderoutput = args("genderoutput")
     val profileCount = args("profileCount")
     val serviceCount = args("serviceCount")
+    val geoCount = args("geoCount")
     val jobtypeTorun = args("jobtype")
     val trainedseqmodel = args("trainedseqmodel")
     val geohashsectorsize = args.getOrElse("geohashsectorsize", "20").toInt
