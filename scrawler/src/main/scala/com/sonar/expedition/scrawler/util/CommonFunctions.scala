@@ -16,6 +16,10 @@ object CommonFunctions {
     val FriendProdExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\d\-]+)::(.*)""".r
     val ServiceProfileExtractLineCheck: Regex = """^([a-zA-Z\d\-]+)_(fb|ln|tw|4s)\s:\s(.*)$""".r
 
+    val College: Regex = """(A|B|O)""".r
+    val NoCollege: Regex = """(H)""".r
+    val Grad: Regex = """(D|M|MBA|J|P)""".r
+
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
         md5.reset()
