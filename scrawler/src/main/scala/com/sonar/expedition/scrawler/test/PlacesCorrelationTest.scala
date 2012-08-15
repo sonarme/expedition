@@ -16,6 +16,6 @@ class PlacesCorrelationTest(args: Args) extends Job(args) {
     val checkins = checkinGrouperPipe.correlationCheckins(TextLine(checkinData).read)
     val places = dtoPlacesInfoPipe.getPlacesInfo(TextLine(placesData).read)
     val correlatedPlaces = placesCorrelationPipe.correlatedPlaces(checkins, places).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'stemmedVenName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId)
-    .write(TextLine("output"))
+            .write(TextLine("output"))
 
 }

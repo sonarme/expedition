@@ -36,14 +36,10 @@ class CertainityScorePipe(args: Args) extends Job(args) {
         }
                 .groupBy(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked)) {
             _
-                    .toList[(Double, String, String)](('certainty, 'geometryLatitude, 'geometryLongitude) -> 'certaintyList)
+                    .max('certainty)
         }
-                .map(('certaintyList) ->('certaintyScore, 'geometryLatitude, 'geometryLongitude)) {
-            fields: (List[(Double, String, String)]) =>
-                val (certaintyList) = fields
-                val certainty = certaintyList.max
-                (certainty._1, certainty._2, certainty._3)
-        }.project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore, 'geometryLatitude, 'geometryLongitude))
+                .rename('certainty -> 'certaintyScore)
+                .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'worked, 'stemmedWorked, 'certaintyScore))
                 .joinWithSmaller('key -> 'userProfileId, numberOfFriends, joiner = new LeftJoin)
                 .project(('key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends))
 
