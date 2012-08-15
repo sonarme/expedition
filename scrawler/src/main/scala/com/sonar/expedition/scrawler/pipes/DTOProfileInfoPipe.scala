@@ -30,7 +30,6 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     // updated to include foursquare data
     // uncomment last line to get hashes of fb, ln, and fsids to compare prod data
 
-
     def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
 
         val dtoProfiles = datahandle
