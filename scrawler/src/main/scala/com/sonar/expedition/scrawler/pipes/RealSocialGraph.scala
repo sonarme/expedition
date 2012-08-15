@@ -14,7 +14,6 @@ group checkins by friends, sort by time, filter by location and
 
 class RealSocialGraph(args: Args) extends Job(args) {
 
-    val havver = new Haversine
     val hourPrecision = 3
     val locationPrecision = 0.3
 
@@ -43,7 +42,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
                 ('friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour, 'friendTimeChunk))
                 .unique('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour, 'friendTimeChunk)
 
-        val crossDayCheckins = chunkedCheckins.flatMap(('timeChunk, 'hour) -> ('timeChunk2, 'hour2)){
+        val crossDayCheckins = chunkedCheckins.flatMap(('timeChunk, 'hour) ->('timeChunk2, 'hour2)) {
             fields: (Int, Double) => {
                 val (chunk, hour) = fields
                 if (hour < hourPrecision)
@@ -55,11 +54,11 @@ class RealSocialGraph(args: Args) extends Job(args) {
             }
         }
                 .discard(('timeChunk, 'hour))
-                .rename(('timeChunk2, 'hour2) -> ('timeChunk, 'hour))
+                .rename(('timeChunk2, 'hour2) ->('timeChunk, 'hour))
                 .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'timeChunk))
 
         val mergedCheckins = (chunkedCheckins ++ crossDayCheckins)
-                .joinWithSmaller(('keyid, 'timeChunk) -> ('uId, 'friendTimeChunk), friendsCheckins)
+                .joinWithSmaller(('keyid, 'timeChunk) ->('uId, 'friendTimeChunk), friendsCheckins)
                 .filter('loc, 'friendLoc, 'friendTimeChunk, 'timeChunk, 'friendHour, 'hour) {
             fields: (String, String, Int, Int, Double, Double) =>
                 val (originalLoc, friendLoc, friendDay, originalDay, friendHour, originalHour) = fields
@@ -67,7 +66,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
                 val originalLng = originalLoc.split(":").last.toDouble
                 val friendLat = friendLoc.split(":").head.toDouble
                 val friendLng = friendLoc.split(":").last.toDouble
-                (havver.haversine(originalLat, originalLng, friendLat, friendLng) < locationPrecision) && (friendDay == originalDay) && (originalHour <= (friendHour + hourPrecision)) && (originalHour >= (friendHour - hourPrecision)) && (!originalLoc.equals("0.0:0.0")) && (!friendLoc.equals("0.0:0.0"))
+                (Haversine.haversine(originalLat, originalLng, friendLat, friendLng) < locationPrecision) && (friendDay == originalDay) && (originalHour <= (friendHour + hourPrecision)) && (originalHour >= (friendHour - hourPrecision)) && (!originalLoc.equals("0.0:0.0")) && (!friendLoc.equals("0.0:0.0"))
         }
 
 
@@ -75,7 +74,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
 
                 // count once per day
                 .unique(('uId, 'friendKey, 'timeChunk))
-                .groupBy(('uId, 'friendKey)){
+                .groupBy(('uId, 'friendKey)) {
             _.size
         }
                 .joinWithLarger('friendKey -> 'friendkey, serviceIdsInput)
@@ -101,7 +100,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
 
 
         val friendsCheckins = joinedChunks.joinWithSmaller(('keyid, 'keyid2) ->('uId, 'friendkey), mergedFriends)
-                .groupBy(('keyid, 'keyid2)){
+                .groupBy(('keyid, 'keyid2)) {
             _.size
         }
                 .joinWithLarger('keyid2 -> 'friendkey, serviceIdsInput)
@@ -250,9 +249,9 @@ class RealSocialGraph(args: Args) extends Job(args) {
         val joinedChunks8 = chunked8
                 .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked82)
 
-        //val joinedChunks = (joinedChunks1 ++ joinedChunks2 ++ joinedChunks3 ++ joinedChunks4 ++ joinedChunks5 ++ joinedChunks6 ++ joinedChunks7 ++ joinedChunks8)
+                //val joinedChunks = (joinedChunks1 ++ joinedChunks2 ++ joinedChunks3 ++ joinedChunks4 ++ joinedChunks5 ++ joinedChunks6 ++ joinedChunks7 ++ joinedChunks8)
                 .unique(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID, 'keyid2, 'serType2, 'serProfileID2))
-                val joinedChunks = joinedChunks1
+        val joinedChunks = joinedChunks1
 
         joinedChunks
 
