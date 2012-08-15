@@ -22,6 +22,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
+    val newcheckininput = args("newCheckinInput")
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -50,12 +51,21 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val reachLoyalty = new ReachLoyaltyAnalysis(args)
     val coworkerPipe = new CoworkerFinderFunction(args)
     val checkinInfoPipe = new CheckinInfoPipe(args)
+    val placesCorrelation = new PlacesCorrelation(args)
 
 
 
 
 
-    val checkins = checkinGroup.unfilteredCheckins(TextLine(checkininput))
+    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
+    val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
+    val checkinsWithGolden = placesCorrelation.withGoldenId(checkins, newcheckins)
+            .map(('lat, 'lng) -> ('loc)) {
+        fields: (String, String) =>
+            val (lat, lng) = fields
+            val loc = lat + ":" + lng
+            (loc)
+    }
 
     val total = dtoProfileGetPipe.getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String => GenderFromNameProbability.gender(name)
@@ -84,7 +94,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
 
 
-    val combined = businessGroup.combineCheckinsProfiles(checkins, profiles)
+    val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
 
 
     val chkindata = checkinGroup.groupCheckins(TextLine(checkininput))
@@ -246,6 +256,32 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
+    val reachLat = reach
+            .map(('venueKey, 'lat) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, Double) =>
+            val (venueKey, lat) = in
+
+            val targetVenueGoldenId = venueKey + "_reach_distance"
+            val column = "latitude"
+            val value = lat
+
+            (targetVenueGoldenId, column, value)
+    }
+            .project(('rowKey, 'columnName, 'columnValue))
+
+    val reachLong = reach
+            .map(('venueKey, 'lng) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, Double) =>
+            val (venueKey, lng) = in
+
+            val targetVenueGoldenId = venueKey + "_reach_distance"
+            val column = "longitude"
+            val value = lng
+
+            (targetVenueGoldenId, column, value)
+    }
+            .project(('rowKey, 'columnName, 'columnValue))
+
     val reachHome = reach
             .map(('venueKey, 'numHome) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, Int) =>
@@ -286,7 +322,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             .project(('rowKey, 'columnName, 'columnValue))   */
 
     val staticOutput =
-        (totalStatic ++ reachHome ++ reachWork ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
+        (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,

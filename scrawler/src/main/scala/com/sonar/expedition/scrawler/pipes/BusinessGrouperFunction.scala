@@ -10,7 +10,7 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
     def combineCheckinsProfiles(checkinInput: RichPipe, serviceProfileInput: RichPipe): RichPipe = {
 
         //('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'age, 'degree, 'impliedGender)
-        //('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'dayOfWeek, 'hour)
+        //('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'dayOfWeek, 'hour, 'venueId, 'goldenId)
         checkinInput.joinWithSmaller('keyid -> 'key, serviceProfileInput)
                 .map('chknTime ->('hourChunk, 'dayChunk)) {
             checkinTime: String => {
@@ -22,8 +22,8 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 (hour, day)
             }
         }
-                .map('loc -> 'venueKey) {
-            loc: String => loc
+                .map('goldenId -> 'venueKey) {
+            goldenId: String => goldenId
         }
         //                .project('keyid, 'serType, 'impliedGender, 'age, 'degree, 'venueKey, 'hourChunk, 'dayChunk)
     }
