@@ -1,10 +1,11 @@
 package com.sonar.expedition.scrawler.pipes
 
 import com.sonar.expedition.scrawler.objs.CheckinObjects
-import CheckinTimeFilter._
+import CheckinTimeFilter.{ExtractTime}
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date}
 import scala.util.matching.Regex
+import grizzled.slf4j.Logging
 
 class CheckinTimeFilter {
 
@@ -30,24 +31,34 @@ class CheckinTimeFilter {
 
 }
 
-object CheckinTimeFilter {
+object CheckinTimeFilter extends Logging {
     val ExtractTime: Regex = """(.*)T(\d\d).*""".r
 
     val TimezoneColon = """([\d\-:T]+\.[\d]+[\+\-][\d]+):([\d]+)""".r
 
     def parseDateTime(timestamp: String): Date = {
         val parsedTimestamp = removeTrailingTimezoneColon(timestamp)
-        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'")
+        val simpleDateFormatProd = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'")
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSSZ")
         val parsedDate = try {
-            simpleDateFormat.parse(parsedTimestamp)
+            simpleDateFormatProd.parse(parsedTimestamp)
         }
         catch {
             case _ => {
-                val defaultTime = Calendar.getInstance()
-                defaultTime.set(Calendar.YEAR, 1927)
-                defaultTime.getTime
+                try {
+                    simpleDateFormat.parse(parsedTimestamp)
+                }
+                catch {
+                    case _ => {
+                        error("Unparseable Date: " + timestamp)
+                        val defaultTime = Calendar.getInstance()
+                        defaultTime.set(Calendar.YEAR, 1927)
+                        defaultTime.getTime
+                    }
+                }
             }
         }
+
         parsedDate
     }
 
