@@ -11,7 +11,7 @@ import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
 
-class HomeAnalyzer (args: Args) extends Job(args) {
+class HomeAnalyzer(args: Args) extends Job(args) {
 
     val inputData = args("serviceProfileData")
     val chkininputData = args("checkinData")

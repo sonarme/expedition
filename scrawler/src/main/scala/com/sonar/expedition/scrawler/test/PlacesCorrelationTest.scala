@@ -22,4 +22,3 @@ class PlacesCorrelationTest(args: Args) extends Job(args) {
             .write(TextLine("/tmp/newPlacescorr.txt"))
 
 }
-//40.761500619103	-73.97707340739    40.761396839011994	-73.97698574930376

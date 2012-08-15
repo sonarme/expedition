@@ -25,7 +25,7 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 .map('loc -> 'venueKey) {
             loc: String => loc
         }
-                .project('keyid, 'serType, 'impliedGender, 'age, 'degree, 'venueKey, 'hourChunk, 'dayChunk)
+        //                .project('keyid, 'serType, 'impliedGender, 'age, 'degree, 'venueKey, 'hourChunk, 'dayChunk)
     }
 
     def timeSeries(combinedInput: RichPipe): RichPipe = {
@@ -56,6 +56,9 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                     "65+"
             }
         }
+                .filter('ageBracket) {
+            age: String => !age.equals("unknown")
+        }
                 .groupBy('ageBracket, 'venueKey) {
             // .groupBy('ageBracket, 'venueKey, 'hourChunk) {
             _.size
@@ -64,6 +67,9 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
 
     def byGender(combinedInput: RichPipe): RichPipe = {
         combinedInput
+                .filter('impliedGender) {
+            gend: Gender => !(gend == Gender.unknown)
+        }
                 // .groupBy('impliedGender, 'venueKey, 'hourChunk) {
                 .groupBy('impliedGender, 'venueKey) {
             _.size
@@ -82,6 +88,9 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                 }
             }
         }
+                .filter('degreeCat) {
+            degree: String => !degree.equals("unknown")
+        }
                 // .groupBy('degreeCat, 'venueKey, 'hourChunk) {
                 .groupBy('degreeCat, 'venueKey) {
             _.size
@@ -90,19 +99,27 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
 
     def byIncome(combinedInput: RichPipe): RichPipe = {
         combinedInput
+                .filter('worktitle) {
+            worktitle: String => !isNullOrEmpty(worktitle)
+        }
                 .map('income -> 'incomeBracket) {
-            income: Int => {
-                if (income < 50000)
+            income: String => {
+                val incomeInt = income.replaceAll("\\D", "").toInt
+                if (incomeInt < 50000)
                     "$0-50k"
-                else if (income < 100000)
+                else if (incomeInt < 100000)
                     "$50-100k"
-                else if (income < 150000)
+                else if (incomeInt < 150000)
                     "$100-150k"
                 else
                     "$150k+"
             }
         }
+                .groupBy('incomeBracket, 'venueKey) {
+            _.size
+        }
 
     }
+
 
 }
