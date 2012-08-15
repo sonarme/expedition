@@ -14,8 +14,8 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
 
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
-
-    val goldenIDpipes = new PlacesCorrelation(args)
+    val placesdata = args("places")
+    val goldenIdpipes = new PlacesCorrelation(args)
 
 
     val chkininputData = args("checkinData")
@@ -24,7 +24,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
     val chkindata = checkinGrouperPipe.unfilteredCheckinsLatLon(TextLine(chkininputData).read)
 
 
-    //val goldenIDpipes.correlatedPlaces()
+    val placesVenueGoldenId = goldenIdpipes.correlatedPlaces(chkindata, TextLine(placesdata).read)
 
     val similarity = chkindata.groupBy('keyid, 'venName) {
         _.size
