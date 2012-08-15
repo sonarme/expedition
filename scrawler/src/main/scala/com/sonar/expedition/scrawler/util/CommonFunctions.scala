@@ -39,6 +39,10 @@ object CommonFunctions {
             md5SumString(str.getBytes("UTF-8"))
     }
 
-    def isNumeric(input: String): Boolean = input.forall(_.isDigit)
+    def isNumeric(input: String): Boolean = !isNullOrEmpty(input) && input.forall(_.isDigit)
+
+    def isNullOrEmpty(str: String): Boolean = {
+        str == null || str.equals("") || str.equals("null")
+    }
 
 }

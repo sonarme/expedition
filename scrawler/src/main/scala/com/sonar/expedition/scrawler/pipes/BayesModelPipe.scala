@@ -177,7 +177,7 @@ class BayesModelPipe(args: Args) extends Job(args) {
         }
     }
 
-    def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
+   /* def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
         data.map('data -> 'value) {
             line: String => {
                 StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
@@ -205,6 +205,33 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 (weightKey._1, weightKey._2)
 
         }.filter('data) {
+            data: String =>
+                (data != null)
+        }
+                .project(('data, 'key, 'weight))
+
+    }
+*/
+
+    def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
+        data.map('data -> 'value) {
+            line: String => {
+                StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
+            }
+        }
+                .flatMap('value -> 'token) {
+            value: Array[String] =>
+                value
+        }
+                .joinWithLarger(('token -> 'token), model)
+                .groupBy(('data, 'key)) {
+            _.sum('normTFIDF -> 'weight)
+        }
+
+        .groupBy('data) {
+            _.max('weight, 'key)
+        }
+         .filter('data) {
             data: String =>
                 (data != null)
         }

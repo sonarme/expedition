@@ -66,9 +66,9 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
 
 
-    val joinedProfiles = profiles.rename('key->'rowkey)
-
+    /* val joinedProfiles = profiles.rename('key->'rowkey)
     val trainer = new BayesModelPipe(args)
+
     val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
@@ -80,11 +80,11 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
 
     val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
-            .rename('rowkey -> 'key)
+            .rename('rowkey -> 'key) */
 
 
 
-    val combined = businessGroup.combineCheckinsProfiles(checkins, profilesWithIncome)
+    val combined = businessGroup.combineCheckinsProfiles(checkins, profiles)
 
 
     val chkindata = checkinGroup.groupCheckins(TextLine(checkininput))
@@ -95,14 +95,15 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val friendsForCoworker = friendGroup.groupFriends(friendData)
     val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
-    val homeCheckins = checkinGroup.groupHomeCheckins(TextLine(checkininput).read)
-    val homeProfilesAndCheckins = joinedProfiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-    val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
+    /*val homeCheckins = checkinGroup.groupHomeCheckins(TextLine(checkininput).read)
+    val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+    val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins) */
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
-            .map('centroid -> ('workCentroid)) {centroid: String => centroid}
-            .discard(('key1, 'centroid))
+            .map('centroid -> 'workCentroid) {centroid: String => centroid}
+            /*.discard(('key1, 'centroid))
             .joinWithSmaller('key -> 'key1, findhomefromchkins)
-            .map('centroid -> ('homeCentroid)) {centroid: String => centroid}
+            .map('centroid -> 'homeCentroid) {centroid: String => centroid}   */
+            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
 
 
 
@@ -220,7 +221,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
             val targetVenueGoldenId = venueKey + "_reach_originCount"
             val column = "numHome"
-            val value = count
+            val value = count.toDouble
 
             (targetVenueGoldenId, column, value)
     }
@@ -233,13 +234,13 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
             val targetVenueGoldenId = venueKey + "_reach_originCount"
             val column = "numWork"
-            val value = count
+            val value = count.toDouble
 
             (targetVenueGoldenId, column, value)
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
-    val byIncome = businessGroup.byIncome(profilesWithIncome)
+    /* val byIncome = businessGroup.byIncome(combined)
             .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, String, Int) =>
             val (venueKey, income, frequency) = in
@@ -250,9 +251,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
             (targetVenueGoldenId, column, value)
     }
-            .project(('rowKey, 'columnName, 'columnValue))
+            .project(('rowKey, 'columnName, 'columnValue))   */
 
-    val staticOutput = byIncome.++(reachHome).++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
+    val staticOutput = // byIncome.++(reachHome).++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
+        reachHome.++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,

@@ -107,11 +107,11 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
                     "$150k+"
             }
         }
+                .groupBy('incomeBracket, 'venueKey) {
+            _.size
+        }
 
     }
 
-    def isNullOrEmpty(str: String): Boolean = {
-        str == null || str.equals("") || str.equals("null")
-    }
 
 }
