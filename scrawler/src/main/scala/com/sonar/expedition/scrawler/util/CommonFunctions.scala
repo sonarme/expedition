@@ -2,6 +2,7 @@ package com.sonar.expedition.scrawler.util
 
 import java.security.MessageDigest
 import util.matching.Regex
+import com.sonar.dossier.dto.ServiceType
 
 object CommonFunctions {
 
@@ -10,12 +11,12 @@ object CommonFunctions {
     val CheckinExtractLineWithVenueId: Regex = """(twitter|facebook|foursquare|linkedin|sonar):([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.Z]*)::(.*?)::([\.\d\-E]+)::([\.\d\-E]+)::([a-zA-Z\w\d\-]+)?::(.*)""".r
     val CheckinExtractLineStageData: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
     val CheckinExtractLineWithMessagesStageData: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
-
     val ServiceProfileExtractLine: Regex = """([a-zA-Z\d\-]+)_(fb|ln|tw|4s)\s:\s(.*)""".r
     val Occupation: Regex = """([a-zA-Z\d\- ]+)\t([a-zA-Z\d\- ,]+)\t([a-zA-Z\d\- ]+)\t(.+)""".r
     val FriendExtractLine: Regex = """([a-zA-Z\d\-]+):(.*?)"id":"(.*?)","service_type":"(.*?)","name":"(.*?)","photo(.*)""".r
     val FriendProdExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\d\-]+)::(.*)""".r
     val ServiceProfileExtractLineCheck: Regex = """^([a-zA-Z\d\-]+)_(fb|ln|tw|4s)\s:\s(.*)$""".r
+    val pay: Regex = """(.*)([\d\,]+)(\s+)(per year)(.*)""".r
 
     val College: Regex = """(A|B|O)""".r
     val NoCollege: Regex = """(H)""".r
@@ -44,5 +45,7 @@ object CommonFunctions {
     def isNullOrEmpty(str: String): Boolean = {
         str == null || str.equals("") || str.equals("null")
     }
+
+    final val venueGoldenIdPriorities = List(ServiceType.foursquare, ServiceType.twitter, ServiceType.facebook).reverse.zipWithIndex.toMap
 
 }
