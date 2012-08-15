@@ -263,29 +263,29 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
         )
     )
 
-//    val byTime = businessGroup.timeSeries(combined)
-//            .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-//        in: (String, Int, String, Int) =>
-//            val (venueKey, hour, serviceType, frequency) = in
-//
-//            val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
-//            val column = hour.toLong * 3600000
-//            val value = frequency * 1.0
-//
-//            (targetVenueGoldenId, column, value)
-//
-//    }
-//            .project(('rowKey, 'columnName, 'columnValue))
-//
-//
-//    val timeSeriesOutput = byTime
-//            .write(
-//        CassandraSource(
-//            rpcHost = rpcHostArg,
-//            privatePublicIpMap = ppmap,
-//            keyspaceName = "dossier",
-//            columnFamilyName = "MetricsVenueTimeseries",
-//            scheme = WideRowScheme(keyField = 'rowKey)
-//        )
-//    )
+    val byTime = businessGroup.timeSeries(combined)
+            .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, Int, String, Int) =>
+            val (venueKey, hour, serviceType, frequency) = in
+
+            val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
+            val column = hour.toLong * 3600000
+            val value = frequency * 1.0
+
+            (targetVenueGoldenId, column, value)
+
+    }
+            .project(('rowKey, 'columnName, 'columnValue))
+
+
+    val timeSeriesOutput = byTime
+            .write(
+        CassandraSource(
+            rpcHost = rpcHostArg,
+            privatePublicIpMap = ppmap,
+            keyspaceName = "dossier",
+            columnFamilyName = "MetricsVenueTimeseries",
+            scheme = WideRowScheme(keyField = 'rowKey)
+        )
+    )
 }
