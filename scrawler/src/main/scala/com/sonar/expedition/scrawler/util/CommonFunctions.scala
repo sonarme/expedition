@@ -2,6 +2,7 @@ package com.sonar.expedition.scrawler.util
 
 import java.security.MessageDigest
 import util.matching.Regex
+import com.sonar.dossier.dto.ServiceType
 
 object CommonFunctions {
 
@@ -40,5 +41,7 @@ object CommonFunctions {
     }
 
     def isNumeric(input: String): Boolean = input.forall(_.isDigit)
+
+    final val venueGoldenIdPriorities = List(ServiceType.foursquare, ServiceType.twitter, ServiceType.facebook).reverse.zipWithIndex.toMap
 
 }
