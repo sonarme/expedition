@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{TextLine, Job, Args}
-import com.sonar.expedition.scrawler.pipes.CheckinGrouperFunction
+import com.sonar.expedition.scrawler.pipes.{PlacesCorrelation, CheckinGrouperFunction}
 import com.sonar.dossier.dto.CompetitiveVenue
 import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumn, CompetitiveVenueColumnSerializer}
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
@@ -15,10 +15,16 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
 
+    val goldenIDpipes = new PlacesCorrelation(args)
+
+
     val chkininputData = args("checkinData")
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
 
     val chkindata = checkinGrouperPipe.unfilteredCheckinsLatLon(TextLine(chkininputData).read)
+
+
+    //val goldenIDpipes.correlatedPlaces()
 
     val similarity = chkindata.groupBy('keyid, 'venName) {
         _.size
