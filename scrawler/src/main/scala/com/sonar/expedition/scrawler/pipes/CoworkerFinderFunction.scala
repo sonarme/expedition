@@ -225,7 +225,6 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
         val employerGroupedEmployeeUserIds = userEmployer.map('worked -> 'emp) {
             employer: String =>
             /*if (employer == null) null else TODO */
-                println("findCoworkerCheckinsPipe export");
                 StemAndMetaphoneEmployer.getStemmed(employer).take(30)
 
         }.project(('emp, 'key))

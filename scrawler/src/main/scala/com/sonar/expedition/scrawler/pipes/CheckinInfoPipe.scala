@@ -102,7 +102,6 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
             fields: (String, List[String]) =>
                 val (key, chkinlist) = fields
                 val chkcity = findCityFromChkins(chkinlist)
-                println("findClusteroidofUserFromChkins export")
                 (key, chkcity)
         }
 
