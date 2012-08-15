@@ -95,15 +95,15 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val friendsForCoworker = friendGroup.groupFriends(friendData)
     val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
-    /*val homeCheckins = checkinGroup.groupHomeCheckins(TextLine(checkininput).read)
+    val homeCheckins = checkinGroup.groupHomeCheckins(TextLine(checkininput).read)
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-    val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins) */
+    val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
             .map('centroid -> 'workCentroid) {centroid: String => centroid}
-            /*.discard(('key1, 'centroid))
+            .discard(('key1, 'centroid))
             .joinWithSmaller('key -> 'key1, findhomefromchkins)
-            .map('centroid -> 'homeCentroid) {centroid: String => centroid}   */
-            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
+            .map('centroid -> 'homeCentroid) {centroid: String => centroid}
+//            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
 
 
 
@@ -154,6 +154,38 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
     }
             .project(('rowKey, 'columnName, 'columnValue))
+
+    val totalDegree = byDegree.groupBy('columnName) {
+        _.sum('columnValue)
+    }
+            .map('columnName -> 'rowKey) {
+        columnName: String => "totalAll_education"
+    }
+
+    val totalAge = byAge.groupBy('columnName) {
+        _.sum('columnValue)
+    }
+            .map('columnName -> 'rowKey) {
+        columnName: String => "totalAll_age"
+    }
+
+    val totalGender = byGender.groupBy('columnName) {
+        _.sum('columnValue)
+    }
+            .map('columnName -> 'rowKey) {
+        columnName: String => "totalAll_gender"
+    }
+
+    /* val totalIncome = byIncome.groupBy('columnName) {
+        _.sum('columnValue)
+    }
+            .map('columnName -> 'rowKey) {
+        columnName: String => "totalAll_income"
+    } */
+
+    val totalStatic = (totalAge ++ totalDegree ++ totalGender).project(('rowKey, 'columnName, 'columnValue))
+
+
 
     val loyalty = reachLoyalty.findLoyalty(combined)
 
@@ -253,8 +285,8 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))   */
 
-    val staticOutput = // byIncome.++(reachHome).++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
-        reachHome.++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
+    val staticOutput =
+        (totalStatic ++ reachHome ++ reachWork ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
