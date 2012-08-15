@@ -35,7 +35,7 @@ public class MeetupCrawler {
             String contentType = connection.getContentType();
             siteMapContent = StringUtils.stripToEmpty(siteMapContent);
             AbstractSiteMap abstractSiteMapIndex = siteMapParser.parseSiteMap(contentType, siteMapContent.getBytes(), url);
-                int counter = 0;
+            int counter = 0;
             if (abstractSiteMapIndex.isIndex()) {
                 SiteMapIndex siteMapIndex = (SiteMapIndex) abstractSiteMapIndex;
                 Collection<AbstractSiteMap> siteMaps = siteMapIndex.getSitemaps();

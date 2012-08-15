@@ -31,7 +31,7 @@ class FilterNoNameCheckins(args: Args) extends Job(args) {
         _.toList[String]('venName -> 'uniqueVenues)
     }
             .project('uniqueVenues)
-//            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour)
+            //            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour)
             .write(TextLine("/tmp/checkinsWithNames.txt"))
 
 }

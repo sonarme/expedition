@@ -7,8 +7,8 @@ class ReachLoyaltyAnalysis(args: Args) extends Job(args) {
 
     def findReach(combinedInput: RichPipe): RichPipe = {
 
-        val processed = combinedInput.map(('loc, 'homeCentroid, 'workCentroid) -> ('distanceTraveled, 'isHome)) {
-            fields : (String, String, String) => {
+        val processed = combinedInput.map(('loc, 'homeCentroid, 'workCentroid) ->('distanceTraveled, 'isHome)) {
+            fields: (String, String, String) => {
                 val (loc, home, work) = fields
                 val loclat = loc.split(":").head.toDouble
                 val loclong = loc.split(":").last.toDouble
@@ -24,9 +24,13 @@ class ReachLoyaltyAnalysis(args: Args) extends Job(args) {
         }
 
         val stats = processed.groupBy('venueKey) {
-            _.sizeAveStdev('distanceTraveled -> ('count, 'meanDist, 'stdevDistRaw))
-                .count('isHome -> 'numHome){ x : Boolean => x }
-                .count('isHome -> 'numWork){ x : Boolean => !x}
+            _.sizeAveStdev('distanceTraveled ->('count, 'meanDist, 'stdevDistRaw))
+                    .count('isHome -> 'numHome) {
+                x: Boolean => x
+            }
+                    .count('isHome -> 'numWork) {
+                x: Boolean => !x
+            }
         }
                 .map('stdevDistRaw -> 'stdevDist) {
             stdev: Double => {
@@ -60,7 +64,7 @@ class ReachLoyaltyAnalysis(args: Args) extends Job(args) {
 
         val stats = processed.groupBy('venueKey, 'loyalty) {
             _.size('customers)
-                .sum('visits -> 'visitsType)
+                    .sum('visits -> 'visitsType)
         }
 
         stats
