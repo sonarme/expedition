@@ -31,6 +31,14 @@ class ReachLoyaltyAnalysis(args: Args) extends Job(args) {
                     .count('isHome -> 'numWork) {
                 x: Boolean => !x
             }
+                    .max('loc)
+        }
+                .map(('loc) ->('lat, 'lng)) {
+            fields: (String) =>
+                val loc = fields
+                val lat = loc.split(":").head
+                val long = loc.split(":").last
+                (lat, long)
         }
                 .map('stdevDistRaw -> 'stdevDist) {
             stdev: Double => {
