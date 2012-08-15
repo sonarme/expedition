@@ -2,6 +2,7 @@ package com.sonar.expedition.scrawler.util
 
 import java.security.MessageDigest
 import util.matching.Regex
+import com.sonar.dossier.dto.ServiceType
 
 object CommonFunctions {
 
@@ -44,5 +45,7 @@ object CommonFunctions {
     def isNullOrEmpty(str: String): Boolean = {
         str == null || str.equals("") || str.equals("null")
     }
+
+    final val venueGoldenIdPriorities = List(ServiceType.foursquare, ServiceType.twitter, ServiceType.facebook).reverse.zipWithIndex.toMap
 
 }
