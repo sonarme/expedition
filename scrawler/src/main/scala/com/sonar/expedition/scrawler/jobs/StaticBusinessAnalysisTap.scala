@@ -234,20 +234,20 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
-//    val byIncome = businessGroup.byIncome(combined)
-//            .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-//        in: (String, String, Int) =>
-//            val (venueKey, income, frequency) = in
-//
-//            val targetVenueGoldenId = venueKey + "_income"
-//            val column = income
-//            val value = frequency.toDouble
-//
-//            (targetVenueGoldenId, column, value)
-//    }
-//            .project(('rowKey, 'columnName, 'columnValue))
+    val byIncome = businessGroup.byIncome(combined)
+            .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, String, Int) =>
+            val (venueKey, income, frequency) = in
 
-    val staticOutput = reachHome.++(reachWork).++(reachMean).++(reachStdev) //loyaltyCount.++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
+            val targetVenueGoldenId = venueKey + "_income"
+            val column = income
+            val value = frequency.toDouble
+
+            (targetVenueGoldenId, column, value)
+    }
+            .project(('rowKey, 'columnName, 'columnValue))
+
+    val staticOutput = byIncome // reachHome.++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
