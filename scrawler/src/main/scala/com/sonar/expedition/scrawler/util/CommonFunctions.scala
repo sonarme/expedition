@@ -7,6 +7,7 @@ object CommonFunctions {
 
     val CheckinExtractLine: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.Z]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
     val CheckinExtractLineWithMessages: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.Z]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
+    val CheckinExtractLineWithVenueId: Regex = """(twitter|facebook|foursquare|linkedin|sonar):([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.Z]*)::(.*?)::([\.\d\-E]+)::([\.\d\-E]+)::([a-zA-Z\w\d\-]+)?::(.*)""".r
     val CheckinExtractLineStageData: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)""".r
     val CheckinExtractLineWithMessagesStageData: Regex = """([a-zA-Z\d\-]+)::(twitter|facebook|foursquare|linkedin|sonar)::([a-zA-Z\w\d\-\.@]*)::([a-zA-Z\w\d\-]+)::(.*?)::(.*?)::([\d\-:T\+\.]*)::([\-\d]*)::([\.\d\-E]+)::([\.\d\-E]+)::(.*)""".r
 

@@ -31,11 +31,48 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.9.1</artifactId>
+            <version>1.8</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.esotericsoftware.kryo</groupId>
+            <artifactId>kryo</artifactId>
+            <version>2.19</version>
+        </dependency>
+        <dependency>
             <groupId>com.twitter</groupId>
             <artifactId>scalding_2.9.1</artifactId>
-            <version>0.5.1</version>
-        </dependency>
+            <version>0.7.3</version>
 
+        </dependency>
+        <dependency>
+            <groupId>org.apache.cassandra</groupId>
+            <artifactId>cassandra-all</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+        <!-- running on emr -->
+        <dependency>
+            <groupId>org.apache.thrift</groupId>
+            <artifactId>libthrift</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sonar</groupId>
+            <artifactId>scalding-cassandra</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpcore</artifactId>
+            <version>4.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.2.1</version>
+        </dependency>
 
         <!-- START: dependencies that are shaded -->
         <dependency>
@@ -99,24 +136,6 @@
             <artifactId>dossier-dto</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-
-
-
-        <dependency>
-            <groupId>org.apache.cassandra</groupId>
-            <artifactId>cassandra-all</artifactId>
-            <version>1.0.8</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.httpcomponents</groupId>
-                    <artifactId>httpclient</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-core-asl</artifactId>
@@ -176,30 +195,6 @@
             <artifactId>cascading.utils</artifactId>
             <version>1.1-SNAPSHOT</version>
         </dependency>-->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
-            <exclusions>
-                <!-- Exclude Commons Logging in favor of SLF4j -->
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
-            <version>${spring.version}</version>
-            <exclusions>
-                <!-- Exclude Commons Logging in favor of SLF4j -->
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
 
 
         <dependency>
@@ -207,11 +202,7 @@
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <version>4.1.2</version>
-        </dependency>
+
         <dependency>
             <groupId>com.google.code.crawler-commons</groupId>
             <artifactId>crawler-commons</artifactId>
@@ -251,12 +242,6 @@
         </dependency>
 
 
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>com.factual</groupId>
             <artifactId>factual-java-driver</artifactId>
@@ -327,29 +312,16 @@
             <version>1.2.16</version>
         </dependency>
 
-
-        <dependency>
-            <groupId>org.apache.mahout</groupId>
-            <artifactId>mahout-core</artifactId>
-            <version>0.8-SNAPSHOT</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.mahout</groupId>
-            <artifactId>mahout-core</artifactId>
-            <version>0.7</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.mahout</groupId>
-            <artifactId>mahout-core</artifactId>
-            <version>0.1</version>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.mahout</groupId>
             <artifactId>mahout-core</artifactId>
             <version>0.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-core</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -374,11 +346,6 @@
             <artifactId>mahout-examples</artifactId>
             <version>0.7</version>
         </dependency>
-        <dependency>
-            <groupId>bixo</groupId>
-            <artifactId>bixo-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
 
     </dependencies>
 
@@ -392,7 +359,7 @@
             </resource>
         </resources>
         <sourceDirectory>src/main/scala</sourceDirectory>
-        <testSourceDirectory>src/main/scala</testSourceDirectory>
+        <testSourceDirectory>src/test/scala</testSourceDirectory>
 
 
         <plugins>
@@ -419,35 +386,88 @@
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.9</version>
-                <configuration>
-                    <includes>
-                        <include>**/*Test*.scala</include>
-                    </includes>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-war-plugin</artifactId>
-                <version>2.1.1</version>
-            </plugin>
-
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.7</version>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>1.5</version>
                 <executions>
                     <execution>
-                        <phase>generate-sources</phase>
+                        <phase>package</phase>
                         <goals>
-                            <goal>add-source</goal>
+                            <goal>shade</goal>
                         </goals>
                         <configuration>
-                            <sources>
-                                <source>src/main/java</source>
-                            </sources>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.scala-lang:scala-compiler</exclude>
+                                    <exclude>org.scala-lang:scalap</exclude>
+                                    <exclude>junit:junit</exclude>
+                                    <exclude>ch.qos.logback:logback-classic</exclude>
+                                    <exclude>org.slf4j:slf4j-log4j12</exclude>
+                                    <exclude>org.slf4j:jcl-over-slf4j</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring.handlers</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring.schemas</resource>
+                                </transformer>
+                            </transformers>
+                            <!--<relocations>
+                                <relocation>
+                                    <pattern>org.codehaus.jackson</pattern>
+                                    <shadedPattern>com.sonar.jackson</shadedPattern>
+                                    <includes>
+                                        <include>org.codehaus.jackson.*</include>
+                                        <include>org.codehaus.jackson.annotate.*</include>
+                                        <include>org.codehaus.jackson.format.*</include>
+                                        <include>org.codehaus.jackson.impl.*</include>
+                                        <include>org.codehaus.jackson.io.*</include>
+                                        <include>org.codehaus.jackson.schema.*</include>
+                                        <include>org.codehaus.jackson.sym.*</include>
+                                        <include>org.codehaus.jackson.type.*</include>
+                                        <include>org.codehaus.jackson.util.*</include>
+                                        <include>org.codehaus.jackson.map.annotate.*</include>
+                                        <include>org.codehaus.jackson.map.deser.*</include>
+                                        <include>org.codehaus.jackson.map.deser.std.*</include>
+                                        <include>org.codehaus.jackson.map.deser.impl.*</include>
+                                        <include>org.codehaus.jackson.map.annotate.*</include>
+                                        <include>org.codehaus.jackson.map.*</include>
+                                        <include>org.codehaus.jackson.map.type.*</include>
+                                        <include>org.codehaus.jackson.map.util.*</include>
+                                        <include>org.codehaus.jackson.map.exc.*</include>
+                                        <include>org.codehaus.jackson.map.ext.*</include>
+                                        <include>org.codehaus.jackson.map.introspect.*</include>
+                                        <include>org.codehaus.jackson.map.jsontype.*</include>
+                                        <include>org.codehaus.jackson.map.jsontype.impl.*</include>
+                                        <include>org.codehaus.jackson.map.module.*</include>
+                                        <include>org.codehaus.jackson.map.ser.*</include>
+                                        <include>org.codehaus.jackson.map.ser.impl.*</include>
+                                        <include>org.codehaus.jackson.map.ser.std.*</include>
+                                        <include>org.codehaus.jackson.map.type.*</include>
+                                        <include>org.codehaus.jackson.map.util.*</include>
+                                        <include>org.codehaus.jackson.map.*</include>
+                                        <include>org.codehaus.jackson.jaxrs.*</include>
+                                        <include>org.codehaus.jackson.node.*</include>
+                                        <include>org.codehaus.jackson.xc.*</include>
+
+                                    </includes>
+                                </relocation>
+                            </relocations>-->
+                            <!--Need this to filter out signed manifests that will trip up Hadoop-->
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+
                         </configuration>
                     </execution>
                 </executions>
@@ -456,97 +476,55 @@
         </plugins>
 
     </build>
-
     <profiles>
         <profile>
-            <id>app</id>
+            <id>runJob</id>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-shade-plugin</artifactId>
-                        <version>1.5</version>
+                        <groupId>br.com.ingenieux</groupId>
+                        <artifactId>beanstalk-maven-plugin</artifactId>
+                        <version>0.2.7-RC5</version>
+                        <configuration>
+                            <s3Bucket>scrawler</s3Bucket>
+                            <s3Key>${project.build.finalName}-${maven.build.timestamp}.jar</s3Key>
+                            <verbose>true</verbose>
+                        </configuration>
                         <executions>
                             <execution>
+                                <id>run-new-job-1</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <goal>shade</goal>
+                                    <!-- upload do S3 -->
+                                    <goal>upload-source-bundle</goal>
                                 </goals>
-                                <configuration>
-                                    <artifactSet>
-                                        <excludes>
-                                            <exclude>org.scala-lang:scala-compiler</exclude>
-                                            <exclude>org.scala-lang:scalap</exclude>
-                                            <exclude>junit:junit</exclude>
-                                            <exclude>ch.qos.logback:logback-classic</exclude>
-                                            <exclude>org.slf4j:slf4j-log4j12</exclude>
-                                            <exclude>org.slf4j:jcl-over-slf4j</exclude>
-                                        </excludes>
-                                    </artifactSet>
-                                    <transformers>
-                                        <transformer
-                                                implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                            <resource>META-INF/spring.handlers</resource>
-                                        </transformer>
-                                        <transformer
-                                                implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                                            <resource>META-INF/spring.schemas</resource>
-                                        </transformer>
-                                    </transformers>
-                                    <!--<relocations>
-                                        <relocation>
-                                            <pattern>org.codehaus.jackson</pattern>
-                                            <shadedPattern>com.sonar.jackson</shadedPattern>
-                                            <includes>
-                                                <include>org.codehaus.jackson.*</include>
-                                                <include>org.codehaus.jackson.annotate.*</include>
-                                                <include>org.codehaus.jackson.format.*</include>
-                                                <include>org.codehaus.jackson.impl.*</include>
-                                                <include>org.codehaus.jackson.io.*</include>
-                                                <include>org.codehaus.jackson.schema.*</include>
-                                                <include>org.codehaus.jackson.sym.*</include>
-                                                <include>org.codehaus.jackson.type.*</include>
-                                                <include>org.codehaus.jackson.util.*</include>
-                                                <include>org.codehaus.jackson.map.annotate.*</include>
-                                                <include>org.codehaus.jackson.map.deser.*</include>
-                                                <include>org.codehaus.jackson.map.deser.std.*</include>
-                                                <include>org.codehaus.jackson.map.deser.impl.*</include>
-                                                <include>org.codehaus.jackson.map.annotate.*</include>
-                                                <include>org.codehaus.jackson.map.*</include>
-                                                <include>org.codehaus.jackson.map.type.*</include>
-                                                <include>org.codehaus.jackson.map.util.*</include>
-                                                <include>org.codehaus.jackson.map.exc.*</include>
-                                                <include>org.codehaus.jackson.map.ext.*</include>
-                                                <include>org.codehaus.jackson.map.introspect.*</include>
-                                                <include>org.codehaus.jackson.map.jsontype.*</include>
-                                                <include>org.codehaus.jackson.map.jsontype.impl.*</include>
-                                                <include>org.codehaus.jackson.map.module.*</include>
-                                                <include>org.codehaus.jackson.map.ser.*</include>
-                                                <include>org.codehaus.jackson.map.ser.impl.*</include>
-                                                <include>org.codehaus.jackson.map.ser.std.*</include>
-                                                <include>org.codehaus.jackson.map.type.*</include>
-                                                <include>org.codehaus.jackson.map.util.*</include>
-                                                <include>org.codehaus.jackson.map.*</include>
-                                                <include>org.codehaus.jackson.jaxrs.*</include>
-                                                <include>org.codehaus.jackson.node.*</include>
-                                                <include>org.codehaus.jackson.xc.*</include>
-
-                                            </includes>
-                                        </relocation>
-                                    </relocations>-->
-                                    <!--Need this to filter out signed manifests that will trip up Hadoop-->
-                                    <filters>
-                                        <filter>
-                                            <artifact>*:*</artifact>
-                                            <excludes>
-                                                <exclude>META-INF/*.SF</exclude>
-                                                <exclude>META-INF/*.DSA</exclude>
-                                                <exclude>META-INF/*.RSA</exclude>
-                                            </excludes>
-                                        </filter>
-                                    </filters>
-
-                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>br.com.ingenieux</groupId>
+                        <artifactId>mapreduce-maven-plugin</artifactId>
+                        <version>0.2.7-RC5</version>
+                        <configuration>
+                            <path>s3://scrawler/${project.build.finalName}-${maven.build.timestamp}.jar</path>
+                            <verbose>true</verbose>
+                            <logUri>s3://scrawler/debuglogs</logUri>
+                            <!--<hadoopVersion>0.20.205.0</hadoopVersion> getting an error about the AMI when using this-->
+                            <args>
+                                <arg>--enable-debugging</arg>
+                                <arg>--hdfs</arg>
+                                <arg>--rpcHost 184.73.11.214</arg>
+                                <!-- this is cassandra stag -->
+                            </args>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>run-new-job-2</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <!-- run the job -->
+                                    <goal>run-job-flow</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>
@@ -554,44 +532,4 @@
             </build>
         </profile>
     </profiles>
-
-    <repositories>
-        <repository>
-            <id>sonar-nexus</id>
-            <url>http://sonar-nexus.elasticbeanstalk.com/content/groups/public</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>repo.codahale.com</id>
-            <url>http://repo.codahale.com</url>
-        </repository>
-        <repository>
-            <id>nativelibs4java</id>
-            <url>http://nativelibs4java.sourceforge.net/maven</url>
-        </repository>
-        <repository>
-            <id>elasticsearch</id>
-            <name>elasticsearch repo</name>
-            <url>http://elasticsearch.googlecode.com/svn/maven</url>
-        </repository>
-
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>sonar-nexus</id>
-            <url>http://sonar-nexus.elasticbeanstalk.com/content/groups/public</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
-
 </project>

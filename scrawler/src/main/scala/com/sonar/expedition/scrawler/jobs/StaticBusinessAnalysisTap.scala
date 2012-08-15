@@ -7,10 +7,6 @@ import com.sonar.dossier.dao.cassandra.JSONSerializer
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{StringSerializer, DoubleSerializer}
-import com.sonar.scalding.cassandra.WideRowScheme
-import com.sonar.scalding.cassandra.CassandraSource
-import com.sonar.scalding.cassandra.WideRowScheme
-import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 
@@ -99,6 +95,15 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val friendsForCoworker = friendGroup.groupFriends(friendData)
     val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+    val homeCheckins = checkinGroup.groupHomeCheckins(TextLine(checkininput).read)
+    val homeProfilesAndCheckins = joinedProfiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+    val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
+    val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
+            .map('centroid -> ('workCentroid)) {centroid: String => centroid}
+            .discard(('key1, 'centroid))
+            .joinWithSmaller('key -> 'key1, findhomefromchkins)
+            .map('centroid -> ('homeCentroid)) {centroid: String => centroid}
+
 
 
 
@@ -180,7 +185,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             .project(('rowKey, 'columnName, 'columnValue))
 
 
-    val reach = reachLoyalty.findReach(combined)
+    val reach = reachLoyalty.findReach(withHomeWork)
 
     val reachMean = reach
             .map(('venueKey, 'meanDist) ->('rowKey, 'columnName, 'columnValue)) {
@@ -234,7 +239,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
-    val byIncome = businessGroup.byIncome(combined)
+    val byIncome = businessGroup.byIncome(profilesWithIncome)
             .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, String, Int) =>
             val (venueKey, income, frequency) = in
@@ -247,7 +252,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
-    val staticOutput = byIncome // reachHome.++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
+    val staticOutput = byIncome.++(reachHome).++(reachWork).++(reachMean).++(reachStdev).++(loyaltyCount).++(loyaltyVisits).++(byAge).++(byDegree).++(byGender)
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
@@ -258,29 +263,29 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
         )
     )
 
-    val byTime = businessGroup.timeSeries(combined)
-            .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, Int, String, Int) =>
-            val (venueKey, hour, serviceType, frequency) = in
-
-            val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
-            val column = hour.toLong * 3600000
-            val value = frequency * 1.0
-
-            (targetVenueGoldenId, column, value)
-
-    }
-            .project(('rowKey, 'columnName, 'columnValue))
-
-
-    val timeSeriesOutput = byTime
-            .write(
-        CassandraSource(
-            rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
-            keyspaceName = "dossier",
-            columnFamilyName = "MetricsVenueTimeseries",
-            scheme = WideRowScheme(keyField = 'rowKey)
-        )
-    )
+//    val byTime = businessGroup.timeSeries(combined)
+//            .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+//        in: (String, Int, String, Int) =>
+//            val (venueKey, hour, serviceType, frequency) = in
+//
+//            val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
+//            val column = hour.toLong * 3600000
+//            val value = frequency * 1.0
+//
+//            (targetVenueGoldenId, column, value)
+//
+//    }
+//            .project(('rowKey, 'columnName, 'columnValue))
+//
+//
+//    val timeSeriesOutput = byTime
+//            .write(
+//        CassandraSource(
+//            rpcHost = rpcHostArg,
+//            privatePublicIpMap = ppmap,
+//            keyspaceName = "dossier",
+//            columnFamilyName = "MetricsVenueTimeseries",
+//            scheme = WideRowScheme(keyField = 'rowKey)
+//        )
+//    )
 }
