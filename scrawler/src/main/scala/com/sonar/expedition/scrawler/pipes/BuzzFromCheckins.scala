@@ -4,6 +4,7 @@ import com.twitter.scalding.{Job, Args, RichPipe}
 import com.sonar.expedition.scrawler.util.{StemAndMetaphoneEmployer, CommonFunctions, ShingleTokenizer}
 import cascading.pipe.joiner.LeftJoin
 import cascading.tuple.Fields
+import com.sonar.dossier.dto.ServiceType
 
 class BuzzFromCheckins(args: Args) extends Job(args) {
 
@@ -26,7 +27,7 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
                 .flatMap(('venName, 'message) -> 'singleShingle) {
             fields: (String, String) =>
                 val (venueName, message) = fields
-                val messageShingles = ShingleTokenizer.shingleize(message, venueName.split(" ").size + 1)
+                val messageShingles = ShingleTokenizer.shingleize(message, 3)
                 (messageShingles)
         }
                 .project('singleShingle)
@@ -46,16 +47,24 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
                 val venName = fields
                 (!CommonFunctions.isNullOrEmpty(venName))
         }
-                .joinWithSmaller('stemmedVenName -> 'singleShingle, shingles, joiner = new LeftJoin)
+                .joinWithLarger('stemmedVenName -> 'singleShingle, shingles)
+//                .unique(('stemmedVenName, 'goldenId))
+                .groupBy('stemmedVenName, 'goldenId) {
+            _.size('shinglesPerVenue)
+        }
                 .groupBy('stemmedVenName) {
             _
-                    .size('singleShinglesize)
+                    .sum('shinglesPerVenue -> 'singleShinglesize)
+                    .toList[String]('goldenId -> 'goldenIdList)
+//                    .sortWithTake('goldenId -> 'goldenIdList, 100000) {
+//                (venueId1: (String), venueId2: (String)) => venueId1 > venueId2
+//            }
         }
                 .groupAll {
             _
                     .sortBy('singleShinglesize)
         }
-                .project('stemmedVenName, 'singleShinglesize)
+                .project('stemmedVenName, 'singleShinglesize, 'goldenIdList)
         buzz
     }
 
@@ -95,13 +104,13 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
         val normalizedBuzz = buzz
                 .crossWithTiny(buzzStats)
                 .map(('singleShinglesize, 'avg) -> ('normalized)) {
-            fields: (String, String) =>
+            fields: (Double, String) =>
                 val (buzz, avg) = fields
-                val normalized = buzz.toInt / avg.toDouble
+                val normalized = buzz / avg.toDouble
                 val log = scala.math.log(normalized)
                 log
         }
-                .project('stemmedVenName, 'normalized)
+                .project('stemmedVenName, 'singleShinglesize, 'normalized, 'goldenIdList)
         normalizedBuzz
 
     }
@@ -118,7 +127,14 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
                 (score + 1.0)
         }
         buzzScore
-    }.project('stemmedVenName, 'buzzScore)
+    }
+            .flatMap('goldenIdList -> 'golden) {
+        fields: (List[String]) =>
+            val (goldenIdList) = fields
+            goldenIdList
+    }
+            .project('stemmedVenName, 'singleShinglesize, 'buzzScore, 'golden)
+
 
 
 }
