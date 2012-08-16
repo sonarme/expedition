@@ -5,7 +5,6 @@ import com.sonar.expedition.scrawler.pipes.{PlacesCorrelation, CheckinGrouperFun
 
 class BuzzFromCheckinsTest(args: Args) extends Job(args) {
 
-    val checkinsWithMessage = args("checkinsWithMessage")
     val checkinsWithoutMessage = args("checkinsWithoutMessage")
     val checkinsWithVenueId = args("checkinsWithVenueId")
     val output = args("output")
@@ -15,7 +14,7 @@ class BuzzFromCheckinsTest(args: Args) extends Job(args) {
     val venueIdPipe = new PlacesCorrelation(args)
 
     val venueId = checkinGrouperPipe.correlationCheckins(TextLine(checkinsWithVenueId).read)
-    val msgCheckins = checkinGrouperPipe.checkinsWithMessage(TextLine(checkinsWithMessage).read)
+    val msgCheckins = checkinGrouperPipe.checkinsWithMessage(TextLine(checkinsWithVenueId).read)
     val noMsgCheckins = checkinGrouperPipe.unfilteredCheckinsLatLon(TextLine(checkinsWithoutMessage).read)
     val venueIdCheckins = venueIdPipe.withGoldenId(noMsgCheckins, venueId)
     val shinglesPipe = buzzPipe.getShingles(msgCheckins)

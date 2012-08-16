@@ -82,17 +82,18 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def checkinsWithMessage(input: RichPipe): RichPipe = {
         val data = input
-                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)) {
+                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)) {
             line: String => {
                 line match {
-                    case CheckinExtractLineWithMessages(id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, msg) => {
+                    case CheckinExtractLineWithVenueId(golden, id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
                         val timeFilter = Calendar.getInstance()
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         timeFilter.setTime(checkinDate)
                         val date = timeFilter.get(Calendar.DAY_OF_YEAR)
                         val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
                         val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
-                        Some((id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
+                        val goldenId = golden + ":" + id
+                        Some((goldenId, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, venueId, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
                     }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
@@ -101,7 +102,8 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 }
             }
         }
-                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg))
+                .unique(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg))
+
         data
     }
 
