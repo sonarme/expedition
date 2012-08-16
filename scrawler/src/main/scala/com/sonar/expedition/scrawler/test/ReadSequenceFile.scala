@@ -29,8 +29,8 @@ class ReadSequenceFile(args: Args) extends Job(args) {
     //var srcScheme =  WriterSeqFile(inpfile,new Fields("key","value"))
     //var res= srcScheme.read.project(Fields.ALL).write((TextLine(output)))
 
-    var inputData = "/tmp/sample.txt"
-    var out = "/tmp/res2.txt"
+    var inputData = args("sample")
+    var out = args("out")
 
 
     var inp = TextLine(inputData).read.project('line).map('line ->('id, 'joblist)) {

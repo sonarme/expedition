@@ -5,10 +5,10 @@ import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class FriendsAtSameVenueTest(args: Args) extends Job(args) {
-    val serviceProfileInput = "/tmp/serviceProfileData.txt"
-    val friendsInput = "/tmp/friendData.txt"
-    val checkinsInput = "/tmp/checkinDatatest.txt"
-    val matchedFriends = "/tmp/matchedFriends.txt"
+    val serviceProfileInput = args("serviceProfileData")
+    val friendsInput = args("friendData")
+    val checkinsInput = args("checkinData")
+    val matchedFriends = args("matchedFriends")
 
     val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
     val checkinGrouperPipe = new CheckinGrouperFunction(args)

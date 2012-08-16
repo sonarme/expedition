@@ -5,8 +5,8 @@ import com.sonar.expedition.scrawler.pipes.FriendGrouperFunction
 import com.twitter.scalding._
 
 class FriendGrouperFunctionTest(args: Args) extends Job(args) {
-    var in = "/tmp/friendData.txt"
-    var out = "/tmp/userGroupedFriends.txt"
+    var in = args("friendData")
+    var out = args("userGroupedFriends")
     val groupFuncTest = new FriendGrouperFunction(args)
 
     //TextLine(in).read.project('line).write(TextLine(out))
