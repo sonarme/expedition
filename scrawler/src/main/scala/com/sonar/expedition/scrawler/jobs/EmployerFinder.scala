@@ -9,9 +9,9 @@ import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
 
 class EmployerFinder(args: Args) extends Job(args) {
 
-    val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
-    val checkinInput = "/tmp/userGroupedCheckins.txt"
-    val out = "/tmp/locationMatch.txt"
+    val serviceProfileInput = args("employerGroupedServiceProfiles")
+    val checkinInput = args("userGroupedCheckins")
+    val out = args("locationMatch")
 
     val employerGroupedEmployeeUserIds = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('employer, 'listofworkers)) {
         line: String => {

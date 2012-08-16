@@ -6,6 +6,7 @@ import com.sonar.expedition.scrawler.pipes.CheckinGrouperFunction
 class FilterNoNameCheckins(args: Args) extends Job(args) {
 
     val checkinData = args("checkinData")
+    val checkinsWithNamesOutput = args("checkinsWithNamesOutput")
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
 
     val checkinPipe = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinData).read)
@@ -32,6 +33,6 @@ class FilterNoNameCheckins(args: Args) extends Job(args) {
     }
             .project('uniqueVenues)
             //            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour)
-            .write(TextLine("/tmp/checkinsWithNames.txt"))
+            .write(TextLine(checkinsWithNamesOutput))
 
 }
