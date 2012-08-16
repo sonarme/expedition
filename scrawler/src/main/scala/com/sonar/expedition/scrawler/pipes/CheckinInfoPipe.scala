@@ -95,6 +95,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
         val citypipe = chkins.groupBy('key) {
             _
                     //.mapReduceMap('key->'key1), todo understand mapreducemap api
+
                     .toList[String]('loc -> 'locList)
 
         }.mapTo(('key, 'locList) ->('key1, 'centroid)) {

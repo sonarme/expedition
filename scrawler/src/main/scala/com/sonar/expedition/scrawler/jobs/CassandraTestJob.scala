@@ -19,25 +19,25 @@ class CassandraTestJob(args: Args) extends Job(args) {
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
-        columnFamilyName = "ProfileView", // SonarUser
-        scheme = WideRowScheme(keyField = 'privacySPLB,
-            nameField = ('targetSPLB, 'profileB))
+        columnFamilyName = "SonarUser",
+        scheme = WideRowScheme(keyField = 'sonarUserIdB,
+            nameField = ('columnNameB, 'columnValueB))
     )
-            .map(('privacySPLB, 'targetSPLB, 'profileB) -> ('spl)) {
+            .map(('sonarUserIdB, 'columnNameB, 'columnValueB) -> ('sonarId)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {
-            val spl = ServiceProfileLinkSerializer.fromByteBuffer(in._2).profileId // StringSerializer.get().fromByteBuffer(in._1)
-            (spl)
+            val sid = StringSerializer.get().fromByteBuffer(in._1)
+            (sid)
         }
-    }.project('spl).groupBy('spl) {
+    }.project('sonarId).groupBy('sonarId) {
         _.size
     }
-            .write(     //     Tsv("testout")
+            .write(  Tsv("testout")/*
        CassandraSource(
             rpcHost = rpcHostArg,
             privatePublicIpMap = ppmap,
             keyspaceName = "dossier_ben",
             columnFamilyName = "BenTest",
             scheme = NarrowRowScheme(keyField = 'spl, nameFields = 'size, columnNames = List("count"))
-        )
+        )*/
     )
 }

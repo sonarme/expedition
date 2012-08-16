@@ -4,6 +4,7 @@ import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes.CoworkerFinderFunction
 
 class CoworkerFinderFunctionTest(args: Args) extends Job(args) {
+    /*
     val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
     val friendsInput = "/tmp/userGroupedFriends.txt"
     val serviceIdsInput = "/tmp/serviceIds.txt"
@@ -20,5 +21,6 @@ class CoworkerFinderFunctionTest(args: Args) extends Job(args) {
     val findCoworkersPipe = coworkerFuncTest.findCoworkerCheckins(serviceProfilePipe, friendsPipe, serviceIdPipe, checkinsPipe)
             .project(('keyid, 'originalUId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
             .write(TextLine(coworkerCheckins))
+    */
 
 }

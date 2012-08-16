@@ -24,7 +24,7 @@ class CheckinFrequencyTestJob(args: Args) extends Job(args) {
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
-        columnFamilyName = "Checkin", // SonarUser
+        columnFamilyName = "Checkin",
         scheme = NarrowRowScheme(keyField = 'checkinIdB,
             nameFields = ('venueIdB, 'checkinTimeB), columnNames = List("venueId", "checkinTime"))
     )
@@ -33,14 +33,14 @@ class CheckinFrequencyTestJob(args: Args) extends Job(args) {
             // filter out checkins without venue or checkin time
             for (venueId <- Option(StringSerializer.get().fromByteBuffer(in._2)) if venueId.nonEmpty;
                  checkinTime <- optionLong(LongSerializer.get().fromByteBuffer(in._3)))
-            yield (venueId, checkinTime / MsInHour * MsInHour)
+            yield (venueId, checkinTime / MsInHour * MsInHour) // normalize checkin time into hour windows, but keep the value as ms to match expected column value later
 
         }
     }.groupBy(('venueId, 'checkinTimeHour)) {
         _.size
     }.map(('venueId, 'size) ->('metricName, 'sizeAsDouble)) {
-        in: (String, Int) => (in._1 + "-checkinFrequencyPerHour", in._2.toDouble)
-    }.project(('metricName, 'checkinTimeHour, 'sizeAsDouble)) // maek sure triples in the correct byte buffers are written to WideRowScheme
+        in: (String, Int) => (in._1 + "-checkinFrequencyPerHour", in._2.toDouble) // converting to double to match the ddl column value format
+    }.project(('metricName, 'checkinTimeHour, 'sizeAsDouble)) // make sure triples in the correct byte buffers are written to WideRowScheme
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,

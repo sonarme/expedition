@@ -4,8 +4,10 @@ import math._
 
 //http://rosettacode.org/wiki/Haversine_formula#Scala
 
-class Haversine extends Serializable {
+class Haversine {
+}
 
+object Haversine extends Serializable {
     val R = 6372.8 //earth radius in km
 
     def haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double) = {
@@ -17,11 +19,6 @@ class Haversine extends Serializable {
         R * c
     }
 
-    object Haversine {
-
-        def main(args: Array[String]): Unit = {
-            println(haversine(36.12, -86.67, 33.94, -118.40))
-        }
-    }
 
 }
+

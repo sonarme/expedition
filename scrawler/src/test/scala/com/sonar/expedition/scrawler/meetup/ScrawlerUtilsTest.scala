@@ -1,7 +1,9 @@
+/*
 package com.sonar.expedition.scrawler.meetup
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
+import com.sonar.expedition.scrawler.util.CommonFunctions
 
 class ScrawlerUtilsTest extends FlatSpec with ShouldMatchers {
 
@@ -35,4 +37,6 @@ class ScrawlerUtilsTest extends FlatSpec with ShouldMatchers {
 
     }
 
+
 }
+*/

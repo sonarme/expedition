@@ -1,8 +1,7 @@
 package com.sonar.expedition.scrawler.util
 
-class LocationScorer extends Serializable {
+object LocationScorer extends Serializable {
     val levver = new Levenshtein
-    val havver = new Haversine
 
     def getScore(workName: String, workLat: String, workLng: String, placeName: String, placeLat: String, placeLng: String): Tuple2[Double, Double] = {
         var levDistance = 0.0
@@ -11,7 +10,7 @@ class LocationScorer extends Serializable {
             havDistance = -1.0
         }
         else {
-            havDistance = havver.haversine(workLat.toDouble, workLng.toDouble, placeLat.toDouble, placeLng.toDouble)
+            havDistance = Haversine.haversine(workLat.toDouble, workLng.toDouble, placeLat.toDouble, placeLng.toDouble)
         }
         if (placeName == null) {
             levDistance = -1.0
@@ -63,6 +62,6 @@ class LocationScorer extends Serializable {
 
 }
 
-object LocationScorer {
+class LocationScorer {
 
 }

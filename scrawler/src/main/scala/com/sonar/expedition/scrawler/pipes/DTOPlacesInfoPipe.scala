@@ -41,10 +41,17 @@ class DTOPlacesInfoPipe(args: Args) extends Job(args) {
                 val propertiesAddress = getPropertiesAddress(placesJson)
                 val propertiesOwner = getPropertiesOwner(placesJson)
                 val propertiesPostcode = getPropertiesPostcode(placesJson)
-
+                val linenum = fields._2
                 (geometryType, geometryLatitude, geometryLongitude, placeType, id, propertiesProvince, propertiesCity, propertiesName, propertiesTags, propertiesCountry,
-                        classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, fields._2.toInt)
+                        classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, linenum)
+        }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+            'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)
+                .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
+            fields: (String, String, String) =>
+                val (state, lat, lng) = fields
+                state == "NY" && lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8
         }
+
         placesData
     }
 
