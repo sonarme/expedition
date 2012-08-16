@@ -23,8 +23,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
     val newcheckininput = args("newCheckinInput")
-    val sequenceOutput = args("sequenceOutput")
-    val textOutput = args("textOutput")
+    val sequenceOutputStatic = args("sequenceOutputStatic")
+    val sequenceOutputTime = args("sequenceOutputTime")
+    val textOutputStatic = args("textOutputStatic")
+    val textOutputTime = args("textOutputTime")
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -326,19 +328,8 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val staticOutput =
         (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 
-    val staticSequence = staticOutput.write(SequenceFile(sequenceOutput, Fields.ALL))
-    val staticText = staticOutput.write(TextLine(textOutput))
-
-    /* val staticCassandra = staticOutput
-            .write(
-        CassandraSource(
-            rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
-            keyspaceName = "dossier",
-            columnFamilyName = "MetricsVenueStatic",
-            scheme = WideRowScheme(keyField = 'rowKey)
-        )
-    ) */
+    val staticSequence = staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
+    val staticText = staticOutput.write(TextLine(textOutputStatic))
 
     val byTime = businessGroup.timeSeries(combined)
             .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
@@ -354,15 +345,9 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
+    val timeSequence = byTime.write(SequenceFile(sequenceOutputTime, Fields.ALL))
+    val timeText = staticOutput.write(TextLine(textOutputTime))
 
-    /* val timeSeriesOutput = byTime
-            .write(
-        CassandraSource(
-            rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
-            keyspaceName = "dossier",
-            columnFamilyName = "MetricsVenueTimeseries",
-            scheme = WideRowScheme(keyField = 'rowKey)
-        )
-    ) */
+
+
 }
