@@ -118,10 +118,6 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
-
-
-
-
     val staticOutput =
         (byIncome ++ totalIncome)
                 .write(
