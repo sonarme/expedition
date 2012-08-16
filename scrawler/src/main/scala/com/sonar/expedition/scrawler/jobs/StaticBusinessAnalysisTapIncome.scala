@@ -23,6 +23,8 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) {
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
     val newcheckininput = args("newCheckinInput")
+    val sequenceOutputIncome = args("sequenceOutputIncome")
+    val textOutputIncome = args("textOutputIncome")
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -118,20 +120,11 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) {
     }
             .project(('rowKey, 'columnName, 'columnValue))
 
-
-
-
-
     val staticOutput =
         (byIncome ++ totalIncome)
-                .write(
-            CassandraSource(
-                rpcHost = rpcHostArg,
-                privatePublicIpMap = ppmap,
-                keyspaceName = "dossier",
-                columnFamilyName = "MetricsVenueStatic",
-                scheme = WideRowScheme(keyField = 'rowKey)
-            )
-        )
+
+    val staticSequence = staticOutput.write(SequenceFile(sequenceOutputIncome, Fields.ALL))
+    val staticText = staticOutput.write(TextLine(textOutputIncome))
+
 
 }
