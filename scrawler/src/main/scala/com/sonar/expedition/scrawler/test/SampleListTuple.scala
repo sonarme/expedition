@@ -4,8 +4,8 @@ import com.twitter.scalding._
 
 class SampleListTuple(args: Args) extends Job(args) {
 
-    var inputData = "/tmp/sample.txt"
-    var out = "/tmp/res2.txt"
+    var inputData = args("sample")
+    var out = args("out")
 
     var inp = TextLine(inputData).read.project('line).map('line ->('id, 'joblist)) {
         fields: (String) =>

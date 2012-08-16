@@ -8,8 +8,8 @@ import com.twitter.scalding.{Tsv, TextLine, Job, Args}
 //cp /tmp/jobsdata5 /tmp/occupationCodetsv.txt and run the training model TrainBayesModel
 
 class TestDatasetClassifyJob(args: Args) extends Job(args) {
-
-    val jobpipe = TextLine("/tmp/jobsdata1").read.project('line)
+    val jobDataOutput = args("jobDataOutput")
+    val jobpipe = TextLine(args("jobsdata1")).read.project('line)
             .mapTo('line -> 'link) {
         fields: String =>
             val (link) = fields
@@ -40,7 +40,7 @@ class TestDatasetClassifyJob(args: Args) extends Job(args) {
             val (code, job, desc) = fields
             (code, "\t" + desc.replaceAll("[^a-zA-Z\\s]", " "), "\t" + code, "\t" + job.replaceAll("[^a-zA-Z\\s]", " "))
 
-    }.write(TextLine("/tmp/jobsdata5"))
+    }.write(TextLine(jobDataOutput))
 
     def parseJobs(line: String): String = {
 
