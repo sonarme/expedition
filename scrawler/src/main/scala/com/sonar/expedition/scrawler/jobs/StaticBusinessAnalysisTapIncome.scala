@@ -85,6 +85,9 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) {
     }
 
     val jobtypes = joinedProfiles.rename('worktitle -> 'data)
+            .filter('data) {
+        data: String => !isNullOrEmpty(data)
+    }
     val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
     val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
             .rename('rowkey -> 'key)
