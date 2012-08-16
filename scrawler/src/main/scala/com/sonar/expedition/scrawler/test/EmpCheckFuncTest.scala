@@ -7,9 +7,9 @@ import com.sonar.expedition.scrawler.pipes.{EmployerFinderFunction, CheckinGroup
 
 class EmpCheckFuncTest(args: Args) extends Job(args) {
 
-    val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
-    var checkinInput = "/tmp/checkinDatatest.txt"
-    val out = "/tmp/locationMatchSmallFilttest.txt"
+    val serviceProfileInput = args("employerGroupedServiceProfiles")
+    val checkinInput = args("userGroupedCheckins")
+    val out = args("locationMatch")
 
     val groupFuncTest = new CheckinGrouperFunction(args)
     val empFuncTest = new EmployerFinderFunction(args)
