@@ -97,7 +97,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
 
         }.unpack[ProfileData]('combinedProfile ->('key, 'name, 'fbid, 'lnid, 'fsid, 'twalias, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear, 'worktitle, 'workdesc))
                 .rename(('name, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear) ->('uname, 'educ, 'worked, 'city, 'edegree, 'eyear))
-                .project('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+                .unique('key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
 
         combinedProfiles
 
@@ -116,7 +116,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
                 (twid, twServiceProfile, twname)
             }
         }
-                .project(('id, 'twid, 'twname))
+                .unique(('id, 'twid, 'twname))
 
 
         data

@@ -23,6 +23,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
     val newcheckininput = args("newCheckinInput")
+    val sequenceOutput = args("sequenceOutput")
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -323,6 +324,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
     val staticOutput =
         (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
+
+    val staticSequence = staticOutput.write(SequenceFile(sequenceOutput, Fields.ALL))
+
+    val staticCassandra = staticOutput
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
