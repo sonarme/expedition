@@ -11,10 +11,10 @@ class AgeEducationPipe(args: Args) extends Job(args){
 
         // ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid (twalias if not total data), 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
 
-        val age = serviceProfileInput.map(('eyear, 'edegree) -> ('age, 'degree)){
-            fields: (String, String) => {
-                val (eyear, edegree) = fields
-                val parsedDegree = parseDegree(edegree)
+        val age = serviceProfileInput.map(('eyear, 'edegree, 'educ) -> ('age, 'degree)){
+            fields: (String, String, String) => {
+                val (eyear, edegree, school) = fields
+                val parsedDegree = parseDegree(edegree, school)
                 val age = getAge(eyear, parsedDegree, edegree)
                 (age, parsedDegree)
 
@@ -25,7 +25,7 @@ class AgeEducationPipe(args: Args) extends Job(args){
 
     }
 
-    def parseDegree(orig: String): String = {
+    def parseDegree(orig: String, school: String): String = {
 
         val removePunc = orig.replaceAll( """\p{P}""", "").toLowerCase
         val list = removePunc.split("\\s+")
@@ -55,7 +55,14 @@ class AgeEducationPipe(args: Args) extends Job(args){
             case Bachelors(str) => "B"
             case _ => seconddegree
         }
-        degree
+
+        val schoolList = school.replaceAll("""\p{P}""","").toLowerCase.split("\\s+")
+        val isHigh = schoolList.foldLeft[Boolean](false)((a, b) => a || b.equals("high"))
+
+        if (isHigh)
+            "H"
+        else
+            degree
     }
 
     def getAge(eYear: String, parsedDegree: String, degree: String): Int = {
