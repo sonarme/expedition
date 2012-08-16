@@ -10,8 +10,8 @@ import util.matching.Regex
 //TODO add service type to each friend serviceid when exporting
 
 class FriendGrouper(args: Args) extends Job(args) {
-    val inputData = "/tmp/friendData.txt"
-    val out = "/tmp/userGroupedFriends.txt"
+    val inputData = args("friendData")
+    val out = args("userGroupedFriendsOutput")
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
         line: String => {
             line match {
