@@ -21,7 +21,7 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
             }
         }
 
-                .project(('userProfileId, 'serviceType, 'serviceProfileId, 'friendName))
+                .unique(('userProfileId, 'serviceType, 'serviceProfileId, 'friendName))
 
         data
     }
