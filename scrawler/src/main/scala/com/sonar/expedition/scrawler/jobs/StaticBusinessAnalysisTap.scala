@@ -24,6 +24,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
     val newcheckininput = args("newCheckinInput")
     val sequenceOutput = args("sequenceOutput")
+    val textOutput = args("textOutput")
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -326,8 +327,9 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
         (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 
     val staticSequence = staticOutput.write(SequenceFile(sequenceOutput, Fields.ALL))
+    val staticText = staticOutput.write(TextLine(textOutput))
 
-    val staticCassandra = staticOutput
+    /* val staticCassandra = staticOutput
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
@@ -336,7 +338,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             columnFamilyName = "MetricsVenueStatic",
             scheme = WideRowScheme(keyField = 'rowKey)
         )
-    )
+    ) */
 
     val byTime = businessGroup.timeSeries(combined)
             .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
@@ -353,7 +355,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             .project(('rowKey, 'columnName, 'columnValue))
 
 
-    val timeSeriesOutput = byTime
+    /* val timeSeriesOutput = byTime
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
@@ -362,5 +364,5 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             columnFamilyName = "MetricsVenueTimeseries",
             scheme = WideRowScheme(keyField = 'rowKey)
         )
-    )
+    ) */
 }
