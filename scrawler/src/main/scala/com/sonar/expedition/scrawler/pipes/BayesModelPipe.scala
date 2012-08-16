@@ -214,14 +214,10 @@ class BayesModelPipe(args: Args) extends Job(args) {
 */
 
     def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
-        data.map('data -> 'value) {
+        data.flatMap('data -> 'token) {
             line: String => {
                 StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
             }
-        }
-                .flatMap('value -> 'token) {
-            value: Array[String] =>
-                value
         }
                 .joinWithLarger(('token -> 'token), model)
                 .groupBy(('data, 'key)) {
