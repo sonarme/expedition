@@ -18,8 +18,8 @@ class PlacesCorrelation(args: Args) extends Job(args) {
                 .project('newkeyid, 'newserType, 'newserProfileID, 'newserCheckinID, 'newvenName, 'newvenAddress, 'venId, 'newchknTime, 'newghash, 'newlat, 'newlng, 'newdayOfYear, 'newdayOfWeek, 'newhour)
 
         val oldCheckinPipe = oldCheckinGrouperPipe
-                .joinWithSmaller('serCheckinID -> 'newserCheckinID, newCheckinPipe)
-                .discard(('newkeyid, 'newserType, 'newserProfileID, 'newserCheckinID, 'newvenName, 'newvenAddress, 'newchknTime, 'newghash, 'newlat, 'newlng, 'newdayOfYear, 'newdayOfWeek, 'newhour))
+                .joinWithSmaller(('lat, 'lng) -> ('newlat, 'newlng), newCheckinPipe)
+                .unique('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour)
         oldCheckinPipe
     }
 
@@ -34,7 +34,7 @@ class PlacesCorrelation(args: Args) extends Job(args) {
                 .filter('venName, 'stemmedVenName) {
             fields: (String, String) => {
                 val (venueName, stemmedVenueName) = fields
-                (venueName != "" || stemmedVenueName != "")
+                (!CommonFunctions.isNullOrEmpty(venueName) || !CommonFunctions.isNullOrEmpty(stemmedVenueName))
             }
         }
                 .map(('lat, 'lng) -> 'geosector) {
@@ -64,61 +64,6 @@ class PlacesCorrelation(args: Args) extends Job(args) {
                 listOfVenueIds
             }
         }
-
-                /*
-                .map('correlatedVenueIds -> 'foursquareVenueId) {
-            venueList: List[(String, String)] => {
-                venueList.find {
-                    venueTuple => venueTuple._2 == "foursquare"
-                }.map(_._1).getOrElse("none")
-            }
-        }
-                .map('correlatedVenueIds -> 'twitterVenueId) {
-            venueList: List[(String, String)] => {
-                venueList.find {
-                    venueTuple => venueTuple._2 == "twitter"
-                }.map(_._1).getOrElse("none")
-            }
-        }
-                .map('correlatedVenueIds -> 'facebookVenueId) {
-            venueList: List[(String, String)] => {
-                venueList.find {
-                    venueTuple => venueTuple._2 == "facebook"
-                }.map(_._1).getOrElse("none")
-            }
-        }
-               */
-
-                /* .toList[String]('venId -> 'venIdList)
-              .toList[String]('serType -> 'serTypeList)*/
-                /*              .flatMap('correlatedVenueIds ->('foursquareVenueId, 'twitterVenueId, 'facebookVenueId, 'openstreetmapVenueId)) {
-                    venueList: List[(String, String)] => {
-                        venueList.flatMap {
-                            venueListItem: (String, String) => {
-                                val foursquareVenueId: String = venueListItem match {
-                                    case ("foursquare", venueId: String) => venueId
-                                    case _ => ""
-                                }
-                                val twitterVenueId: String = venueListItem match {
-                                    case ("twitter", venueId: String) => venueId
-                                    case _ => ""
-                                }
-                                val facebookVenueId: String = venueListItem match {
-                                    case ("facebook", venueId: String) => venueId
-                                    case _ => ""
-                                }
-                                val openstreetmapVenueId: String = venueListItem match {
-                                    case ("openstreetmap", venueId: String) => venueId
-                                    case _ => ""
-                                }
-
-                                Option((foursquareVenueId, twitterVenueId, facebookVenueId, openstreetmapVenueId))
-                            }
-                        }
-                        _.map
-                    }
-                }*/
-                //                .project('correlatedVenueIds, 'venName, 'geosector, 'goldenId, 'foursquareVenueId, 'twitterVenueId, 'facebookVenueId)
                 .project('correlatedVenueIds, 'venName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
 
         withGoldenId
@@ -128,6 +73,11 @@ class PlacesCorrelation(args: Args) extends Job(args) {
         val checkinsWithVenueId = addVenueIdToCheckins(oldCheckins, newCheckins)
         val venueWithGoldenId = correlatedPlaces(checkinsWithVenueId)
         venueWithGoldenId.project('venueId, 'goldenId).joinWithSmaller('venueId -> 'venId, checkinsWithVenueId)
+                .filter('venueId) {
+            fields: (String) =>
+                val venId = fields
+                (!CommonFunctions.isNullOrEmpty(venId))
+        }
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
     }
 
