@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+// does clustering to find home and work locations
 public class KMeans {
 
     private Vector[] randomPoints;

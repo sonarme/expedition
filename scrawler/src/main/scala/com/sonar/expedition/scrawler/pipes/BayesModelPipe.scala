@@ -219,7 +219,7 @@ class BayesModelPipe(args: Args) extends Job(args) {
                 StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
             }
         }
-                .joinWithLarger(('token -> 'token), model)
+                .joinWithSmaller(('token -> 'token), model)
                 .groupBy(('data, 'key)) {
             _.sum('normTFIDF -> 'weight)
         }
