@@ -23,8 +23,6 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
 
         (rowKey, columnB, dtoB)
     }
-
-    val staticCassandra = seqCompetitiveAnalysis
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
@@ -32,7 +30,6 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
             keyspaceName = "dossier",
             columnFamilyName = "MetricsVenueCompetitiveAnalysis",
             scheme = WideRowScheme(keyField = 'rowKey)
-        )
-    )
+        ))
 
 }
