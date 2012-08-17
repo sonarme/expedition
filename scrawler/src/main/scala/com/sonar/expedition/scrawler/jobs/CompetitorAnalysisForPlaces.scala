@@ -99,37 +99,8 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
                 (corr, regCorr, cosSim, jaccard)
         }
                 //can also calculate correlation, 'regularizedCorrelation, 'cosineSimilarity
-                .map(('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, String, String, String, Double) =>
-                val (venueFrom, goldenIdFrom, venueNameTo, goldenIdTo, similarityIndex) = in
-
-                val analysisType = com.sonar.dossier.dto.CompetitiveAnalysisType.competitor
-
-                val targetVenueGoldenId = goldenIdFrom
-
-                val column = CompetitiveVenueColumn(venueGoldenId = targetVenueGoldenId, correlation = similarityIndex)
-
-                val dto = new CompetitiveVenue(
-                    analysisType = analysisType,
-                    venueId = goldenIdTo,
-                    venueName = venueNameTo,
-                    venueType = "undefined",
-                    correlation = similarityIndex
-                )
-                val columnB = CompetitiveVenueColumnSerializer toByteBuffer (column)
-                val dtoB = new JSONSerializer(classOf[CompetitiveVenue]) toByteBuffer (dto)
-
-                (targetVenueGoldenId + "_" + analysisType.name, columnB, dtoB)
-
-
-        }.project(('rowKey, 'columnName, 'columnValue))
-                .write(/*CassandraSource(
-            rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
-            keyspaceName = "dossier",
-            columnFamilyName = "MetricsVenueCompetitiveAnalysis",
-            scheme = WideRowScheme(keyField = 'rowKey)
-        )*/
+                .project(('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity))
+                .write(
             SequenceFile(competitiveAnalysisOutput, Fields.ALL))
 
 
