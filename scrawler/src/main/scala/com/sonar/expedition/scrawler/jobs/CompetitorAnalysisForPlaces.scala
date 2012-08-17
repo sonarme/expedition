@@ -1,14 +1,20 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{TextLine, Job, Args}
+import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
 import com.sonar.expedition.scrawler.pipes.{DTOPlacesInfoPipe, PlacesCorrelation, CheckinGrouperFunction}
 import com.sonar.dossier.dto.CompetitiveVenue
 import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumn, CompetitiveVenueColumnSerializer}
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
+import cascading.tuple.Fields
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
+
+/*
+com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinData "/tmp/checkinDatatest.txt"
+--rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193 --places "/tmp/places_dump_US.geojson.txt" --checkinDatawithVenueId "/tmp/checkinDatawithVenueId.txt"
+ */
 
 class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
 
@@ -16,7 +22,9 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
     val ppmap = args.getOrElse("ppmap", "")
     val chkininputData = args("checkinData")
     //checkinData_big_prod.txt
-    val checkinDatawithVenueId = args("checkinDatawithVenueId") //checkinData_big_prod.txt
+    val checkinDatawithVenueId = args("checkinDatawithVenueId")
+    //checkinData_big_prod.txt
+    val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
 
     val goldenIdpipes = new PlacesCorrelation(args)
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
@@ -115,13 +123,14 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
 
 
         }.project(('rowKey, 'columnName, 'columnValue))
-                .write(CassandraSource(
+                .write(/*CassandraSource(
             rpcHost = rpcHostArg,
             privatePublicIpMap = ppmap,
             keyspaceName = "dossier",
             columnFamilyName = "MetricsVenueCompetitiveAnalysis",
             scheme = WideRowScheme(keyField = 'rowKey)
-        ))
+        )*/
+            SequenceFile(competitiveAnalysisOutput, Fields.ALL))
 
 
     def correlation(size: Double, dotProduct: Double, ratingSum: Double,
