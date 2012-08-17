@@ -54,7 +54,7 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
         }
                 .groupBy('stemmedVenName) {
             _
-                    .sum('shinglesPerVenue -> 'singleShinglesize)
+                    .sum('shinglesPerVenue -> 'buzzCount)
                     .toList[String]('goldenId -> 'goldenIdList)
 //                    .sortWithTake('goldenId -> 'goldenIdList, 100000) {
 //                (venueId1: (String), venueId2: (String)) => venueId1 > venueId2
@@ -62,22 +62,22 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
         }
                 .groupAll {
             _
-                    .sortBy('singleShinglesize)
+                    .sortBy('buzzCount)
         }
-                .project('stemmedVenName, 'singleShinglesize, 'goldenIdList)
+                .project('stemmedVenName, 'buzzCount, 'goldenIdList)
         buzz
     }
 
     def findBuzzStats(buzz: RichPipe): RichPipe = {
         val buzzStats = buzz
-                //                .filter('singleShinglesize) {
+                //                .filter('buzzCount) {
                 //            fields: (String) =>
                 //                val (size) = fields
                 //                (size.toInt > 1)
                 //        }
                 .groupAll {
             _
-                    .sizeAveStdev('singleShinglesize ->('size, 'avg, 'stdev))
+                    .average('buzzCount ->('avg))
         }
         buzzStats
     }
@@ -103,14 +103,14 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
     def normalizedBuzz(buzz: RichPipe, buzzStats: RichPipe): RichPipe = {
         val normalizedBuzz = buzz
                 .crossWithTiny(buzzStats)
-                .map(('singleShinglesize, 'avg) -> ('normalized)) {
+                .map(('buzzCount, 'avg) -> ('normalized)) {
             fields: (Double, String) =>
                 val (buzz, avg) = fields
                 val normalized = buzz / avg.toDouble
                 val log = scala.math.log(normalized)
                 log
         }
-                .project('stemmedVenName, 'singleShinglesize, 'normalized, 'goldenIdList)
+                .project('stemmedVenName, 'buzzCount, 'normalized, 'goldenIdList)
         normalizedBuzz
 
     }
@@ -133,7 +133,7 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
             val (goldenIdList) = fields
             goldenIdList
     }
-            .project('stemmedVenName, 'singleShinglesize, 'buzzScore, 'golden)
+            .project('stemmedVenName, 'buzzCount, 'buzzScore, 'golden)
 
 
 
