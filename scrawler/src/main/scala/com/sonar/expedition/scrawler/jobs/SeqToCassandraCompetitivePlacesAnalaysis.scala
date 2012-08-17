@@ -3,24 +3,22 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding.{SequenceFile, Job, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
-import java.nio.ByteBuffer
 import com.sonar.dossier.dao.cassandra.{CassandraObjectMapper, CompetitiveVenueColumn, JSONSerializer, CompetitiveVenueColumnSerializer}
 import com.sonar.dossier.dto.CompetitiveVenue
-import me.prettyprint.cassandra.serializers.AbstractSerializer
-import org.apache.cassandra.utils.ByteBufferUtil
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import com.fasterxml.jackson.databind._
 import com.sonar.dossier.dao.cassandra.CompetitiveVenueColumn
 import com.sonar.scalding.cassandra.WideRowScheme
 import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.CassandraSource
-import org.codehaus.jackson.map.{SerializationConfig, DeserializationConfig, PropertyNamingStrategy, ObjectMapper}
-import reflect.BeanProperty
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import me.prettyprint.cassandra.serializers._
+import java.nio.ByteBuffer
+import org.apache.cassandra.utils.ByteBufferUtil
+import com.fasterxml.jackson.databind.{DeserializationConfig, SerializationConfig, PropertyNamingStrategy, ObjectMapper}
+import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 
 class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
 
-
+    //184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
     val sequenceInputCompetitiveAnalysis = args.getOrElse("sequenceInputCompetitiveAnalysis", "s3n://scrawler/competitiveAnalysisOutput")
@@ -52,7 +50,7 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
             (targetVenueGoldenId + "_" + analysisType.name, columnB, dtoB)
 
 
-    }
+    }.project('rowKey, 'columnName, 'columnValue)
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
@@ -66,21 +64,14 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
 }
 
 class JSONSerializerTwo[T >: Null](clazz: Class[T]) extends AbstractSerializer[T] {
-    val objectMapper = new CassandraObjectMapperTwo
 
     def toByteBuffer(obj: T) =
         if (obj == null) null
-        else ByteBuffer.wrap(objectMapper.writeValueAsBytes(obj))
+        else ByteBuffer.wrap(ScrawlerObjectMapper.objectMapper.writeValueAsBytes(obj))
 
     def fromByteBuffer(byteBuffer: ByteBuffer) =
         if (byteBuffer == null || !byteBuffer.hasRemaining) null
-        else objectMapper.readValue(ByteBufferUtil.getArray(byteBuffer), clazz)
+        else ScrawlerObjectMapper.objectMapper.readValue(ByteBufferUtil.getArray(byteBuffer), clazz)
 }
 
 
-class CassandraObjectMapperTwo extends ObjectMapper {
-    setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
-    disable(SerializationConfig.Feature.AUTO_DETECT_FIELDS)
-    disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
-    registerModule(DefaultScalaModule)
-}
