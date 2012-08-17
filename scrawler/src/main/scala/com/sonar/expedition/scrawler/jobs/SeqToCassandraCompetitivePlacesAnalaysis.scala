@@ -4,7 +4,7 @@ import com.twitter.scalding.{SequenceFile, Job, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import java.nio.ByteBuffer
-import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumnSerializer}
+import com.sonar.dossier.dao.cassandra.{CompetitiveVenueColumn, JSONSerializer, CompetitiveVenueColumnSerializer}
 import com.sonar.dossier.dto.CompetitiveVenue
 
 class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
@@ -14,14 +14,33 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
     val ppmap = args.getOrElse("ppmap", "")
     val sequenceInputCompetitiveAnalysis = args.getOrElse("sequenceInputCompetitiveAnalysis", "s3n://scrawler/competitiveAnalysisOutput")
 
-    val seqCompetitiveAnalysis = SequenceFile(sequenceInputCompetitiveAnalysis, Fields.ALL).read.mapTo((0, 1, 2) ->('rowKey, 'columnName, 'columnValue)) {
-        fields: (String, ByteBuffer, ByteBuffer) => fields
-        val (rowKey, columnName, columnValue) = in
+    val seqCompetitiveAnalysis = SequenceFile(sequenceInputCompetitiveAnalysis, Fields.ALL).read.mapTo((0, 1, 2, 3, 4) ->('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity)) {
+        in: (String, String, String, String, Double) =>
+            val (venueFrom, goldenIdFrom, venueNameTo, goldenIdTo, similarityIndex) = in
+            (venueFrom, goldenIdFrom, venueNameTo, goldenIdTo, similarityIndex)
+    }.map(('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, String, String, String, Double) =>
+            val (venueFrom, goldenIdFrom, venueNameTo, goldenIdTo, similarityIndex) = in
 
-        val columnB = CompetitiveVenueColumnSerializer fromByteBuffer (columnName)
-        val dtoB = new JSONSerializer(classOf[CompetitiveVenue]) fromByteBuffer (columnValue)
+            val analysisType = com.sonar.dossier.dto.CompetitiveAnalysisType.competitor
 
-        (rowKey, columnB, dtoB)
+            val targetVenueGoldenId = goldenIdFrom
+
+            val column = CompetitiveVenueColumn(venueGoldenId = targetVenueGoldenId, correlation = similarityIndex)
+
+            val dto = new CompetitiveVenue(
+                analysisType = analysisType,
+                venueId = goldenIdTo,
+                venueName = venueNameTo,
+                venueType = "undefined",
+                correlation = similarityIndex
+            )
+            val columnB = CompetitiveVenueColumnSerializer toByteBuffer (column)
+            val dtoB = new JSONSerializer(classOf[CompetitiveVenue]) toByteBuffer (dto)
+
+            (targetVenueGoldenId + "_" + analysisType.name, columnB, dtoB)
+
+
     }
             .write(
         CassandraSource(
