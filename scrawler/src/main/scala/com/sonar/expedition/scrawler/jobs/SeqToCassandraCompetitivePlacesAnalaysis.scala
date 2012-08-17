@@ -4,8 +4,19 @@ import com.twitter.scalding.{SequenceFile, Job, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import java.nio.ByteBuffer
-import com.sonar.dossier.dao.cassandra.{CompetitiveVenueColumn, JSONSerializer, CompetitiveVenueColumnSerializer}
+import com.sonar.dossier.dao.cassandra.{CassandraObjectMapper, CompetitiveVenueColumn, JSONSerializer, CompetitiveVenueColumnSerializer}
 import com.sonar.dossier.dto.CompetitiveVenue
+import me.prettyprint.cassandra.serializers.AbstractSerializer
+import org.apache.cassandra.utils.ByteBufferUtil
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import com.fasterxml.jackson.databind._
+import com.sonar.dossier.dao.cassandra.CompetitiveVenueColumn
+import com.sonar.scalding.cassandra.WideRowScheme
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.CassandraSource
+import org.codehaus.jackson.map.{SerializationConfig, DeserializationConfig, PropertyNamingStrategy, ObjectMapper}
+import reflect.BeanProperty
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
 
@@ -36,7 +47,7 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
                 correlation = similarityIndex
             )
             val columnB = CompetitiveVenueColumnSerializer toByteBuffer (column)
-            val dtoB = new JSONSerializer(classOf[CompetitiveVenue]) toByteBuffer (dto)
+            val dtoB = new JSONSerializerTwo(classOf[CompetitiveVenue]) toByteBuffer (dto)
 
             (targetVenueGoldenId + "_" + analysisType.name, columnB, dtoB)
 
@@ -49,6 +60,27 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
             keyspaceName = "dossier",
             columnFamilyName = "MetricsVenueCompetitiveAnalysis",
             scheme = WideRowScheme(keyField = 'rowKey)
-        ))
+        )
+    )
 
+}
+
+class JSONSerializerTwo[T >: Null](clazz: Class[T]) extends AbstractSerializer[T] {
+    val objectMapper = new CassandraObjectMapperTwo
+
+    def toByteBuffer(obj: T) =
+        if (obj == null) null
+        else ByteBuffer.wrap(objectMapper.writeValueAsBytes(obj))
+
+    def fromByteBuffer(byteBuffer: ByteBuffer) =
+        if (byteBuffer == null || !byteBuffer.hasRemaining) null
+        else objectMapper.readValue(ByteBufferUtil.getArray(byteBuffer), clazz)
+}
+
+
+class CassandraObjectMapperTwo extends ObjectMapper {
+    setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
+    disable(SerializationConfig.Feature.AUTO_DETECT_FIELDS)
+    disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
+    registerModule(DefaultScalaModule)
 }
