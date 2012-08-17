@@ -12,7 +12,7 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
 
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
-    val sequenceInputCompetitiveAnalysis = args("sequenceInputCompetitiveAnalysis")
+    val sequenceInputCompetitiveAnalysis = args.getOrElse("sequenceInputCompetitiveAnalysis", "s3n://scrawler/competitiveAnalysisOutput")
 
     val seqCompetitiveAnalysis = SequenceFile(sequenceInputCompetitiveAnalysis, Fields.ALL).read.mapTo((0, 1, 2) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, ByteBuffer, ByteBuffer) => fields
