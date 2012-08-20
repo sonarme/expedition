@@ -108,22 +108,21 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
     }
 
     def correlationCheckinsFromCassandra(input: RichPipe): RichPipe = {
-        val correlatedCheckins:(Int, Int, Int, String) = input.map(('chknTime, 'serType, 'serProfileID ) -> ('dayOfYear, 'dayOfWeek, 'hour, 'goldenId)) {
-            tuple: (String, String, String) => {
-                val (checkinTime, serviceType, serviceProfileId ) = tuple
-                val richDate = RichDate(checkinTime)(TimeZone.getDefault)
+        input.map(('chknTime, 'serType, 'serProfileID ) -> ('dayOfYear, 'dayOfWeek, 'hour, 'goldenId)) {
+            fields: (String, String, String) => {
+                val (checkinTime, serviceType, serviceProfileId ) = fields
+                val richDate = RichDate(checkinTime, TimeZone.getDefault)
                 val timeFilter = richDate.toCalendar()
 
-                val dayOfYear = timeFilter.get(Calendar.DAY_OF_YEAR)
-                val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-                val hourOfDay = timeFilter.get(Calendar.HOUR_OF_DAY)
+                val dayOfYear = timeFilter.get(Calendar.DAY_OF_YEAR).toInt
+                val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK).toInt
+                val hourOfDay = timeFilter.get(Calendar.HOUR_OF_DAY).toInt
                 val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
                 val goldenId = serviceType + ":" + serviceProfileId
                 (dayOfYear, dayOfWeek, hourOfDay, goldenId)
                 }
 
         }
-        correlatedCheckins
     }
 
     def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {
