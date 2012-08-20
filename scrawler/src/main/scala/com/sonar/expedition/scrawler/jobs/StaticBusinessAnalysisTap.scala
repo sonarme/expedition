@@ -6,12 +6,13 @@ import com.sonar.dossier.dto._
 import com.sonar.dossier.dao.cassandra.JSONSerializer
 import com.sonar.scalding.cassandra._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import me.prettyprint.cassandra.serializers.{StringSerializer, DoubleSerializer}
+import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, StringSerializer, DoubleSerializer}
 import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 import java.nio.ByteBuffer
 import java.util.TimeZone
 import DateOps._
+import org.apache.cassandra.db.marshal.DateType
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -104,10 +105,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer)
             val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer)
             val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer)
-            val chknTime = Option(in._9).map(StringSerializer.get().fromByteBuffer)
-            val ghash = Option(in._10).map(StringSerializer.get().fromByteBuffer)
-            val lat = Option(in._11).map(StringSerializer.get().fromByteBuffer)
-            val lng = Option(in._12).map(StringSerializer.get().fromByteBuffer)
+            val chknTime = Option(in._9).map(DateSerializer.get().fromByteBuffer)
+            val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer)
+            val lat = Option(in._11).map(DoubleSerializer.get().fromByteBuffer)
+            val lng = Option(in._12).map(DoubleSerializer.get().fromByteBuffer)
             val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer)
 
             (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
