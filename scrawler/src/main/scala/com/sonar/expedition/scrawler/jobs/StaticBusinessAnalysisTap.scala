@@ -90,9 +90,9 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
                             "serviceCheckinId", "venueName", "venueAddress",
                             "venueId", "checkinTime", "geohash", "latitude",
                             "longitude", "message"))
-     ).map(('keyidBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+     ).map(('rowKey, 'keyidBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
                         'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('keyid, 'serType, 'serProfileID, 'serCheckinID,
+             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('rowKey, 'keyid, 'serType, 'serProfileID, 'serCheckinID,
                         'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
