@@ -7,7 +7,7 @@ import cascading.pipe.joiner.LeftJoin
 import java.security.MessageDigest
 import ch.hsr.geohash.{WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import java.util.{TimeZone, Calendar}
+import java.util.{Date, TimeZone, Calendar}
 
 class CheckinGrouperFunction(args: Args) extends Job(args) {
 
@@ -111,7 +111,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def correlationCheckinsFromCassandra(input: RichPipe): RichPipe = {
         input.map(('chknTime, 'serType, 'serProfileID) ->('dayOfYear, 'dayOfWeek, 'hour, 'keyid)) {
-            fields: (String, String, String) => {
+            fields: (Date, String, String) => {
                 val (checkinTime, serviceType, serviceProfileId) = fields
                 val richDate = RichDate(checkinTime)
                 val timeFilter = richDate.toCalendar
@@ -129,9 +129,9 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {
         input.map(('lat, 'lng) -> ('loc)) {
-            fields: (String, String) =>
+            fields: (Double, Double) =>
                 val (lat, lng) = fields
-                val loc = lat + ":" + lng
+                val loc = lat.toString + ":" + lng.toString
                 (loc)
         }
     }
