@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
-import com.sonar.expedition.scrawler.pipes.{DTOPlacesInfoPipe, PlacesCorrelation, CheckinGrouperFunction}
+import com.sonar.expedition.scrawler.pipes.{LocationBehaviourAnalysePipe, DTOPlacesInfoPipe, PlacesCorrelation, CheckinGrouperFunction}
 import com.sonar.dossier.dto.CompetitiveVenue
 import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumn, CompetitiveVenueColumnSerializer}
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
@@ -13,42 +13,51 @@ import cascading.tuple.Fields
 
 /*
 com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinData "/tmp/checkinDatatest.txt"
---rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193 --places "/tmp/places_dump_US.geojson.txt" --checkinDatawithVenueId "/tmp/checkinDatawithVenueId.txt"
+--rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193 --places "/tmp/places_dump_US.geojson.txt" --checkinDatawithVenueId "/tmp/checkinDatawithVenueId.txt" --bayestrainingmodelforplacetype  "/tmp/bayestrainingmodelforplacetype"
+
+
+ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinData "/tmp/checkinDatatest.txt" --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193 --places "/tmp/places_dump_US.geojson.txt"
+ --checkinDatawithVenueId "/tmp/checkinDatawithVenueId.txt" --competitiveAnalysisOutput "/tmp/competitiveAnalysisOutput"  --bayestrainingmodelforplacetype  "/tmp/bayestrainingmodelforplacetype"
  */
 
-class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
+class CompetitorAnalysisForPlaces(args: Args) extends LocationBehaviourAnalysePipe(args) {
 
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
     val chkininputData = args("checkinData")
+    val bayestrainingmodel = args("bayestrainingmodelforlocationtype")
     //checkinData_big_prod.txt
     val checkinDatawithVenueId = args("checkinDatawithVenueId")
+    val trainingclassifiedfinal = args.getOrElse("trainingclassifiedfinal", "/tmp/trainingclassifiedfinal")
     //checkinData_big_prod.txt
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
 
     val goldenIdpipes = new PlacesCorrelation(args)
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
 
+
     val checkinsWithoutVenueId = checkinGrouperPipe.unfilteredCheckinsLatLon(TextLine(chkininputData).read)
     val checkins = checkinGrouperPipe.correlationCheckins(TextLine(checkinDatawithVenueId).read)
     val placesVenueGoldenId = goldenIdpipes.withGoldenId(checkinsWithoutVenueId, checkins)
 
-    val similarity = placesVenueGoldenId.groupBy('keyid, 'venName, 'goldenId) {
+    val similarplaces = placesVenueGoldenId.groupBy('keyid, 'venName, 'goldenId) {
         _.size
     }.rename('size -> 'rating).project('keyid, 'venName, 'goldenId, 'rating)
 
-    val numRaters = similarity
+    val placesClassified = classifyPlaceType(bayestrainingmodel, similarplaces).project(('keyid, 'venName, 'goldenId, 'rating, 'venuetype))
+
+    val numRaters = placesClassified
             .groupBy('goldenId) {
         _.size
     }.rename('size -> 'numRaters)
 
     //joining based on golden id really does not work , its not perfect.
-    val ratingsWithSize = similarity.joinWithSmaller('goldenId -> 'goldenId, numRaters)
+    val ratingsWithSize = placesClassified.joinWithSmaller('goldenId -> 'goldenId, numRaters)
 
 
     val ratings2 =
         ratingsWithSize
-                .rename(('keyid, 'venName, 'goldenId, 'rating, 'numRaters) ->('keyid2, 'venName2, 'goldenId2, 'rating2, 'numRaters2))
+                .rename(('keyid, 'venName, 'venuetype, 'goldenId, 'rating, 'numRaters) ->('keyid2, 'venName2, 'venuetype2, 'goldenId2, 'rating2, 'numRaters2))
 
 
     val ratingPairs =
@@ -58,7 +67,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
                 .filter('venName, 'venName2) {
             movies: (String, String) => movies._1 < movies._2
         }
-                .project('venName, 'goldenId, 'rating, 'numRaters, 'venName2, 'goldenId2, 'rating2, 'numRaters2)
+                .project('venName, 'venuetype, 'goldenId, 'rating, 'numRaters, 'venName2, 'venuetype2, 'goldenId2, 'rating2, 'numRaters2)
 
 
     val vectorCalcs =
@@ -68,7 +77,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
             ratings: (Double, Double) =>
                 (ratings._1 * ratings._2, math.pow(ratings._1, 2), math.pow(ratings._2, 2))
         }
-                .groupBy('venName, 'goldenId, 'venName2, 'goldenId2) {
+                .groupBy('venName, 'venuetype, 'goldenId, 'venName2, 'venuetype2, 'goldenId2) {
             group =>
                 group.size // length of each vector
                         .sum('ratingProd -> 'dotProduct)
@@ -99,7 +108,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
                 (corr, regCorr, cosSim, jaccard)
         }
                 //can also calculate correlation, 'regularizedCorrelation, 'cosineSimilarity
-                .project(('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity))
+                .project(('venName, 'venuetype, 'goldenId, 'venName2, 'venuetype2, 'goldenId2, 'jaccardSimilarity))
                 .write(
             SequenceFile(competitiveAnalysisOutput, Fields.ALL))
 

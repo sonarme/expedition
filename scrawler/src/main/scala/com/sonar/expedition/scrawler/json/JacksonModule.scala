@@ -5,11 +5,15 @@ import com.fasterxml.jackson.core.{JsonParser, Version}
 import com.fasterxml.jackson.databind.Module.SetupContext
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind._
-import com.sonar.dossier.dto.{Checkin, UserEducation, UserEmployment, ServiceProfileDTO}
+import com.sonar.dossier.dto._
 import deser.DeserializationProblemHandler
 import grizzled.slf4j.Logging
 import org.codehaus.jackson.annotate.JsonProperty
 import scala.collection.JavaConversions._
+import com.sonar.dossier.dto.UserEducation
+import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.dossier.dto.UserEmployment
+import scala.Some
 
 
 class ScrawlerModule extends SimpleModule("scrawler", new Version(1, 0, 0, null, "com.sonar", "scrawler")) {
@@ -37,6 +41,7 @@ class ScrawlerObjectMapper extends ObjectMapper {
     this.addMixInAnnotations(classOf[Checkin], classOf[IgnoreUnknownMixin])
     this.addMixInAnnotations(classOf[UserEmployment], classOf[UserEmploymentMixin])
     this.addMixInAnnotations(classOf[ServiceProfileDTO], classOf[IgnoreUnknownMixin])
+    this.addMixInAnnotations(classOf[CompetitiveVenue], classOf[IgnoreUnknownMixin])
 
 }
 
@@ -55,6 +60,8 @@ object ScrawlerObjectMapper {
         module.setMixInAnnotation(classOf[Checkin], classOf[IgnoreUnknownMixin])
         module.setMixInAnnotation(classOf[UserEmployment], classOf[UserEmploymentMixin])
         module.setMixInAnnotation(classOf[ServiceProfileDTO], classOf[IgnoreUnknownMixin])
+        module.setMixInAnnotation(classOf[CompetitiveVenue], classOf[IgnoreUnknownMixin])
+
         // and the magic happens here when we register module with mapper:
         objectMapper.registerModule(module)
         initialized = true

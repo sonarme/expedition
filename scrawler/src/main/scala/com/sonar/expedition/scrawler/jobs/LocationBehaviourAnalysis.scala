@@ -3,17 +3,8 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
-import java.util.{Calendar, Date}
-import java.util
-import com.sonar.expedition.scrawler.util.{Levenshtein, EmployerCheckinMatch, StemAndMetaphoneEmployer, LocationScorer}
-import scala.Some
-import scala.Some
-import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
-import scala.Some
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.twitter.scalding.TextLine
-import com.sonar.dossier.service.PrecomputationSettings
-import ch.hsr.geohash.GeoHash
-import java.text.DecimalFormat
 
 /*
  BEFORE RUNING THIS MAKE SURE TO build the bayes model by running this
@@ -30,10 +21,10 @@ import java.text.DecimalFormat
 
  com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindata "/tmp/checkinDatatest.txt" --output "/tmp/output.txt"
  --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox"
- --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype" --training "/tmp/training"
+ --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforplacetype" --training "/tmp/training"
  --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"
  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"
- --timedifference "24" --geohashsectorsize "20"
+ --timedifference "24" --geohashsectorsize "20"   --serviceProfile "/tmp/serviceProfileData.txt" --locationAnalyis "/tmp/locationAnalyis"
 */
 class LocationBehaviourAnalysis(args: Args) extends LocationBehaviourAnalysePipe(args) {
 
@@ -49,6 +40,8 @@ class LocationBehaviourAnalysis(args: Args) extends LocationBehaviourAnalysePipe
     val geohashsectorsize = args("geohashsectorsize")
     val prodtest = args.getOrElse("prodtest", "0").toInt
     val placesData = args("placesData")
+    val inputData = args("serviceProfile")
+    val locationAnalyis = args("locationAnalyis")
 
     val chkinpipe = checkinInfoPipe.unfilteredCheckinsLatLon(chkindata).filter('venName) {
         fields: (String) =>
@@ -90,6 +83,21 @@ class LocationBehaviourAnalysis(args: Args) extends LocationBehaviourAnalysePipe
                     (keyidS, countTIMES, venNameFROM, placetypeFrom, ghashFrom, geohash, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, weightFrom, venNameTO, ghashTo, placeToType, weightTo)
             }.unique(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
             */ .write(TextLine(locationBehaviourAnalysis))
+
+    val profilePipe = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
+        line: String => {
+            line match {
+                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
+                case _ => List.empty
+            }
+        }
+    }).project(('id, 'serviceType, 'jsondata))
+
+
+    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
+    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(profilePipe) //'key, 'uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc
+
+    val analysis = joinedProfiles.joinWithSmaller('key -> 'keyidS, classificationByBayesModel).project(('uname, 'fbid, 'lnid, 'fsid, 'twalias, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'countTIMES, 'venNameFROM, 'ghashFrom, 'keyFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo)).write(TextLine(locationAnalyis))
 
 
 }
