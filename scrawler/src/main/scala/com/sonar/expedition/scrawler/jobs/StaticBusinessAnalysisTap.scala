@@ -4,7 +4,7 @@ import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.dossier.dto._
 import com.sonar.dossier.dao.cassandra.JSONSerializer
-import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
+import com.sonar.scalding.cassandra._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{StringSerializer, DoubleSerializer}
 import com.twitter.scalding.TextLine
@@ -20,10 +20,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
-    val checkininput = args("checkinInput")
+//    val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
-    val newcheckininput = args("newCheckinInput")
+//    val newcheckininput = args("newCheckinInput")
     val sequenceOutputStatic = args("sequenceOutputStatic")
     val sequenceOutputTime = args("sequenceOutputTime")
     val textOutputStatic = args("textOutputStatic")
@@ -93,7 +93,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
             val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
-            val keyid = Option(in._2).map(StringSerializer.get().fromByteBuffer)
+            val keyId = Option(in._2).map(StringSerializer.get().fromByteBuffer)
             val serType = Option(in._3).map(StringSerializer.get().fromByteBuffer)
             val serProfileID = Option(in._4).map(StringSerializer.get().fromByteBuffer)
             val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer)
@@ -109,11 +109,14 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
                         venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
         }
+     }
+
 
 
 //    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
-    val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
-    val checkinsWithGolden = placesCorrelation.withGoldenId(checkins)
+        val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
+//    val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
+    val checkinsWithGolden = placesCorrelation.withGoldenId(newCheckins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
             val (lat, lng) = fields
@@ -151,7 +154,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
 
 
-    val chkindata = checkinGroup.groupCheckins(TextLine(checkininput))
+    val chkindata = checkinGroup.groupCheckins(newCheckins)
     val friendData = TextLine(friendinput).read.project('line)
     val profilesAndCheckins = combined.project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val employerGroupedServiceProfiles = total.project(('key, 'worked))
@@ -159,7 +162,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val friendsForCoworker = friendGroup.groupFriends(friendData)
     val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
-    val homeCheckins = checkinGroup.groupHomeCheckins(checkins)
+    val homeCheckins = checkinGroup.groupHomeCheckins(newCheckins)
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
