@@ -11,6 +11,8 @@ import java.util.{TimeZone, Calendar}
 
 class CheckinGrouperFunction(args: Args) extends Job(args) {
 
+    implicit lazy val tz = TimeZone.getTimeZone("America/New_York")
+
 
     def groupCheckins(input: RichPipe): RichPipe = {
 
@@ -108,19 +110,19 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
     }
 
     def correlationCheckinsFromCassandra(input: RichPipe): RichPipe = {
-        input.map(('chknTime, 'serType, 'serProfileID ) -> ('dayOfYear, 'dayOfWeek, 'hour, 'goldenId)) {
+        input.map(('chknTime, 'serType, 'serProfileID) ->('dayOfYear, 'dayOfWeek, 'hour, 'goldenId)) {
             fields: (String, String, String) => {
-                val (checkinTime, serviceType, serviceProfileId ) = fields
-                val richDate = RichDate(checkinTime)(TimeZone.getDefault)
-                val timeFilter = richDate.toCalendar()
+                val (checkinTime, serviceType, serviceProfileId) = fields
+                val richDate = RichDate(checkinTime)
+                val timeFilter = richDate.toCalendar
 
-                val dayOfYear = timeFilter.get(Calendar.DAY_OF_YEAR).toInt
-                val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK).toInt
-                val hourOfDay = timeFilter.get(Calendar.HOUR_OF_DAY).toInt
+                val dayOfYear = new Integer(timeFilter.get(Calendar.DAY_OF_YEAR))
+                val dayOfWeek = new Integer(timeFilter.get(Calendar.DAY_OF_WEEK))
+                val hourOfDay = new Integer(timeFilter.get(Calendar.HOUR_OF_DAY))
                 val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
                 val goldenId = serviceType + ":" + serviceProfileId
                 (dayOfYear, dayOfWeek, hourOfDay, goldenId)
-                }
+            }
 
         }
     }

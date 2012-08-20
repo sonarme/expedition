@@ -10,11 +10,15 @@ import me.prettyprint.cassandra.serializers.{StringSerializer, DoubleSerializer}
 import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 import java.nio.ByteBuffer
+import java.util.TimeZone
+import DateOps._
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
 class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
+
+
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
 
