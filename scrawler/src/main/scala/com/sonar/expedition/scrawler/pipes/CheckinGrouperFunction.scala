@@ -110,7 +110,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
     }
 
     def correlationCheckinsFromCassandra(input: RichPipe): RichPipe = {
-        input.map(('chknTime, 'serType, 'serProfileID) ->('dayOfYear, 'dayOfWeek, 'hour, 'goldenId)) {
+        input.map(('chknTime, 'serType, 'serProfileID) ->('dayOfYear, 'dayOfWeek, 'hour, 'keyid)) {
             fields: (String, String, String) => {
                 val (checkinTime, serviceType, serviceProfileId) = fields
                 val richDate = RichDate(checkinTime)
@@ -128,7 +128,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
     }
 
     def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {
-        correlationCheckins(input).map(('lat, 'lng) -> ('loc)) {
+        input.map(('lat, 'lng) -> ('loc)) {
             fields: (String, String) =>
                 val (lat, lng) = fields
                 val loc = lat + ":" + lng

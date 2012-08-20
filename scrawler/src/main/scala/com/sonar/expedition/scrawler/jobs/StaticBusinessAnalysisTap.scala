@@ -83,16 +83,16 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             keyspaceName = "dossier",
             columnFamilyName = "Checkin",
             scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
-                nameFields = ('keyidBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
                         'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
              'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
          columnNames = List("userProfileId", "serviceType", "serviceProfileId",
                             "serviceCheckinId", "venueName", "venueAddress",
                             "venueId", "checkinTime", "geohash", "latitude",
                             "longitude", "message"))
-     ).map(('serviceCheckinIdBuffer, 'keyidBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+     ).map(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
                         'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'keyid, 'serType, 'serProfileID, 'serCheckinID,
+             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
                         'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
