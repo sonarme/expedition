@@ -34,6 +34,9 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val textOutputStatic = args("textOutputStatic")
     val textOutputTime = args("textOutputTime")
 
+    val DEFAULT_NO_DATE = RichDate(0L)
+    val NONE_VALUE = "none"
+
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
             line match {
@@ -98,18 +101,18 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
             val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
-            val keyId = Option(in._2).map(StringSerializer.get().fromByteBuffer)
-            val serType = Option(in._3).map(StringSerializer.get().fromByteBuffer)
-            val serProfileID = Option(in._4).map(StringSerializer.get().fromByteBuffer)
-            val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer)
-            val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer)
-            val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer)
-            val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer)
-            val chknTime = Option(in._9).map(DateSerializer.get().fromByteBuffer)
-            val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer)
-            val lat = Option(in._11).map(DoubleSerializer.get().fromByteBuffer)
-            val lng = Option(in._12).map(DoubleSerializer.get().fromByteBuffer)
-            val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer)
+            val keyId = Option(in._2).map(StringSerializer.get().fromByteBuffer).getOrElse("missingKeyId")
+            val serType = Option(in._3).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val serProfileID = Option(in._4).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val chknTime = Option(in._9).map(DateSerializer.get().fromByteBuffer).getOrElse(DEFAULT_NO_DATE)
+            val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer).orNull
+            val lat:Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
+            val lng:Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
+            val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
 
             (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
                         venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
