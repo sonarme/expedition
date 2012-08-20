@@ -22,7 +22,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
     val ppmap = args.getOrElse("ppmap", "")
     val chkininputData = args("checkinData")
     //checkinData_big_prod.txt
-    val checkinDatawithVenueId = args("checkinDatawithVenueId")
+    val checkinDataWithVenues = args.getOrElse("checkinDataWithVenueId", "hdfs:///checkinData_prod_withVenueId/checkinData_prod_withVenueId.txt")
     //checkinData_big_prod.txt
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
 
@@ -30,7 +30,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
 
     val checkinsWithoutVenueId = checkinGrouperPipe.unfilteredCheckinsLatLon(TextLine(chkininputData).read)
-    val checkins = checkinGrouperPipe.correlationCheckins(TextLine(checkinDatawithVenueId).read)
+    val checkins = checkinGrouperPipe.correlationCheckins(TextLine(checkinDataWithVenues).read)
     val placesVenueGoldenId = goldenIdpipes.withGoldenId(checkinsWithoutVenueId, checkins)
 
     val similarity = placesVenueGoldenId.groupBy('keyid, 'venName, 'goldenId) {
