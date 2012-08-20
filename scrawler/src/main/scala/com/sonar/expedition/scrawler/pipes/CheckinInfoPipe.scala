@@ -26,9 +26,7 @@ class CheckinInfoPipe(args: Args) extends Job(args) {
                 .map(('lat, 'lng) -> 'loc) {
             fields: (String, String) =>
                 val (lat, lng) = fields
-
                 (lat + ":" + lng)
-
         }
                 .discard(('lat, 'lng))
                 .project(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location))
