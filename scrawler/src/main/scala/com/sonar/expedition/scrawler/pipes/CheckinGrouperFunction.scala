@@ -16,7 +16,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def groupCheckins(input: RichPipe): RichPipe = {
 
-        val data = input
+        val data = unfilteredCheckinsFromCassandra(input)
                 .filter('dayOfWeek) {
             dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour) {
@@ -29,7 +29,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def groupHomeCheckins(input: RichPipe): RichPipe = {
 
-        val data = (input)
+        val data = unfilteredCheckinsFromCassandra(input)
                 .filter('dayOfWeek, 'hour) {
             fields: (Int, Double) =>
                 val (dayOfWeek, hour) = fields
