@@ -111,7 +111,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
         input.map(('chknTime, 'serType, 'serProfileID ) -> ('dayOfYear, 'dayOfWeek, 'hour, 'goldenId)) {
             fields: (String, String, String) => {
                 val (checkinTime, serviceType, serviceProfileId ) = fields
-                val richDate = RichDate(checkinTime, TimeZone.getDefault)
+                val richDate = RichDate(checkinTime)(TimeZone.getDefault)
                 val timeFilter = richDate.toCalendar()
 
                 val dayOfYear = timeFilter.get(Calendar.DAY_OF_YEAR).toInt
