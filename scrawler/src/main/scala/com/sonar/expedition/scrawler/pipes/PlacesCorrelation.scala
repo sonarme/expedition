@@ -18,7 +18,7 @@ class PlacesCorrelation(args: Args) extends Job(args) {
                 .project('newkeyid, 'newserType, 'newserProfileID, 'newserCheckinID, 'newvenName, 'newvenAddress, 'venId, 'newchknTime, 'newghash, 'newlat, 'newlng, 'newdayOfYear, 'newdayOfWeek, 'newhour)
 
         val oldCheckinPipe = oldCheckinGrouperPipe
-                .joinWithSmaller(('lat, 'lng) -> ('newlat, 'newlng), newCheckinPipe)
+                .joinWithSmaller(('serCheckinID) -> ('newserCheckinID), newCheckinPipe)
                 .unique('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour)
         oldCheckinPipe
     }
