@@ -14,7 +14,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def groupCheckins(input: RichPipe): RichPipe = {
 
-        val data = unfilteredCheckins(input)
+        val data = unfilteredCheckinsFromCassandra(input)
                 .filter('dayOfWeek) {
             dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour) {
@@ -27,7 +27,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def groupHomeCheckins(input: RichPipe): RichPipe = {
 
-        val data = unfilteredCheckins(input)
+        val data = unfilteredCheckinsFromCassandra(input)
                 .filter('dayOfWeek, 'hour) {
             fields: (Int, Double) =>
                 val (dayOfWeek, hour) = fields
@@ -105,6 +105,32 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 .unique(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg))
 
         data
+    }
+
+    def correlationCheckinsFromCassandra(input: RichPipe): RichPipe = {
+        input.map(('chknTime, 'serType, 'serProfileID ) ->('dayOfYear, 'dayOfWeek, 'hour, 'goldenId)) {
+            tuple => {
+                val (checkinTime, serviceType, serviceProfileId ) = tuple
+                val richDate = RichDate(checkinTime)
+                val timeFilter = richDate.toCalendar()
+
+                val date = timeFilter.get(Calendar.DAY_OF_YEAR)
+                val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                val goldenId = serviceType + ":" + serviceProfileId
+                (dayOfYear, dayOfWeek, hour, goldenId)
+                }
+
+        }
+    }
+
+    def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {
+        correlationCheckins(input).map(('lat, 'lng) -> ('loc)) {
+            fields: (String, String) =>
+                val (lat, lng) = fields
+                val loc = lat + ":" + lng
+                (loc)
+        }
     }
 
     def correlationCheckins(input: RichPipe): RichPipe = {

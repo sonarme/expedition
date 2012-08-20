@@ -9,6 +9,7 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{StringSerializer, DoubleSerializer}
 import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
+import java.nio.ByteBuffer
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -58,12 +59,61 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val placesCorrelation = new PlacesCorrelation(args)
 
 
+    /*
+      {column_name: checkinTime, validation_class: DateType}
+    {column_name: latitude, validation_class: DoubleType}
+    {column_name: longitude, validation_class: DoubleType}
+    {column_name: geohash, validation_class: LongType}
+    {column_name: geosector, validation_class: LongType}
+    {column_name: timeSliceId, validation_class: LongType}
+    {column_name: horizontalAccuracy, validation_class: DoubleType}
+    {column_name: verticalAccuracy, validation_class: DoubleType}
+    {column_name: course, validation_class: DoubleType}
+    {column_name: speed, validation_class: DoubleType}
+    {column_name: calculatedSpeed, validation_class: DoubleType}
+    {column_name: batteryLevel, validation_class: DoubleType}*/
+
+     val checkins = CassandraSource(
+            rpcHost = rpcHostArg,
+            privatePublicIpMap = ppmap,
+            keyspaceName = "dossier",
+            columnFamilyName = "Checkin",
+            scheme = NarrowRowScheme(keyField = 'serviceCheckinId,
+                nameFields = ('keyidBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                        'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
+             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
+         columnNames = List("userProfileId", "serviceType", "serviceProfileId",
+                            "serviceCheckinId", "venueName", "venueAddress",
+                            "venueId", "checkinTime", "geohash", "latitude",
+                            "longitude", "message"))
+     ).map(('keyidBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                        'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
+             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('keyid, 'serType, 'serProfileID, 'serCheckinID,
+                        'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
+        in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
+                ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
+            val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
+            val keyid = Option(in._2).map(StringSerializer.get().fromByteBuffer)
+            val serType = Option(in._3).map(StringSerializer.get().fromByteBuffer)
+            val serProfileID = Option(in._4).map(StringSerializer.get().fromByteBuffer)
+            val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer)
+            val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer)
+            val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer)
+            val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer)
+            val chknTime = Option(in._9).map(StringSerializer.get().fromByteBuffer)
+            val ghash = Option(in._10).map(StringSerializer.get().fromByteBuffer)
+            val lat = Option(in._11).map(StringSerializer.get().fromByteBuffer)
+            val lng = Option(in._12).map(StringSerializer.get().fromByteBuffer)
+            val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer)
+
+            (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
+                        venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
+        }
 
 
-
-    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
+//    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
     val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
-    val checkinsWithGolden = placesCorrelation.withGoldenId(checkins, newcheckins)
+    val checkinsWithGolden = placesCorrelation.withGoldenId(checkins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
             val (lat, lng) = fields
@@ -109,7 +159,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val friendsForCoworker = friendGroup.groupFriends(friendData)
     val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
-    val homeCheckins = checkinGroup.groupHomeCheckins(TextLine(checkininput).read)
+    val homeCheckins = checkinGroup.groupHomeCheckins(checkins)
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
