@@ -23,13 +23,13 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
     val ppmap = args.getOrElse("ppmap", "")
     val sequenceInputCompetitiveAnalysis = args.getOrElse("sequenceInputCompetitiveAnalysis", "s3n://scrawler/competitiveAnalysisOutput")
 
-    val seqCompetitiveAnalysis = SequenceFile(sequenceInputCompetitiveAnalysis, Fields.ALL).read.mapTo((0, 1, 2, 3, 4) ->('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity)) {
-        in: (String, String, String, String, Double) =>
-            val (venueFrom, goldenIdFrom, venueNameTo, goldenIdTo, similarityIndex) = in
-            (venueFrom, goldenIdFrom, venueNameTo, goldenIdTo, similarityIndex)
-    }.map(('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, String, String, String, Double) =>
-            val (venueFrom, goldenIdFrom, venueNameTo, goldenIdTo, similarityIndex) = in
+    val seqCompetitiveAnalysis = SequenceFile(sequenceInputCompetitiveAnalysis, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6) ->('venName, 'venuetype, 'goldenId, 'venName2, 'venuetype2, 'goldenId2, 'jaccardSimilarity)) {
+        in: (String, String, String, String, String, String, Double) =>
+            val (venueFrom, venueTypeFrom, goldenIdFrom, venueNameTo, venueTypeTo, goldenIdTo, similarityIndex) = in
+            (venueFrom, venueTypeFrom, goldenIdFrom, venueNameTo, venueTypeTo, goldenIdTo, similarityIndex)
+    }.map(('venName, 'venuetype, 'goldenId, 'venName2, 'venuetype2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, String, String, String, String, String, Double) =>
+            val (venueFrom, venueTypeFrom, goldenIdFrom, venueNameTo, venueTypeTo, goldenIdTo, similarityIndex) = in
 
             val analysisType = com.sonar.dossier.dto.CompetitiveAnalysisType.competitor
 
@@ -41,7 +41,7 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
                 analysisType = analysisType,
                 venueId = goldenIdTo,
                 venueName = venueNameTo,
-                venueType = "undefined",
+                venueType = venueTypeTo,
                 correlation = similarityIndex
             )
             val columnB = CompetitiveVenueColumnSerializer toByteBuffer (column)
@@ -73,5 +73,4 @@ class JSONSerializerTwo[T >: Null](clazz: Class[T]) extends AbstractSerializer[T
         if (byteBuffer == null || !byteBuffer.hasRemaining) null
         else ScrawlerObjectMapper.objectMapper.readValue(ByteBufferUtil.getArray(byteBuffer), clazz)
 }
-
 

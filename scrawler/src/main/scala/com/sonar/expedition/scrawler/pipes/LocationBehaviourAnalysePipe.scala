@@ -175,4 +175,16 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
     }
 
 
+    def classifyPlaceType(bayestrainingmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
+        val trainer = new BayesModelPipe(args)
+        val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+            fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+        }
+        val chkinpipe4 = chkinpipefileterdtime.project('venName).rename('venName -> 'data)
+        val trainedto = trainer.calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)) //project('data, 'key, 'weight)
+        val classifiedplaces = chkinpipefileterdtime.joinWithSmaller('venName -> 'data, trainedto).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'key, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)).rename('key -> 'venTypeFromModel)
+        classifiedplaces
+    }
+
+
 }

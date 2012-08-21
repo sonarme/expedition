@@ -10,9 +10,7 @@ import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, Str
 import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 import java.nio.ByteBuffer
-import java.util.TimeZone
-import DateOps._
-import org.apache.cassandra.db.marshal.DateType
+import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -25,17 +23,13 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
-    //    val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
-    //    val newcheckininput = args("newCheckinInput")
     val sequenceOutputStatic = args("sequenceOutputStatic")
     val sequenceOutputTime = args("sequenceOutputTime")
     val textOutputStatic = args("textOutputStatic")
     val textOutputTime = args("textOutputTime")
 
-    val DEFAULT_NO_DATE = RichDate(0L)
-    val NONE_VALUE = "none"
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -106,9 +100,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
 
 
-    //    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
     val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
-    //    val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
     val checkinsWithGolden = placesCorrelation.withGoldenId(newCheckins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -125,7 +117,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
 
 
-    /* val joinedProfiles = profiles.rename('key->'rowkey)
+    /*val joinedProfiles = profiles.rename('key->'rowkey)
 val trainer = new BayesModelPipe(args)
 
 val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
@@ -139,8 +131,8 @@ val jobtypes = joinedProfiles.rename('worktitle -> 'data)
 val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
 
 val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
- .rename('rowkey -> 'key) */
-
+ .rename('rowkey -> 'key)
+*/
 
     val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
 
@@ -363,18 +355,18 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
             .project(('rowKey, 'columnName, 'columnValue))
 
     /* val byIncome = businessGroup.byIncome(combined)
-            .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, String, Int) =>
-            val (venueKey, income, frequency) = in
+                .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+            in: (String, String, Int) =>
+                val (venueKey, income, frequency) = in
 
-            val targetVenueGoldenId = venueKey + "_income"
-            val column = income
-            val value = frequency.toDouble
+                val targetVenueGoldenId = venueKey + "_income"
+                val column = income
+                val value = frequency.toDouble
 
-            (targetVenueGoldenId, column, value)
-    }
-            .project(('rowKey, 'columnName, 'columnValue))   */
-
+                (targetVenueGoldenId, column, value)
+        }
+                .project(('rowKey, 'columnName, 'columnValue))
+    */
     val staticOutput =
         (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 

@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.util
 import java.security.MessageDigest
 import util.matching.Regex
 import com.sonar.dossier.dto.ServiceType
+import com.twitter.scalding.RichDate
 
 object CommonFunctions {
 
@@ -22,6 +23,9 @@ object CommonFunctions {
     val College: Regex = """(A|B|O)""".r
     val NoCollege: Regex = """(H)""".r
     val Grad: Regex = """(D|M|MBA|J|P)""".r
+
+    val DEFAULT_NO_DATE = RichDate(0L)
+    val NONE_VALUE = "none"
 
     def md5SumString(bytes: Array[Byte]): String = {
         val md5 = MessageDigest.getInstance("MD5")
