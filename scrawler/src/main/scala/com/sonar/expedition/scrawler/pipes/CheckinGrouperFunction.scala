@@ -119,7 +119,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 val dayOfYear = new Integer(timeFilter.get(Calendar.DAY_OF_YEAR))
                 val dayOfWeek = new Integer(timeFilter.get(Calendar.DAY_OF_WEEK))
                 val hourOfDay = new Integer(timeFilter.get(Calendar.HOUR_OF_DAY))
-                val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                //val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
                 val goldenId = serviceType + ":" + serviceProfileId
                 (dayOfYear, dayOfWeek, hourOfDay, goldenId)
             }

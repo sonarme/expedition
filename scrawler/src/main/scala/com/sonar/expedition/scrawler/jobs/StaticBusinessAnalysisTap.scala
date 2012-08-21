@@ -144,7 +144,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
     val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
 
-    val chkindata = checkinGroup.groupCheckins(newCheckins).write(TextLine("/tmp/chkindata"))
+    val chkindata = checkinGroup.groupCheckins(newCheckins)
 
     val friendData = TextLine(friendinput).read.project('line)
 
@@ -156,7 +156,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
     val friendsForCoworker = friendGroup.groupFriends(friendData)
 
-    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata).write(TextLine("/tmp/coworkerCheckins"))
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
