@@ -243,8 +243,8 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendsInput.project(('userProfileId, 'serviceProfileId, 'friendName))
-                .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
+        val userIdGroupedFriends = friendsInput.project(('keyid, 'serviceProfileId, 'friendName))
+                .map(('keyid, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
                 val uIdString = userIdString.trim

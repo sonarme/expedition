@@ -25,10 +25,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
-//    val checkininput = args("checkinInput")
+    //    val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
-//    val newcheckininput = args("newCheckinInput")
+    //    val newcheckininput = args("newCheckinInput")
     val sequenceOutputStatic = args("sequenceOutputStatic")
     val sequenceOutputTime = args("sequenceOutputTime")
     val textOutputStatic = args("textOutputStatic")
@@ -67,37 +67,23 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val placesCorrelation = new PlacesCorrelation(args)
 
 
-    /*
-      {column_name: checkinTime, validation_class: DateType}
-    {column_name: latitude, validation_class: DoubleType}
-    {column_name: longitude, validation_class: DoubleType}
-    {column_name: geohash, validation_class: LongType}
-    {column_name: geosector, validation_class: LongType}
-    {column_name: timeSliceId, validation_class: LongType}
-    {column_name: horizontalAccuracy, validation_class: DoubleType}
-    {column_name: verticalAccuracy, validation_class: DoubleType}
-    {column_name: course, validation_class: DoubleType}
-    {column_name: speed, validation_class: DoubleType}
-    {column_name: calculatedSpeed, validation_class: DoubleType}
-    {column_name: batteryLevel, validation_class: DoubleType}*/
-
-     val checkins = CassandraSource(
-            rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
-            keyspaceName = "dossier",
-            columnFamilyName = "Checkin",
-            scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
-                nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-                        'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
-         columnNames = List("userProfileId", "serviceType", "serviceProfileId",
-                            "serviceCheckinId", "venueName", "venueAddress",
-                            "venueId", "checkinTime", "geohash", "latitude",
-                            "longitude", "message"))
-     ).map(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-                        'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
-                        'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
+    val checkins = CassandraSource(
+        rpcHost = rpcHostArg,
+        privatePublicIpMap = ppmap,
+        keyspaceName = "dossier_ben",
+        columnFamilyName = "Checkin",
+        scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
+            nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                    'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
+                    'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
+            columnNames = List("userProfileId", "serviceType", "serviceProfileId",
+                "serviceCheckinId", "venueName", "venueAddress",
+                "venueId", "checkinTime", "geohash", "latitude",
+                "longitude", "message"))
+    ).map(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+            'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
+            'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
+            'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
             val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
@@ -110,20 +96,19 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
             val chknTime = Option(in._9).map(DateSerializer.get().fromByteBuffer).getOrElse(DEFAULT_NO_DATE)
             val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer).orNull
-            val lat:Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
-            val lng:Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
+            val lat: Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
+            val lng: Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
             val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
 
             (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
-                        venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
+                    venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
         }
-     }
+    }
 
 
-
-//    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
-        val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
-//    val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
+    //    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
+    val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
+    //    val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
     val checkinsWithGolden = placesCorrelation.withGoldenId(newCheckins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -140,52 +125,57 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
 
 
-
     /* val joinedProfiles = profiles.rename('key->'rowkey)
-    val trainer = new BayesModelPipe(args)
+val trainer = new BayesModelPipe(args)
 
-    val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
-        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
-    }
+}
 
 
-    val jobtypes = joinedProfiles.rename('worktitle -> 'data)
+val jobtypes = joinedProfiles.rename('worktitle -> 'data)
 
-    val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
+val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
 
-    val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
-            .rename('rowkey -> 'key) */
-
+val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
+ .rename('rowkey -> 'key) */
 
 
     val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
 
+    val chkindata = checkinGroup.groupCheckins(newCheckins).write(TextLine("/tmp/chkindata"))
 
-    val chkindata = checkinGroup.groupCheckins(newCheckins)
     val friendData = TextLine(friendinput).read.project('line)
+
     val profilesAndCheckins = combined.project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+
     val employerGroupedServiceProfiles = total.project(('key, 'worked))
+
     val serviceIds = total.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
+
     val friendsForCoworker = friendGroup.groupFriends(friendData)
-    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
+
+    val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata).write(TextLine("/tmp/coworkerCheckins"))
+
     val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+
     val homeCheckins = checkinGroup.groupHomeCheckins(newCheckins)
+
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+
     val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
+
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
-            .map('centroid -> 'workCentroid) {centroid: String => centroid}
+            .map('centroid -> 'workCentroid) {
+        centroid: String => centroid
+    }
             .discard(('key1, 'centroid))
             .joinWithSmaller('key -> 'key1, findhomefromchkins)
-            .map('centroid -> 'homeCentroid) {centroid: String => centroid}
-//            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
-
-
-
-
-
-
-
+            .map('centroid -> 'homeCentroid) {
+        centroid: String => centroid
+    }
+    //            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
 
     val byAge = businessGroup.byAge(combined)
             .map(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
@@ -259,7 +249,6 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     } */
 
     val totalStatic = (totalAge ++ totalDegree ++ totalGender).project(('rowKey, 'columnName, 'columnValue))
-
 
 
     val loyalty = reachLoyalty.findLoyalty(combined)
@@ -408,7 +397,6 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
 
     val timeSequence = byTime.write(SequenceFile(sequenceOutputTime, Fields.ALL))
     val timeText = staticOutput.write(TextLine(textOutputTime))
-
 
 
 }

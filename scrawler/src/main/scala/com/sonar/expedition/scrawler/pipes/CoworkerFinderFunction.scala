@@ -251,7 +251,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
-                originalEmployer.equalsIgnoreCase(friendsEmployer)
+
+                (originalEmployer != null && originalEmployer.equalsIgnoreCase(friendsEmployer))
             }
         }.rename(('row_keyfbuser, 'emplyer) ->('originalUId, 'employer)).project('originalUId, 'friendUId, 'employer).unique('originalUId, 'friendUId, 'employer)
 
@@ -267,7 +268,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
-                originalEmployer.equalsIgnoreCase(friendsEmployer)
+                (originalEmployer != null && originalEmployer.equalsIgnoreCase(friendsEmployer))
             }
         }.rename(('row_keylnuser, 'row_keyfrnd, 'emplyer) ->('originalUId, 'friendUId, 'employer)).project('originalUId, 'friendUId, 'employer).unique('originalUId, 'friendUId, 'employer)
 
