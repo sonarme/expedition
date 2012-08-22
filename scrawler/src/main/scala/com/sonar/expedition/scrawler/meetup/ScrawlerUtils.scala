@@ -1,9 +1,10 @@
 package com.sonar.expedition.scrawler.meetup
 
 import org.apache.http.client.HttpClient
-import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.{HttpGet, HttpPost}
 import org.apache.http.HttpStatus
 import org.apache.http.impl.client.DefaultHttpClient
+import io.Source
 
 //import org.apache.commons.httpclient.{HttpStatus, HttpClient}
 
@@ -49,23 +50,15 @@ object ScrawlerUtils {
     }
 
     def extractContentsPageLinks(url: String): String = {
-        var results = ""
         val highestpage = findhighestepageNum(url)
         val index = url.indexOf("meetup.com") + 11
         var groupname: String = url.substring(index, index + url.substring(index).indexOf("/"))
         if (1 == highestpage) {
-            val tmpurl = "http://www.meetup.com/" + groupname + "/members/"
-            results += tmpurl + "\n"
-
+            "http://www.meetup.com/" + groupname + "/members/"
         } else {
-            for (i <- 0 until highestpage + 1) {
-                val tmpurl = "http://www.meetup.com/" + groupname + "/members/?offset=" + i * 20 + "&desc=1&sort=chapter_member.atime"
-                results += tmpurl + "\n"
-            }
+            val links = for (i <- 0 until highestpage + 1) yield "http://www.meetup.com/" + groupname + "/members/?offset=" + i * 20 + "&desc=1&sort=chapter_member.atime"
+            links.mkString("\n")
         }
-
-        results
-
     }
 
     def findhighestepageNum(url: String): Int = {
@@ -96,13 +89,10 @@ object ScrawlerUtils {
 
 
     def doHttpUrlConnectionAction(desiredUrl: String): String = {
-        var responseBodyString = ""
-        var results: String = ""
         var httpclient = new DefaultHttpClient()
-        var method = new HttpPost(desiredUrl)
-        var statusCode = httpclient.execute(method)
-        responseBodyString = method.getEntity.getContent.toString //bytes
-        responseBodyString
+        var method = new HttpGet(desiredUrl)
+        var contentStream = httpclient.execute(method).getEntity.getContent
+        Source.fromInputStream(contentStream).mkString
     }
 
     def getResponse(reader: BufferedReader): Option[String] = {
