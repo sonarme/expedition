@@ -13,6 +13,7 @@ import com.sonar.expedition.scrawler.util.Haversine
 
 
 // Use args:
+//before running this make sure to train the model(bayestrainingmodelforlocationtype) using the full data in  placesData(places_geoson) in LocationBehaviourAnalyseBayesModel
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
 

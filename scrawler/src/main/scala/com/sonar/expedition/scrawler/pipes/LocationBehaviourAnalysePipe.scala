@@ -83,8 +83,8 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
         }
     }
 
-    def filterTime(chkinpipe1: RichPipe, chkinpipe2: RichPipe, timediff: String, geoHashSectorSize: String, prodtest: Int): RichPipe = {
-        val pipe = chkinpipe1.joinWithSmaller('keyid -> 'keyid1, chkinpipe2).project(('keyid, 'venName1, 'chknTime1, 'latitude, 'longitude, 'venName, 'chknTime, 'latitude1, 'longitude1))
+    def filterTime(chkinpipe: RichPipe, chkinpipe2: RichPipe, timediff: String, geoHashSectorSize: String, prodtest: Int): RichPipe = {
+        val pipe = chkinpipe.joinWithSmaller('keyid -> 'keyid1, chkinpipe2).project(('keyid, 'venName1, 'chknTime1, 'latitude, 'longitude, 'venName, 'chknTime, 'latitude1, 'longitude1))
                 .unique(('keyid, 'venName1, 'chknTime1, 'latitude, 'longitude, 'venName, 'chknTime, 'latitude1, 'longitude1))
                 .filter(('venName1, 'venName)) {
             fields: (String, String) =>
@@ -100,13 +100,69 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
                 val (keyid, venname1, chknTime1, latitude, longitude, venname2, chknTime, latitude2, longitude2) = fields
                 (venname1, chknTime1, latitude, longitude, venname2, chknTime, latitude2, longitude2, 1, keyid) //add one to do a sum('countTIMES) inside the pipe to find out total count of users moving from  'venNameFROM to 'venNameTO
         }
-                .groupBy(('venNameFROM, 'chknTime1, 'latitudeFrom1, 'longitudeFrom1, 'venNameTO, 'chknTime, 'latitudeTo1, 'longitudeTo1, 'keyidS)) {
+                .groupBy(('venNameFROM, 'venNameTO, 'keyidS)) {
             _.size
         }.rename('size -> 'countTIMES)
         val geohashedpipe = convertlatlongToGeohash(pipe, geoHashSectorSize)
         geohashedpipe
+
+        /* val output = chkinpipe.groupAll {
+    _.sortBy('chknTime)
+}
+.groupBy('keyid) {
+    _.reduce(('chknTime, 'venName, 'latitude, 'longitude) ->('chknTimeList, 'venNameList, 'latitude, 'longitude)) {
+
+        (left: (String, String, String, String), right: (String, String, String, String)) =>
+
+
+        (left._1 + "::" + right._1, left._2 + "::" + right._2, left._3 + "::" + right._3, left._4 + "::" + right._4)
     }
 
+    //_.mapStream(('chknTime, 'venName, 'latitude, 'longitude, 'serCheckinID) ->('chknTimeList, 'venNameList, 'latitude, 'longitude, 'serCheckinID)) {
+    //_.mapStream(('chknTime, 'venName, 'latitude, 'longitude, 'serCheckinID) ->('chknTimeList, 'venNameList, 'latitude, 'longitude, 'serCheckinID)) {
+
+     /*   _.mapStream(('chknTime) ->('chknTimeList)) {
+
+            checkins: Iterator[Fields] =>
+            checkins.sliding(2)
+            /*checkins: Iterator[Fields] => {
+            checkins.sliding(2).filter {
+                checkinPair:List[Fields] => {
+                    case (checkin1, checkin2) if (DateRange(checkin1._1 + Hours(4)).contains(checkin2._1)) => true
+                    case _ => false
+                }
+            }*//*.flatMap {
+                pairAsList => {
+                    val checkinEntry1 = pairAsList(0)
+                    val checkinEntry2 = pairAsList(1)
+                    (checkinEntry1._5, checkinEntry2._5)
+                }
+
+            }*/
+     }*/
+
+}
+.mapTo(('keyid,'chknTimeList, 'venNameList, 'latitude, 'longitude)->('keyid,'chknTimeList, 'venNameList, 'latitude, 'longitude)){
+    fields: (String, String, String, String,String)=>
+    val (keyid,chknTimeList, venNameList, latitude, longitude) = fields
+
+    val checkinfiltered= filterCheckin(chknTimeList)
+    (keyid,checkinfiltered, venNameList, latitude, longitude)
+}
+        .write(TextLine("/tmp/testlist"))*/
+
+
+    }
+
+
+    /*def filterCheckin(checkinDates:String):Iterator[List[String]]={
+
+
+          // todo
+           val checkinPairs = checkinDates.split("::").toList.sliding(2)
+
+
+    }*/
     def convertlatlongToGeohash(inpipe: RichPipe, geoHashSectorSize: String
                                        ): RichPipe = {
         val outpipe = inpipe.mapTo(('venNameFROM, 'chknTime1, 'latitudeFrom1, 'longitudeFrom1, 'venNameTO, 'chknTime, 'latitudeTo1, 'longitudeTo1, 'countTIMES, 'keyidS) ->
