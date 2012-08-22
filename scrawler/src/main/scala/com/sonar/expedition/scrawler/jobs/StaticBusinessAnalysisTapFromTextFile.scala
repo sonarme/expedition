@@ -2,15 +2,11 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
-import com.sonar.dossier.dto._
-import com.sonar.dossier.dao.cassandra.JSONSerializer
-import com.sonar.scalding.cassandra._
-import com.sonar.expedition.scrawler.util.CommonFunctions._
-import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, StringSerializer, DoubleSerializer}
-import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
-import java.nio.ByteBuffer
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.twitter.scalding.SequenceFile
+import com.twitter.scalding.TextLine
+import java.util.TimeZone
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -36,6 +32,8 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
     val textOutputStatic = args("textOutputStatic")
     val textOutputTime = args("textOutputTime")
     val checkininput = args("checkinInput")
+
+    implicit val defaultTimezone = TimeZone.getTimeZone(args.getOrElse("tz", "America/New_York"))
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -68,14 +66,19 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
 
     val checkins = checkinGroup.checkinsWithMessage(TextLine(checkininput))
-            .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)
-            ->
-            (('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
-                    'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg))) {
 
-        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+            .map(
+        ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)
+                ->
+                ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)
+    ) {
 
-            (fields._2 + ":" + fields._7, fields._1, fields._2, fields._3, fields._4, fields._5, fields._6, fields._7, RichDate(fields._8), fields._9.toLong, fields._10.toDouble, fields._11.toDouble, fields._15)
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String) =>
+            val (keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, chknTime, ghash, lat, lng, msg) = fields
+            val richDate = RichDate(chknTime)
+            val checkinTime = chknTime
+
+            (serType + ":" + venId, keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, checkinTime, ghash.toLong, lat.toDouble, lng.toDouble, msg)
     }
 
 
