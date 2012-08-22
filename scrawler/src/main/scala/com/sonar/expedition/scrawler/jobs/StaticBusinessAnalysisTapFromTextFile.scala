@@ -70,7 +70,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
     val checkins = checkinGroup.checkinsWithMessage(TextLine(checkininput))
             .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)
             ->
-            (('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
+            (('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'ser CheckinID,
                     'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg))) {
 
         fields: (String, String, String, String, String, String, String, String, String, String, String, String, String) =>
