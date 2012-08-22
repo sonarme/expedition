@@ -12,7 +12,7 @@ class PlacesCorrelation(args: Args) extends Job(args) {
         val newCheckinGrouperPipe = newCheckins
         val oldCheckinGrouperPipe = oldCheckins
 
-        val newCheckinPipe = newCheckinGrouperPipe
+        val newCheckinPipe = newCheckinGrouperPipe.
                 .rename(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour) ->
                 ('newkeyid, 'newserType, 'newserProfileID, 'newserCheckinID, 'newvenName, 'newvenAddress, 'venId, 'newchknTime, 'newghash, 'newlat, 'newlng, 'newdayOfYear, 'newdayOfWeek, 'newhour))
                 .project('newkeyid, 'newserType, 'newserProfileID, 'newserCheckinID, 'newvenName, 'newvenAddress, 'venId, 'newchknTime, 'newghash, 'newlat, 'newlng, 'newdayOfYear, 'newdayOfWeek, 'newhour)
