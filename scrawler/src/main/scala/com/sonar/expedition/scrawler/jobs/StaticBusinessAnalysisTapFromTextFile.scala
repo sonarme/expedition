@@ -15,6 +15,12 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
+
+/*
+com.sonar.expedition.scrawler.jobs.StaticBusinessAnalysisTapFromTextFile --hdfs --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
+--serviceProfileInput "/tmp/serviceProfileData.txt" --twitterServiceProfileInput "/tmp/twitterServiceProfileDatasmallest.txt" --checkinInput "/tmp/checkinDatatest.txt" --friendInput "/tmp/friendData.txt"
+ --bayestrainingmodelforsalary "/tmp/bayestrainingmodelforsalary" --sequenceOutputStatic "/tmp/sequenceOutputStatic" --sequenceOutputTime "/tmp/sequenceOutputTime" --textOutputStatic "/tmp/textOutputStatic" --textOutputTime "/tmp/textOutputTime"
+ */
 class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
 
