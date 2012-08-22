@@ -29,6 +29,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val sequenceOutputTime = args("sequenceOutputTime")
     val textOutputStatic = args("textOutputStatic")
     val textOutputTime = args("textOutputTime")
+    val cassandraKeyspaceName = args.getOrElse("keyspace", "dossier")
 
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
@@ -64,7 +65,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val checkins = CassandraSource(
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
-        keyspaceName = "dossier_ben",
+        keyspaceName = cassandraKeyspaceName,
         columnFamilyName = "Checkin",
         scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
             nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
