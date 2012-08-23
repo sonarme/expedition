@@ -67,16 +67,16 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
     val checkins = checkinGroup.checkinsWithMessage(TextLine(checkininput))
 
-            .map(
-        ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)
+            .mapTo(
+        ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)
                 ->
                 ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)
     ) {
 
-        fields: (String, String, String, String, String, String, String, String, String, String, String, String) =>
-            val (keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, chknTime, ghash, lat, lng, msg) = fields
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+            val (keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, chknTime, ghash, lat, lng, dayOfYear, dayOfWeek, hour, msg) = fields
             val richDate = RichDate(chknTime)
-            val checkinTime = chknTime
+            val checkinTime = richDate.toCalendar
 
             (serType + ":" + venId, keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, checkinTime, ghash.toLong, lat.toDouble, lng.toDouble, msg)
     }
