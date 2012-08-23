@@ -126,7 +126,6 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 val (checkinTime, serviceType, serviceProfileId) = fields
                 val richDate = RichDate(checkinTime)
                 val timeFilter = richDate.toCalendar
-
                 val dayOfYear = new Integer(timeFilter.get(Calendar.DAY_OF_YEAR))
                 val dayOfWeek = new Integer(timeFilter.get(Calendar.DAY_OF_WEEK))
                 val hourOfDay = new Integer(timeFilter.get(Calendar.HOUR_OF_DAY))
