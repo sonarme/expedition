@@ -82,7 +82,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
             val checkinTime = getDate(chknTime)
             //val richDate = RichDate(checkinTime)
             (serType + ":" + venId, keyid, serType, hashed(serProfileID), serCheckinID, venName, venAddress, venId, checkinTime, gHashAsLong, lat.toDouble, lng.toDouble, msg)
-    }.write(TextLine("/tmp/test1"))
+    }
 
     def getDate(chknTime: String): Date = {
 
@@ -108,7 +108,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
     //facebook:428112530552458                facebook        100000013594714 486290991381350 Kobe Airport - 神戸空港         428112530552458 Fri Aug 04 16:23:13 EDT 2000    -1368785845864561184    34.636644171583 135.22792465066 無事到着！      217     6       16      facebook:100000013594714
     // ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg,'dayOfYear, 'dayOfWeek, 'hour, 'keyid))
-    val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins).write(TextLine("/tmp/test2"))
+    val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
     val checkinsWithGolden = placesCorrelation.withGoldenId(newCheckins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -130,13 +130,12 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
             ->
             ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)) {
         fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, Gender, Double, String, String) =>
-
+        //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
             val keys = ("facebook:" + fields._3 + "," + "twitter:" + fields._6 + "," + "foursquare:" + fields._5).split(",")
             for (key <- keys)
             yield (key, fields._2, fields._3, fields._4, fields._5, fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
 
     }
-            .write(TextLine("/tmp/test3"))
 
     /*val joinedProfiles = profiles.rename('key->'rowkey)
     val trainer = new BayesModelPipe(args)
