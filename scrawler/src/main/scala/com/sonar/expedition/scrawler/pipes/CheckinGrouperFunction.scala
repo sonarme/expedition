@@ -97,6 +97,17 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val goldenId = golden + ":" + id
                         Some((goldenId, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, venueId, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
                     }
+
+                    case CheckinExtractLineProdData(rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
+                        val timeFilter = Calendar.getInstance()
+                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                        timeFilter.setTime(checkinDate)
+                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
+                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                        Some((rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, venueId, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
+
+                    }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
                         None

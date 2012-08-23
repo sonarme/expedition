@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes.{LocationBehaviourAnalysePipe, DTOPlacesInfoPipe, PlacesCorrelation, CheckinGrouperFunction}
 import com.sonar.dossier.dto.CompetitiveVenue
 import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumn, CompetitiveVenueColumnSerializer}
@@ -10,10 +10,13 @@ import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.util.Haversine
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.CassandraSource
+import com.twitter.scalding.TextLine
+import com.sonar.scalding.cassandra.NarrowRowScheme
 
 
 // Use args:
-//before running this make sure to train the model(bayestrainingmodelforlocationtype) using the full data in  placesData(places_geoson) in LocationBehaviourAnalyseBayesModel
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
 
@@ -35,6 +38,9 @@ class CompetitorAnalysisForPlaces(args: Args) extends LocationBehaviourAnalysePi
     val placesCorrelation = new PlacesCorrelation(args)
 
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
+
+    val DEFAULT_NO_DATE = RichDate(0L)
+    val NONE_VALUE = "none"
 
     val checkinsInputPipe = CassandraSource(
         rpcHost = rpcHostArg,
@@ -242,5 +248,4 @@ class CompetitorAnalysisForPlaces(args: Args) extends LocationBehaviourAnalysePi
     }
 
 }
-
 

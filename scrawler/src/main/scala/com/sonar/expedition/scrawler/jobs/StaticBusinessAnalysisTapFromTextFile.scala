@@ -6,7 +6,9 @@ import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
-import java.util.TimeZone
+import java.util.{Date, TimeZone}
+import java.text.SimpleDateFormat
+import ch.hsr.geohash.GeoHash
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -22,7 +24,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
-
+    val DEFAULT_FILTER_DATE = "2000-08-04T16:23:13.000Z"
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
@@ -75,12 +77,33 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
         fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
             val (keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, chknTime, ghash, lat, lng, dayOfYear, dayOfWeek, hour, msg) = fields
-            val richDate = RichDate(chknTime)
-            val checkinTime = richDate.toCalendar
 
-            (serType + ":" + venId, keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, checkinTime, ghash.toLong, lat.toDouble, lng.toDouble, msg)
+            val gHashAsLong = Option(ghash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
+            val checkinTime = getDate(chknTime)
+            //val richDate = RichDate(checkinTime)
+            (serType + ":" + venId, keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, checkinTime, gHashAsLong, lat.toDouble, lng.toDouble, msg)
     }
 
+    def getDate(chknTime: String): Date = {
+
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'")
+        val date = {
+            try {
+                val chekingTime = chknTime.substring(chknTime.lastIndexOf(":") + 1)
+                simpleDateFormat.parse(chekingTime)
+
+            } catch {
+                //handle date parsing if RE doesnt match:
+                //2012-08-04T16:23:13.000Z
+                //::foursquare::1694154::501d4c71e4b0af03cf4a440a::Marinas House(:::::2012-08-04T16:23:13.000Z::dn0pr6yrc5xz::35.040870666503906::-89.67276000976562::4f879915e4b0202c048fcaef::
+                case e => simpleDateFormat.parse(DEFAULT_FILTER_DATE)
+
+
+            }
+        }
+        date
+
+    }
 
     val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
     val checkinsWithGolden = placesCorrelation.withGoldenId(newCheckins)
