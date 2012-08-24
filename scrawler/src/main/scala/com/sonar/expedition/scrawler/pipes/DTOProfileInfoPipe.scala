@@ -240,12 +240,7 @@ class DTOProfileInfoPipe(args: Args) extends Job(args) {
     }
 
     def getJson(serviceType: String, jsonString: String, serviceDesired: String): Option[String] = {
-        if (serviceType == null)
-            None
-        else if (serviceType == serviceDesired)
-            Option(jsonString)
-        else
-            None
+        Option(jsonString).map(validJson => if (serviceType == serviceDesired) validJson else null)
     }
 
     def getID(serviceProfile: Option[ServiceProfileDTO]): Option[String] = {

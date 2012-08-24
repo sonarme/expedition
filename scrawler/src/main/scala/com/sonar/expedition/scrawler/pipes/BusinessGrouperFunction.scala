@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Job, Args}
-import java.util.Calendar
+import java.util.{Date, Calendar}
 import util.matching.Regex
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
@@ -13,9 +13,9 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
         //('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'dayOfWeek, 'hour, 'venueId, 'goldenId)
         checkinInput.joinWithSmaller('keyid -> 'key, serviceProfileInput)
                 .map('chknTime ->('hourChunk, 'dayChunk)) {
-            checkinTime: String => {
+            checkinTime: Date => {
                 val timeFilter = Calendar.getInstance()
-                val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                val checkinDate = checkinTime
                 timeFilter.setTime(checkinDate)
                 val hour = (timeFilter.getTimeInMillis / 3600000) // 1000 * 60 * 60  = for hour chunks
                 val day = (timeFilter.getTimeInMillis / 86400000) // 1000 * 60 * 60 * 24 = for 24 hour chunks

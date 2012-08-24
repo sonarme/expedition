@@ -65,31 +65,8 @@ class LocationBehaviourAnalysis(args: Args) extends LocationBehaviourAnalysePipe
             .write(chkindataoutput)
 
     // do also for ghash2 and output none for no matching and do classify later
-    val classificationByBayesModel = classifyTFIDF(bayestrainingmodel, chkinpipefileterdtime)
-            /*val placesPipe = getLocationInfo(placesData, geohashsectorsize)
-
-                val placeFromClassification = placesPipe.joinWithSmaller('geohash -> 'ghashFrom, classificationByBayesModel)
-                        .project(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
-                        .mapTo(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo) ->
-                        ('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo)) {
-                        fields: (String, Int, String, String, Long, Long, String, String, String, String, String, Double, String, Long, String, Double) =>
-                        val (keyidS, countTIMES, venNameFROM, placetypeFrom, ghashFrom, geohash, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, weightFrom, venNameTO, ghashTo, placetypeTo, weightTo) = fields
-                        val placeFromType = getType(placetypeFrom, venNameFROM, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory)
-                        (keyidS, countTIMES, venNameFROM, placeFromType, ghashFrom, geohash, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, weightFrom, venNameTO, ghashTo, placetypeTo, weightTo)
-
-                }.unique(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
-            */
-
-            /*val placesToClassification = placesPipe.joinWithSmaller('geohash -> 'ghashTo, placeFromClassification)
-                    .project(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
-                    .mapTo(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo) ->
-                    ('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'geohash, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo)) {
-                fields: (String, Int, String, String, Long, Long, String, String, String, String, String, Double, String, Long, String, Double) =>
-                    val (keyidS, countTIMES, venNameFROM, placetypeFrom, ghashFrom, geohash, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, weightFrom, venNameTO, ghashTo, placetypeTo, weightTo) = fields
-                    val placeToType = getType(placetypeTo, venNameTO, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory)
-                    (keyidS, countTIMES, venNameFROM, placetypeFrom, ghashFrom, geohash, propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, weightFrom, venNameTO, ghashTo, placeToType, weightTo)
-            }.unique(('keyidS, 'countTIMES, 'venNameFROM, 'keyFrom, 'ghashFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
-            */ .write(TextLine(locationBehaviourAnalysis))
-
+    /*val classificationByBayesModel = classifyTFIDF(bayestrainingmodel, chkinpipefileterdtime)
+          .write(TextLine(locationBehaviourAnalysis))
+*/
 
 }
