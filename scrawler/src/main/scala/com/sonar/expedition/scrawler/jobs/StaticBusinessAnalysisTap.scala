@@ -2,17 +2,14 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
-import com.sonar.dossier.dto._
-import com.sonar.dossier.dao.cassandra.JSONSerializer
-import com.sonar.scalding.cassandra._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, StringSerializer, DoubleSerializer}
-import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 import java.nio.ByteBuffer
-import java.util.TimeZone
-import DateOps._
-import org.apache.cassandra.db.marshal.DateType
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.CassandraSource
+import com.twitter.scalding.TextLine
+import com.sonar.scalding.cassandra.NarrowRowScheme
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -70,7 +67,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val checkins = CassandraSource(
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
-        keyspaceName = "dossier_ben",
+        keyspaceName = "dossier",
         columnFamilyName = "Checkin",
         scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
             nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
@@ -118,14 +115,25 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
 
     val total = dtoProfileGetPipe.getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
-        name: String => GenderFromNameProbability.gender(name)
+        name: String =>
+            val (gender, prob) = GenderFromNameProbability.gender(name)
+            (gender, prob)
     }
 
     val profiles = ageEducation.ageEducationPipe(total)
             .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
+            .flatMapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)
+            ->
+            ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)) {
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, Gender, Double, String, String) =>
+        //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
+            val keys = ("facebook:" + fields._3 + "," + "twitter:" + fields._6 + "," + "foursquare:" + fields._5).split(",")
+            for (key <- keys)
+            yield (key, fields._2, fields._3, fields._4, fields._5, fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
+    }
 
-
-    /* val joinedProfiles = profiles.rename('key->'rowkey)
+    /*
+val joinedProfiles = profiles.rename('key->'rowkey)
 val trainer = new BayesModelPipe(args)
 
 val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
@@ -194,7 +202,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
     val byGender = businessGroup.byGender(combined)
             .map(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, String, Int) =>
+        in: (String, Gender, Int) =>
             val (venueKey, impliedGender, frequency) = in
 
             val targetVenueGoldenId = venueKey + "_gender"
