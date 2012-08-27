@@ -21,7 +21,7 @@ class DealAnalysis(args: Args) extends Job(args) {
             val stemmedMerchantName = StemAndMetaphoneEmployer.getStemmed(merchantName)
             val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
             (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
-    }.write(TextLine("dealtest"))
+    }.discard('locationJSON).write(TextLine("dealtest"))
 }
 
 object DealAnalysis {
