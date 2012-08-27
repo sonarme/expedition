@@ -5,7 +5,7 @@ import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.jobs.Job
 
-class FriendsAtSameVenueTest(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction {
+class FriendsAtSameVenueTest(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with FriendsAtSameVenue {
     val serviceProfileInput = args("serviceProfileData")
     val friendsInput = args("friendData")
     val checkinsInput = args("checkinData")
@@ -23,12 +23,11 @@ class FriendsAtSameVenueTest(args: Args) extends Job(args) with DTOProfileInfoPi
 
     val joinedProfiles = getDTOProfileInfoInTuples(data)
 
-    val friendsNearby = new FriendsAtSameVenue(args)
     val friends = groupFriends(TextLine(friendsInput).read)
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val chkindata = unfilteredCheckins(TextLine(checkinsInput).read)
 
-    val findFriendsAtTheSameVenue = friendsNearby.friendsAtSameVenue(friends, chkindata, serviceIds)
+    val findFriendsAtTheSameVenue = friendsAtSameVenueDuplicate(friends, chkindata, serviceIds)
             .project(('uId, 'friendKey, 'venName, 'friendVenName, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour))
             .write(TextLine(matchedFriends))
 

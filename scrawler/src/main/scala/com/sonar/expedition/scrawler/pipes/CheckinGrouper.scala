@@ -25,9 +25,4 @@ class CheckinGrouper(args: Args) extends Job(args) {
 
 }
 
-object CheckinGrouper {
-
-}
-
-
 

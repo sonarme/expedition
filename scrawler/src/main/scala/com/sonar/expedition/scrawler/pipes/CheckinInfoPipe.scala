@@ -131,7 +131,3 @@ trait CheckinInfoPipe extends ScaldingImplicits {
     }
 
 }
-
-object CheckinInfoPipe {
-
-}

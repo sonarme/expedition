@@ -292,6 +292,3 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
     }
 
 }
-
-object CheckinGrouperFunction {
-}

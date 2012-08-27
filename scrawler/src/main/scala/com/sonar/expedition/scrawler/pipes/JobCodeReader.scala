@@ -4,7 +4,7 @@ import com.twitter.scalding.{Args, TextLine, RichPipe, Job}
 import util.matching.Regex
 import JobCodeReader._
 
-class JobCodeReader(args: Args) extends Job(args) {
+trait JobCodeReader extends ScaldingImplicits {
     def readJobTypes(incoming: RichPipe): RichPipe = {
         val pipe = incoming.project('line)
                 .flatMapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
