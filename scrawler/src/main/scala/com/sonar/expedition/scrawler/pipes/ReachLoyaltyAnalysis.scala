@@ -1,9 +1,9 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{Job, Args, RichPipe}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.Haversine
 
-class ReachLoyaltyAnalysis(args: Args) extends Job(args) {
+trait ReachLoyaltyAnalysis extends ScaldingImplicits {
 
     def findReach(combinedInput: RichPipe): RichPipe = {
 

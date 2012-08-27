@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
 import java.util.{Calendar, Date}
@@ -35,9 +35,8 @@ import java.text.DecimalFormat
  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"
  --timedifference "24" --geohashsectorsize "20"
 */
-class LocationBehaviourAnalysis(args: Args) extends LocationBehaviourAnalysePipe(args) {
+class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with CheckinGrouperFunction {
 
-    val checkinInfoPipe = new CheckinGrouperFunction(args)
     val chkindata = TextLine(args("checkindata"))
     val chkindataoutput = TextLine(args("output"))
     val bayestrainingmodel = args("bayestrainingmodelforlocationtype")
@@ -50,7 +49,7 @@ class LocationBehaviourAnalysis(args: Args) extends LocationBehaviourAnalysePipe
     val prodtest = args.getOrElse("prodtest", "0").toInt
     val placesData = args("placesData")
 
-    val chkinpipe = checkinInfoPipe.unfilteredCheckinsLatLon(chkindata).filter('venName) {
+    val chkinpipe = unfilteredCheckinsLatLon(chkindata).filter('venName) {
         fields: (String) =>
             val (venname) = fields
             (venname != None || venname != null || venname.trim != "")

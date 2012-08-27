@@ -1,12 +1,12 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, TextLine, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine, StemAndMetaphoneEmployer}
 import cascading.pipe.joiner.{RightJoin, Joiner, LeftJoin}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.dto.{ServiceType, Priorities}
 
-class PlacesCorrelation(args: Args) extends Job(args) {
+trait PlacesCorrelation extends ScaldingImplicits {
 
     def addVenueIdToCheckins(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
         val newCheckinGrouperPipe = newCheckins

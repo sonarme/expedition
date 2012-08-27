@@ -1,12 +1,13 @@
 package com.sonar.expedition.scrawler.apis
 
 import cascading.tuple.Fields
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import util.matching.Regex
 import APICalls._
+import com.sonar.expedition.scrawler.pipes.{ScaldingImplicits, JobImplicits}
 
 
-class APICalls(args: Args) extends Job(args) {
+trait APICalls extends ScaldingImplicits {
 
     def fourSquareCall(workplace: String, locationCityLat: String, locationCityLong: String): String = {
         val resp = new HttpClientRest()

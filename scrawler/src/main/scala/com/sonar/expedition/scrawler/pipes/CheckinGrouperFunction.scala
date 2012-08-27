@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichDate, RichPipe, Args}
 import util.matching.Regex
 import CheckinGrouperFunction._
 import cascading.pipe.joiner.LeftJoin
@@ -9,7 +9,7 @@ import ch.hsr.geohash.{WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.util.{Date, TimeZone, Calendar}
 
-class CheckinGrouperFunction(args: Args) extends Job(args) {
+trait CheckinGrouperFunction extends ScaldingImplicits {
 
     implicit lazy val tz = TimeZone.getTimeZone("America/New_York")
 

@@ -1,6 +1,7 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding._
+import com.twitter.scalding.{TextLine, RichPipe, Args}
+import com.sonar.expedition.scrawler.jobs.Job
 
 class SampleListTuple(args: Args) extends Job(args) {
 

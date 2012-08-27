@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.util.CommonFunctions._
@@ -19,7 +19,7 @@ com.sonar.expedition.scrawler.jobs.StaticBusinessAnalysisTapFromTextFile --hdfs 
 --serviceProfileInput "/tmp/serviceProfileData.txt" --twitterServiceProfileInput "/tmp/twitterServiceProfileDatasmallest.txt" --checkinInput "/tmp/checkinDatatest.txt" --friendInput "/tmp/friendData.txt"
  --bayestrainingmodelforsalary "/tmp/bayestrainingmodelforsalary" --sequenceOutputStatic "/tmp/sequenceOutputStatic" --sequenceOutputTime "/tmp/sequenceOutputTime" --textOutputStatic "/tmp/textOutputStatic" --textOutputTime "/tmp/textOutputTime"
  */
-class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
+class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
 
     val rpcHostArg = args("rpcHost")
@@ -56,19 +56,8 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
         }
     }).project(('id, 'serviceType, 'jsondata))
 
-    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
-    val ageEducationPipe = new AgeEducationPipe(args)
-    val checkinGroup = new CheckinGrouperFunction(args)
-    val friendGroup = new FriendGrouperFunction(args)
-    val businessGroup = new BusinessGrouperFunction(args)
-    val ageEducation = new AgeEducationPipe(args)
-    val reachLoyalty = new ReachLoyaltyAnalysis(args)
-    val coworkerPipe = new CoworkerFinderFunction(args)
-    val checkinInfoPipe = new CheckinInfoPipe(args)
-    val placesCorrelation = new PlacesCorrelation(args)
 
-
-    val checkins = checkinGroup.checkinsWithMessage(TextLine(checkininput))
+    val checkins = checkinsWithMessage(TextLine(checkininput))
 
             .mapTo(
         ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)
@@ -109,8 +98,8 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
     //facebook:428112530552458                facebook        100000013594714 486290991381350 Kobe Airport - 神戸空港         428112530552458 Fri Aug 04 16:23:13 EDT 2000    -1368785845864561184    34.636644171583 135.22792465066 無事到着！      217     6       16      facebook:100000013594714
     // ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg,'dayOfYear, 'dayOfWeek, 'hour, 'keyid))
-    val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
-    val checkinsWithGolden = placesCorrelation.withGoldenId(newCheckins)
+    val newCheckins = correlationCheckinsFromCassandra(checkins)
+    val checkinsWithGolden = withGoldenId(newCheckins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
             val (lat, lng) = fields
@@ -118,14 +107,14 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
             (loc)
     }
 
-    val total = dtoProfileGetPipe.getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String =>
             val (gender, prob) = GenderFromNameProbability.gender(name)
             (gender, prob)
     }
     //0011df62-82fe-3cf7-8fee-ab676fbc3c27    Tom B.  13e25b49bd71f5628c7fc92ca8ced47b                0011df6282fe8cf78feeab676fbc3c27        9df9309b2c938b6bb50ed8b0584b48ef                        Winston-Salem, NC                                       male    1.0     -1      NA
 
-    val profiles = ageEducation.ageEducationPipe(total)
+    val profiles = ageEducationPipe(total)
             .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
             .flatMapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)
             ->
@@ -155,11 +144,11 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
      .rename('rowkey -> 'key)
     */
 
-    val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
+    val combined = combineCheckinsProfiles(checkinsWithGolden, profiles)
 
     if (!timeSeriesOnly) {
 
-        val chkindata = checkinGroup.groupCheckins(newCheckins)
+        val chkindata = groupCheckins(newCheckins)
 
         val friendData = TextLine(friendinput).read.project('line)
 
@@ -169,17 +158,17 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
         val serviceIds = total.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
 
-        val friendsForCoworker = friendGroup.groupFriends(friendData)
+        val friendsForCoworker = groupFriends(friendData)
 
-        val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
+        val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
-        val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+        val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
-        val homeCheckins = checkinGroup.groupHomeCheckins(newCheckins)
+        val homeCheckins = groupHomeCheckins(newCheckins)
 
         val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
-        val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
+        val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
 
         val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
                 .map('centroid -> 'workCentroid) {
@@ -192,7 +181,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
         }
         //            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
 
-        val byAge = businessGroup.byAge(combined)
+        val byAge = groupByAge(combined)
                 .map(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, ageBracket, frequency) = in
@@ -206,7 +195,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
                 .project(('rowKey, 'columnName, 'columnValue))
 
 
-        val byGender = businessGroup.byGender(combined)
+        val byGender = groupByGender(combined)
                 .map(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, Gender, Int) =>
                 val (venueKey, impliedGender, frequency) = in
@@ -220,7 +209,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
         }
                 .project(('rowKey, 'columnName, 'columnValue))
 
-        val byDegree = businessGroup.byDegree(combined)
+        val byDegree = groupByDegree(combined)
                 .map(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, degreeCat, frequency) = in
@@ -265,7 +254,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
         val totalStatic = (totalAge ++ totalDegree ++ totalGender).project(('rowKey, 'columnName, 'columnValue))
 
 
-        val loyalty = reachLoyalty.findLoyalty(combined)
+        val loyalty = findLoyalty(combined)
 
         val loyaltyCount = loyalty
                 .map(('venueKey, 'loyalty, 'customers) ->('rowKey, 'columnName, 'columnValue)) {
@@ -296,7 +285,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
                 .project(('rowKey, 'columnName, 'columnValue))
 
 
-        val reach = reachLoyalty.findReach(withHomeWork)
+        val reach = findReach(withHomeWork)
 
         val reachMean = reach
                 .map(('venueKey, 'meanDist) ->('rowKey, 'columnName, 'columnValue)) {
@@ -376,7 +365,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
         }
                 .project(('rowKey, 'columnName, 'columnValue))
 
-        /* val byIncome = businessGroup.byIncome(combined)
+        /* val byIncome = byIncome(combined)
                     .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
                 in: (String, String, Int) =>
                     val (venueKey, income, frequency) = in
@@ -397,7 +386,7 @@ class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) {
 
     }
 
-    val byTime = businessGroup.timeSeries(combined)
+    val byTime = timeSeries(combined)
             .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, Int, String, Int) =>
             val (venueKey, hour, serviceType, frequency) = in

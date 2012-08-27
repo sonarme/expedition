@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding.{TextLine, Job, Args}
+import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
@@ -20,16 +20,12 @@ com.sonar.expedition.scrawler.test.RealSocialGraphTest --local --serviceProfileD
 
  */
 
-class RealSocialGraphTest(args: Args) extends Job(args) {
+class RealSocialGraphTest(args: Args) extends DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with RealSocialGraph {
     val serviceProfileInput = args("serviceProfileData")
     val twitterServiceProfileInput = args("twitterServiceProfileData")
     val friendsInput = args("friendData")
     val checkinsInput = args("checkinData")
     val matchedFriends = args("output")
-
-    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
-    val checkinGrouperPipe = new CheckinGrouperFunction(args)
-    val friendGrouper = new FriendGrouperFunction(args)
 
     val data = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -50,14 +46,13 @@ class RealSocialGraphTest(args: Args) extends Job(args) {
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val joinedProfiles = dtoProfileGetPipe.getTotalProfileTuples(data, twitterdata)
+    val joinedProfiles = getTotalProfileTuples(data, twitterdata)
 
-    val friendsNearby = new RealSocialGraph(args)
-    val friends = friendGrouper.groupFriends(TextLine(friendsInput).read)
-    val serviceIds = joinedProfiles.rename('key ->'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
-    val chkindata = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinsInput).read)
+    val friends = groupFriends(TextLine(friendsInput).read)
+    val serviceIds = joinedProfiles.rename('key -> 'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
+    val chkindata = unfilteredCheckins(TextLine(checkinsInput).read)
 
-    val findFriendsAtTheSameVenue = friendsNearby.friendsNearbyByFriends(friends, chkindata, serviceIds)
+    val findFriendsAtTheSameVenue = friendsNearbyByFriends(friends, chkindata, serviceIds)
             .write(TextLine(matchedFriends))
 
 

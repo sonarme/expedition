@@ -1,10 +1,11 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{TextLine, RichPipe, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import ch.hsr.geohash.GeoHash
+import com.sonar.expedition.scrawler.pipes.{ScaldingImplicits, JobImplicits}
 
-class InternalAnalysisJob(args: Args) extends Job(args) {
+trait InternalAnalysisJob extends ScaldingImplicits {
 
 
     def internalAnalysisGroupByServiceType(data: RichPipe): RichPipe = {

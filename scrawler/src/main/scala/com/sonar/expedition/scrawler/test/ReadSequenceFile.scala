@@ -1,7 +1,8 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding._
+import com.twitter.scalding.{TextLine, RichPipe, Args}
 import util.matching.Regex
+import com.sonar.expedition.scrawler.jobs.Job
 
 /**
  * Created with IntelliJ IDEA.

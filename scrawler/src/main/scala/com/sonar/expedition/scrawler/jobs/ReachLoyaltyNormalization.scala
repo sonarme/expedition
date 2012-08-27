@@ -1,11 +1,11 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding._
+import com.twitter.scalding.{SequenceFile, TextLine, RichPipe, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
-class ReachLoyaltyNormalization(args: Args) extends Job(args){
+class ReachLoyaltyNormalization(args: Args) extends Job(args) {
 
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
@@ -27,7 +27,7 @@ class ReachLoyaltyNormalization(args: Args) extends Job(args){
         }
     }
 
-    val count = buzz.map(('buzzCount, 'goldenId) -> ('rowKey, 'columnName, 'columnValue)) {
+    val count = buzz.map(('buzzCount, 'goldenId) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, String) =>
             val (buzzcount, golden) = fields
             val row = golden + "_normalizedBuzz"
@@ -36,7 +36,7 @@ class ReachLoyaltyNormalization(args: Args) extends Job(args){
             (row, colName, colVal)
     }.project('rowKey, 'columnName, 'columnValue)
 
-    val score = buzz.map(('buzzScore, 'goldenId) -> ('rowKey, 'columnName, 'columnValue)) {
+    val score = buzz.map(('buzzScore, 'goldenId) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, String) =>
             val (buzzscore, golden) = fields
             val row = golden + "_normalizedBuzz"
@@ -88,14 +88,14 @@ class ReachLoyaltyNormalization(args: Args) extends Job(args){
     }.project('max)
 
     val normalizedLoyalty = loyalty
-    .crossWithTiny(loyaltyMin)
-    .crossWithTiny(loyaltyMax)
-    .map(('loyaltyRawScore, 'min, 'max) -> ('normalizedLoyalty)) {
+            .crossWithTiny(loyaltyMin)
+            .crossWithTiny(loyaltyMax)
+            .map(('loyaltyRawScore, 'min, 'max) -> ('normalizedLoyalty)) {
         fields: (Double, Double, Double) =>
             val (raw, min, max) = fields
             val normal = ((scala.math.log(raw) - scala.math.log(min)) / (scala.math.log(max) - scala.math.log(min))) * 98 + 1
             normal
-    }.mapTo(('venue, 'normalizedLoyalty) -> ('rowKey, 'columnName, 'columnValue)) {
+    }.mapTo(('venue, 'normalizedLoyalty) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, Double) =>
             val (venue, normalLoyalty) = fields
             val rowkey = venue + "_loyalty"
@@ -130,7 +130,7 @@ class ReachLoyaltyNormalization(args: Args) extends Job(args){
             val (raw, min, max) = fields
             val normal = ((scala.math.log(raw) - scala.math.log(min)) / (scala.math.log(max) - scala.math.log(min))) * 98 + 1
             normal
-    }.mapTo(('venue, 'normalizedReach) -> ('rowKey, 'columnName, 'columnValue)) {
+    }.mapTo(('venue, 'normalizedReach) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, Double) =>
             val (venue, normalReach) = fields
             val rowkey = venue + "_reach"
@@ -151,15 +151,13 @@ class ReachLoyaltyNormalization(args: Args) extends Job(args){
             .groupBy('venue) {
         _.average('columnValue -> 'normalizedScore)
     }
-    .mapTo(('venue, 'normalizedScore) -> ('rowKey, 'columnName, 'columnValue)) {
+            .mapTo(('venue, 'normalizedScore) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, Double) =>
             val (venue, normalScore) = fields
             val rowkey = venue + "_normalized"
             val colName = "normalizedScore"
             (rowkey, colName, normalScore)
     }
-
-
 
 
     val staticCassandra = (normalizedScore)

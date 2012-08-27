@@ -1,13 +1,12 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding._
+import com.twitter.scalding.{SequenceFile, RichPipe, Args, TextLine}
 import com.sonar.expedition.scrawler.pipes.{BayesModelPipe, JobCodeReader}
 import util.matching.Regex
 import TrainBayesModel._
 import cascading.tuple.Fields._
 import cascading.tuple.Fields
 import scala.Some
-import com.twitter.scalding.TextLine
 
 
 /*
@@ -18,7 +17,7 @@ and run TrainBayesModel
 
 add contents to the file
  */
-class TrainBayesModel(args: Args) extends Job(args) {
+class TrainBayesModel(args: Args) extends Job(args) with BayesModelPipe {
 
     val input = args("jobtraininginput")
     val trainingmodel = args("bayestrainingmodel")
@@ -53,8 +52,7 @@ class TrainBayesModel(args: Args) extends Job(args) {
     }
             .project(('key1, 'token1, 'doc1)).rename(('key1, 'token1, 'doc1) ->('key, 'token, 'doc)).project(('key, 'token, 'doc))
 
-    val trainer = new BayesModelPipe(args)
-    val model = trainer.trainBayesModel(reading);
+    val model = trainBayesModel(reading)
     model.write(SequenceFile(trainingmodel, Fields.ALL))
 
 

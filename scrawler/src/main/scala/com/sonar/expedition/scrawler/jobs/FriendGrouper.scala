@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.objs.FriendObjects
 
-import com.twitter.scalding._
+import com.twitter.scalding.{TextLine, RichPipe, Args}
 import FriendGrouper._
 import util.matching.Regex
 

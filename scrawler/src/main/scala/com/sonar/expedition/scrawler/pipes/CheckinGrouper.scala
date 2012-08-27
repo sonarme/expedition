@@ -1,10 +1,11 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.nio.ByteBuffer
 import util.matching.Regex
 import grizzled.slf4j.Logging
+import com.sonar.expedition.scrawler.jobs.Job
 
 class CheckinGrouper(args: Args) extends Job(args) {
 

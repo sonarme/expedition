@@ -1,8 +1,9 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding.{TextLine, Job, Args}
+import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.sonar.expedition.scrawler.jobs.Job
 
 /*
 inputs : prod exports
@@ -20,7 +21,7 @@ com.sonar.expedition.scrawler.test.SonarCheckinVenueTest --local --serviceProfil
 
  */
 
-class SonarCheckinVenueTest(args: Args) extends Job(args) {
+class SonarCheckinVenueTest(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with SonarCheckinVenue {
 
     val checkinsInput = args("checkinData")
     val friendsInput = args("friendData")
@@ -47,19 +48,12 @@ class SonarCheckinVenueTest(args: Args) extends Job(args) {
     }).project(('id, 'serviceType, 'jsondata))
 
 
+    val chkindata = unfilteredCheckins(TextLine(checkinsInput).read)
+    val frienddata = groupFriends(TextLine(friendsInput).read)
+    val joinedProfiles = getTotalProfileTuples(data, twitterdata)
+    val serviceIds = joinedProfiles.rename('key -> 'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
 
-
-    val dtoProfilePipe = new DTOProfileInfoPipe(args)
-    val checkinGrouperPipe = new CheckinGrouperFunction(args)
-    val friendGrouperPipe = new FriendGrouperFunction(args)
-    val venueFinder = new SonarCheckinVenue(args)
-
-    val chkindata = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinsInput).read)
-    val frienddata = friendGrouperPipe.groupFriends(TextLine(friendsInput).read)
-    val joinedProfiles = dtoProfilePipe.getTotalProfileTuples(data, twitterdata)
-    val serviceIds = joinedProfiles.rename('key ->'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
-
-    val sonarVenues = venueFinder.getCheckinVenue(chkindata, frienddata, serviceIds)
+    val sonarVenues = getCheckinVenue(chkindata, frienddata, serviceIds)
             .write(TextLine(matchedVenues))
 
 

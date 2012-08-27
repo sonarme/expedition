@@ -1,6 +1,7 @@
 package com.sonar.expedition.scrawler.meetup
 
-import com.twitter.scalding._
+import com.twitter.scalding.{TextLine, RichPipe, Args}
+import com.sonar.expedition.scrawler.jobs.Job
 
 /**
  * Created with IntelliJ IDEA.

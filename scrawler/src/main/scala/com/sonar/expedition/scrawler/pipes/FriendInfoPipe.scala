@@ -1,12 +1,12 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import util.matching.Regex
 import FriendInfoPipe._
 
-import com.twitter.scalding.{Job, Args}
+import com.twitter.scalding.{Args}
 
-class FriendInfoPipe(args: Args) extends Job(args) {
+trait FriendInfoPipe extends ScaldingImplicits {
     def friendsDataPipe(checkinInput: RichPipe): RichPipe = {
         val friends = (checkinInput.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
             line: String => {

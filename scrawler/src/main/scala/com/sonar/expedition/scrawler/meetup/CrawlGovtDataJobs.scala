@@ -1,11 +1,12 @@
 package com.sonar.expedition.scrawler.meetup
 
-import com.twitter.scalding.{TextLine, Job, Args}
+import com.twitter.scalding.{TextLine, Args}
 import org.apache.http.client.utils.URLEncodedUtils
 import java.net.URI
 import util.matching.Regex
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
+import com.sonar.expedition.scrawler.jobs.Job
 
 class CrawlGovtDataJobs(args: Args) extends Job(args) {
 

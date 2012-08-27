@@ -1,20 +1,20 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichDate, Args, SequenceFile, TextLine}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, StringSerializer, DoubleSerializer}
 import cascading.tuple.Fields
 import java.nio.ByteBuffer
-import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.CassandraSource
-import com.twitter.scalding.TextLine
+import com.sonar.scalding.cassandra.NarrowRowScheme
+import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
+class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
 
     val rpcHostArg = args("rpcHost")
@@ -53,16 +53,6 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
         }
     }).project(('id, 'serviceType, 'jsondata))
 
-    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
-    val ageEducationPipe = new AgeEducationPipe(args)
-    val checkinGroup = new CheckinGrouperFunction(args)
-    val friendGroup = new FriendGrouperFunction(args)
-    val businessGroup = new BusinessGrouperFunction(args)
-    val ageEducation = new AgeEducationPipe(args)
-    val reachLoyalty = new ReachLoyaltyAnalysis(args)
-    val coworkerPipe = new CoworkerFinderFunction(args)
-    val checkinInfoPipe = new CheckinInfoPipe(args)
-    val placesCorrelation = new PlacesCorrelation(args)
 
     val checkins = CassandraSource(
         rpcHost = rpcHostArg,
@@ -103,10 +93,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     }
 
 
-    //    val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
-    val newCheckins = checkinGroup.correlationCheckinsFromCassandra(checkins)
-    //    val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
-    val checkinsWithGolden = placesCorrelation.withGoldenId(newCheckins)
+    //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
+    val newCheckins = correlationCheckinsFromCassandra(checkins)
+    //    val newcheckins = correlationCheckins(TextLine(newcheckininput))
+    val checkinsWithGolden = withGoldenId(newCheckins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
             val (lat, lng) = fields
@@ -114,13 +104,13 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             (loc)
     }
 
-    val total = dtoProfileGetPipe.getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String =>
             val (gender, prob) = GenderFromNameProbability.gender(name)
             (gender, prob)
     }
 
-    val profiles = ageEducation.ageEducationPipe(total)
+    val profiles = ageEducationPipe(total)
             .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
             .flatMapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)
             ->
@@ -150,11 +140,11 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
  .rename('rowkey -> 'key) */
 
 
-    val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
+    val combined = combineCheckinsProfiles(checkinsWithGolden, profiles)
 
     if (!timeSeriesOnly) {
 
-        val chkindata = checkinGroup.groupCheckins(newCheckins).write(TextLine("/tmp/chkindata"))
+        val chkindata = groupCheckins(newCheckins).write(TextLine("/tmp/chkindata"))
 
         val friendData = TextLine(friendinput).read.project('line)
 
@@ -164,17 +154,17 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
         val serviceIds = total.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
 
-        val friendsForCoworker = friendGroup.groupFriends(friendData)
+        val friendsForCoworker = groupFriends(friendData)
 
-        val coworkerCheckins = coworkerPipe.findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata).write(TextLine("/tmp/coworkerCheckins"))
+        val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata).write(TextLine("/tmp/coworkerCheckins"))
 
-        val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+        val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
-        val homeCheckins = checkinGroup.groupHomeCheckins(newCheckins)
+        val homeCheckins = groupHomeCheckins(newCheckins)
 
         val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
-        val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
+        val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
 
         val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
                 .map('centroid -> 'workCentroid) {
@@ -187,7 +177,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
         }
         //            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
 
-        val byAge = businessGroup.byAge(combined)
+        val byAge = groupByAge(combined)
                 .map(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, ageBracket, frequency) = in
@@ -202,7 +192,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 .project(('rowKey, 'columnName, 'columnValue))
 
 
-        val byGender = businessGroup.byGender(combined)
+        val byGender = groupByGender(combined)
                 .map(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, Gender, Int) =>
                 val (venueKey, impliedGender, frequency) = in
@@ -216,7 +206,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
         }
                 .project(('rowKey, 'columnName, 'columnValue))
 
-        val byDegree = businessGroup.byDegree(combined)
+        val byDegree = groupByDegree(combined)
                 .map(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, degreeCat, frequency) = in
@@ -261,7 +251,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
         val totalStatic = (totalAge ++ totalDegree ++ totalGender).project(('rowKey, 'columnName, 'columnValue))
 
 
-        val loyalty = reachLoyalty.findLoyalty(combined)
+        val loyalty = findLoyalty(combined)
 
         val loyaltyCount = loyalty
                 .map(('venueKey, 'loyalty, 'customers) ->('rowKey, 'columnName, 'columnValue)) {
@@ -292,7 +282,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 .project(('rowKey, 'columnName, 'columnValue))
 
 
-        val reach = reachLoyalty.findReach(withHomeWork)
+        val reach = findReach(withHomeWork)
 
         val reachMean = reach
                 .map(('venueKey, 'meanDist) ->('rowKey, 'columnName, 'columnValue)) {
@@ -372,7 +362,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
         }
                 .project(('rowKey, 'columnName, 'columnValue))
 
-        /* val byIncome = businessGroup.byIncome(combined)
+        /* val byIncome = byIncome(combined)
    .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
 in: (String, String, Int) =>
    val (venueKey, income, frequency) = in
@@ -392,7 +382,7 @@ in: (String, String, Int) =>
         val staticText = staticOutput.write(TextLine(textOutputStatic))
     }
 
-    val byTime = businessGroup.timeSeries(combined)
+    val byTime = timeSeries(combined)
             .map(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, Int, String, Int) =>
             val (venueKey, hour, serviceType, frequency) = in

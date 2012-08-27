@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{Tsv, Job, Args}
+import com.twitter.scalding.{Tsv, Args}
 import com.sonar.scalding.cassandra._
 import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.{LongSerializer, StringSerializer}

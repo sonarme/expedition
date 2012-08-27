@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{Job, Args, TextLine}
+import com.twitter.scalding.{Args, TextLine}
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import org.jsoup.nodes.Document
 import org.apache.http.impl.client.DefaultHttpClient

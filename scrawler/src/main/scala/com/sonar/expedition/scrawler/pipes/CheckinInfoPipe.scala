@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
 import java.security.MessageDigest
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import util.matching.Regex
 import CheckinInfoPipe._
 import scala.collection.JavaConversions._
@@ -10,7 +10,7 @@ import com.sonar.expedition.scrawler.clustering.KMeans
 import org.joda.time.DateTime
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
-class CheckinInfoPipe(args: Args) extends Job(args) {
+trait CheckinInfoPipe extends ScaldingImplicits {
 
     def getCheckinsDataPipe(checkinInput: RichPipe): RichPipe = {
 

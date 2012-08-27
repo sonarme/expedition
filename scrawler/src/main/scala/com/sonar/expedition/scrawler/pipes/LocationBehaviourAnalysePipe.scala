@@ -1,18 +1,17 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{SequenceFile, RichPipe, Args, TextLine}
 import java.util.Calendar
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.service.PrecomputationSettings
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
-import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 import java.text.{DecimalFormat, NumberFormat}
 
 /*
 com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindata "/tmp/checkinDatatest.txt" --output "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"  --timedifference "24" --geohashsectorsize "20"
  */
-class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
+trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe {
 
     def getLocationInfo(placesData: RichPipe): RichPipe = {
 
@@ -214,16 +213,15 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
     }
 
     def classifyTFIDF(bayestrainingmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
-        val trainer = new BayesModelPipe(args)
         val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
             fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
         }
         val chkinpipe4 = chkinpipefileterdtime.project('venNameTO).rename('venNameTO -> 'data)
-        val trainedto = trainer.calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataTo, 'keyTo, 'weightTo)) //project('data, 'key, 'weight)
+        val trainedto = calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataTo, 'keyTo, 'weightTo)) //project('data, 'key, 'weight)
         val classifiedplacesto = chkinpipefileterdtime.joinWithSmaller('venNameTO -> 'dataTo, trainedto).project(('keyidS, 'venNameFROM, 'ghashFrom, 'venNameTO, 'countTIMES, 'ghashTo, 'keyTo, 'weightTo)) /*.write(TextLine(trainingclassifiedfinal))*/
 
         val chkinpipe5 = classifiedplacesto.project('venNameFROM).rename('venNameFROM -> 'data)
-        val trainedfrom = trainer.calcProb(seqModel, chkinpipe5).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataFrom, 'keyFrom, 'weightFrom)) //project('data, 'key, 'weight)
+        val trainedfrom = calcProb(seqModel, chkinpipe5).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataFrom, 'keyFrom, 'weightFrom)) //project('data, 'key, 'weight)
 
         val classifiedjobs = classifiedplacesto.joinWithSmaller('venNameFROM -> 'dataFrom, trainedfrom).project(('keyidS, 'countTIMES, 'venNameFROM, 'ghashFrom, 'keyFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
         classifiedjobs.project(('keyidS, 'countTIMES, 'venNameFROM, 'ghashFrom, 'keyFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
@@ -232,12 +230,11 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
 
 
     def classifyPlaceType(bayestrainingmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
-        val trainer = new BayesModelPipe(args)
         val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
             fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
         }
         val chkinpipe4 = chkinpipefileterdtime.project('venName).rename('venName -> 'data)
-        val trainedto = trainer.calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)) //project('data, 'key, 'weight)
+        val trainedto = calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)) //project('data, 'key, 'weight)
         val classifiedplaces = chkinpipefileterdtime.joinWithSmaller('venName -> 'data, trainedto).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'key, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)).rename('key -> 'venTypeFromModel)
         classifiedplaces
     }

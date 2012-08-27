@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import java.nio.ByteBuffer
-import com.twitter.scalding._
+import com.twitter.scalding.{Tsv, RichPipe, Args}
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import com.sonar.scalding.cassandra.{NarrowRowScheme, WideRowScheme, CassandraSource}
 import me.prettyprint.cassandra.serializers.StringSerializer
@@ -14,7 +14,7 @@ import me.prettyprint.cassandra.serializers.StringSerializer
 // STAG deploy: --rpcHost 10.4.103.222
 class CassandraTestJob(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap","")
+    val ppmap = args.getOrElse("ppmap", "")
     CassandraSource(
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
@@ -31,7 +31,7 @@ class CassandraTestJob(args: Args) extends Job(args) {
     }.project('sonarId).groupBy('sonarId) {
         _.size
     }
-            .write(  Tsv("testout")/*
+            .write(Tsv("testout") /*
        CassandraSource(
             rpcHost = rpcHostArg,
             privatePublicIpMap = ppmap,

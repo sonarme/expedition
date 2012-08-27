@@ -3,9 +3,9 @@ package com.sonar.expedition.scrawler.pipes
 import util.matching.Regex
 import com.sonar.expedition.scrawler.pipes.CoworkerFinderFunction._
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
-import com.twitter.scalding.{RichPipe, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
 
-class CoworkerFinderFunction(args: Args) extends Job(args) {
+trait CoworkerFinderFunction extends ScaldingImplicits {
 
     /*
     def findCoworkers(serviceProfileInput: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {

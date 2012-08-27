@@ -1,9 +1,10 @@
 package com.sonar.expedition.scrawler.apis
 
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.twitter.scalding.TextLine
 import FactualQueryByZip._
+import com.sonar.expedition.scrawler.jobs.Job
 
 class FactualQueryByZip(args: Args) extends Job(args) {
 

@@ -1,7 +1,8 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.pipes.CoworkerFinderFunction
+import com.sonar.expedition.scrawler.jobs.Job
 
 class CoworkerFinderFunctionTest(args: Args) extends Job(args) {
     /*

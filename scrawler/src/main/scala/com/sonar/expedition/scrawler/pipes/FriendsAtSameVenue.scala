@@ -1,6 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
+import com.sonar.expedition.scrawler.jobs.Job
 
 class FriendsAtSameVenue(args: Args) extends Job(args) {
 

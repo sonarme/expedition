@@ -2,12 +2,14 @@ package com.sonar.expedition.scrawler.pipes
 
 import util.matching.Regex
 import EmployerFinderFunction._
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
 
-class EmployerFinderFunction(args: Args) extends Job(args) {
+import EmployerCheckinMatch._
+
+trait EmployerFinderFunction extends ScaldingImplicits {
 
     def findEmployeesFromText(serviceProfileInput: RichPipe, checkinInput: RichPipe): RichPipe = {
 
@@ -47,8 +49,7 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
                 .mapTo(('userId, 'venueName, 'employer, 'latitude, 'longitude) ->('numberId, 'venueName, 'employer, 'latitude, 'longitude)) {
             fields: (String, String, String, String, String) =>
                 val (userId, venue, workplace, lat, lng) = fields
-                val matcher = new EmployerCheckinMatch
-                val matchedName = matcher.checkMetaphone(workplace, venue)
+                val matchedName = checkMetaphone(workplace, venue)
                 var result = ("", "", "", "", "")
                 if (matchedName == true) {
                     result = (userId, workplace, venue, lat, lng)
@@ -91,8 +92,7 @@ class EmployerFinderFunction(args: Args) extends Job(args) {
                 .map(('userId, 'venueName, 'employer, 'loc) ->('numberId, 'venueName1, 'employer1, 'loc1)) {
             fields: (String, String, String, String) =>
                 val (userId, venue, workplace, loc) = fields
-                val matcher = new EmployerCheckinMatch
-                val matchedName = matcher.checkMetaphone(workplace, venue)
+                val matchedName = checkMetaphone(workplace, venue)
                 var result = ("", "", "", "")
                 if (matchedName == true) {
                     result = (userId, workplace, venue, loc)

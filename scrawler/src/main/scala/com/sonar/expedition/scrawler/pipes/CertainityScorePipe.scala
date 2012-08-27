@@ -1,11 +1,11 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{Job, Args, RichPipe}
+import com.twitter.scalding.{RichPipe, Args}
 import cascading.pipe.joiner.LeftJoin
 import com.sonar.expedition.scrawler.util.LocationScorer
 import java.security.MessageDigest
 
-class CertainityScorePipe(args: Args) extends Job(args) {
+trait CertainityScorePipe extends ScaldingImplicits {
 
 
     def stemmingAndScore(filteredProfiles: RichPipe, findcityfromchkins: RichPipe, placesPipe: RichPipe, numberOfFriends: RichPipe): RichPipe = {

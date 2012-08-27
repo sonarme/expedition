@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{Tsv, TextLine, Job, Args}
+import com.twitter.scalding.{Tsv, TextLine, Args}
 
 //convert data to inout format required for tarining tha bayes model
 //com.sonar.expedition.scrawler.jobs.TestDatasetClassifyJob --local

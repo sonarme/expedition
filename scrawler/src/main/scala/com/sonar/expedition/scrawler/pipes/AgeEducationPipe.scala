@@ -1,17 +1,17 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import util.matching.Regex
 import com.sonar.expedition.scrawler.pipes.AgeEducationPipe._
 
-class AgeEducationPipe(args: Args) extends Job(args){
+trait AgeEducationPipe extends ScaldingImplicits {
 
     def ageEducationPipe(serviceProfileInput: RichPipe): RichPipe = {
 
         // ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid (twalias if not total data), 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
 
-        val age = serviceProfileInput.map(('eyear, 'edegree, 'educ) -> ('age, 'degree)){
+        val age = serviceProfileInput.map(('eyear, 'edegree, 'educ) ->('age, 'degree)) {
             fields: (String, String, String) => {
                 val (eyear, edegree, school) = fields
                 val parsedDegree = parseDegree(edegree, school)
@@ -56,7 +56,7 @@ class AgeEducationPipe(args: Args) extends Job(args){
             case _ => seconddegree
         }
 
-        val schoolList = school.replaceAll("""\p{P}""","").toLowerCase.split("\\s+")
+        val schoolList = school.replaceAll( """\p{P}""", "").toLowerCase.split("\\s+")
         val isHigh = schoolList.foldLeft[Boolean](false)((a, b) => a || b.equals("high"))
 
         if (isHigh)

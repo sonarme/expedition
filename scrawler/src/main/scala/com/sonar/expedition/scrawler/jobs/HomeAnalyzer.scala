@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util._
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.apis.APICalls
@@ -11,7 +11,7 @@ import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
 
-class HomeAnalyzer(args: Args) extends Job(args) {
+class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with CheckinInfoPipe {
 
     val inputData = args("serviceProfileData")
     val chkininputData = args("checkinData")
@@ -26,18 +26,13 @@ class HomeAnalyzer(args: Args) extends Job(args) {
         }
     }).project(('id, 'serviceType, 'jsondata))
 
+    val joinedProfiles = getDTOProfileInfoInTuples(data)
 
-    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
-    val checkinGrouperPipe = new CheckinGrouperFunction(args)
-    val checkinInfoPipe = new CheckinInfoPipe(args)
-
-    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
-
-    val chkindata = checkinGrouperPipe.groupHomeCheckins(TextLine(chkininputData).read)
+    val chkindata = groupHomeCheckins(TextLine(chkininputData).read)
 
     val profilesAndCheckins = joinedProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
-    val findcityfromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(profilesAndCheckins)
+    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins)
 
     joinedProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'centroid))
             .map('worked -> 'work) {

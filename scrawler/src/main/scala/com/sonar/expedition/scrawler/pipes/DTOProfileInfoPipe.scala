@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
 import com.sonar.dossier.dto._
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.sonar.dossier.dto.UserEducation
@@ -9,7 +9,6 @@ import com.sonar.dossier.dto.ServiceProfileDTO
 import com.sonar.dossier.dto.UserEmployment
 import cascading.pipe.joiner._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-
 
 case class ProfileData(key: String,
                        name: String = "",
@@ -25,7 +24,7 @@ case class ProfileData(key: String,
                        worktitle: String = "",
                        workdesc: String = "")
 
-class DTOProfileInfoPipe(args: Args) extends Job(args) {
+trait DTOProfileInfoPipe extends ScaldingImplicits {
 
     // updated to include foursquare data
     // uncomment last line to get hashes of fb, ln, and fsids to compare prod data

@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
+import com.twitter.scalding.{SequenceFile, TextLine, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
@@ -15,7 +15,7 @@ class BuzzToCassandra(args: Args) extends Job(args) {
     val buzzTextFile = args("buzzScore")
 
     val buzz = TextLine(buzzTextFile).read
-    .flatMapTo('line ->('venName, 'buzzCount, 'buzzScore, 'goldenId)) {
+            .flatMapTo('line ->('venName, 'buzzCount, 'buzzScore, 'goldenId)) {
         line: String => {
             line match {
                 case BuzzFromText(venName, buzzCount, buzzScore, goldenId) => {
@@ -29,7 +29,7 @@ class BuzzToCassandra(args: Args) extends Job(args) {
         }
     }
 
-    val count = buzz.map(('buzzCount, 'goldenId) -> ('rowKey, 'columnName, 'columnValue)) {
+    val count = buzz.map(('buzzCount, 'goldenId) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, String) =>
             val (buzzcount, golden) = fields
             val row = golden + "_normalizedBuzz"
@@ -38,7 +38,7 @@ class BuzzToCassandra(args: Args) extends Job(args) {
             (row, colName, colVal)
     }.project('rowKey, 'columnName, 'columnValue)
 
-    val score = buzz.map(('buzzScore, 'goldenId) -> ('rowKey, 'columnName, 'columnValue)) {
+    val score = buzz.map(('buzzScore, 'goldenId) ->('rowKey, 'columnName, 'columnValue)) {
         fields: (String, String) =>
             val (buzzscore, golden) = fields
             val row = golden + "_normalizedBuzz"
