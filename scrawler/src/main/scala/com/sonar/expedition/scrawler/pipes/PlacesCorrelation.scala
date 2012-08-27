@@ -5,6 +5,8 @@ import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine, StemAndMe
 import cascading.pipe.joiner.{RightJoin, Joiner, LeftJoin}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.dto.{ServiceType, Priorities}
+import PlacesCorrelation._
+import JobImplicits._
 
 trait PlacesCorrelation extends ScaldingImplicits {
 
@@ -40,7 +42,7 @@ trait PlacesCorrelation extends ScaldingImplicits {
                 .map(('lat, 'lng) -> 'geosector) {
             fields: (String, String) =>
                 val (lat, lng) = fields
-                val geosector = GeoHash.withCharacterPrecision(lat.toDouble, lng.toDouble, 7)
+                val geosector = GeoHash.withBitPrecision(lat.toDouble, lng.toDouble, PlaceCorrelationSectorSize)
                 geosector.longValue()
         }
                 .groupBy('serType, 'venId) {
@@ -94,3 +96,6 @@ trait PlacesCorrelation extends ScaldingImplicits {
 
 }
 
+object PlacesCorrelation {
+    val PlaceCorrelationSectorSize = 35
+}

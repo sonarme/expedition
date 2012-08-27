@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{RichDate, Args, SequenceFile, TextLine}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, StringSerializer, DoubleSerializer}
@@ -9,6 +9,10 @@ import java.nio.ByteBuffer
 import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.sonar.scalding.cassandra.CassandraSource
+import com.sonar.scalding.cassandra.NarrowRowScheme
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.CassandraSource
+import com.twitter.scalding.TextLine
 import com.sonar.scalding.cassandra.NarrowRowScheme
 
 // Use args:

@@ -1,11 +1,11 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, TextLine, Args}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
+import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
-import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 
 /*
 com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype"

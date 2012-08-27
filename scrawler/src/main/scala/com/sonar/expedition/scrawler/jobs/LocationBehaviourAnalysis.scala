@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{RichPipe, Args}
+import com.twitter.scalding.{Job, RichPipe, Args, TextLine}
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
 import java.util.{Calendar, Date}
@@ -10,7 +10,6 @@ import scala.Some
 import scala.Some
 import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 import scala.Some
-import com.twitter.scalding.TextLine
 import com.sonar.dossier.service.PrecomputationSettings
 import ch.hsr.geohash.GeoHash
 import java.text.DecimalFormat

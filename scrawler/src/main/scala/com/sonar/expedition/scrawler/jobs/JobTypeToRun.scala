@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding.{TextLine, RichPipe, Args, SequenceFile}
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.pipes.{JobImplicits, BayesModelPipe, GenderFromNameProbability}
+import JobImplicits._
 
 trait JobTypeToRun extends BayesModelPipe {
 

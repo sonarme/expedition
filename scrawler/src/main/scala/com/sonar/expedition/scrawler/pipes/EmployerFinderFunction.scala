@@ -8,6 +8,7 @@ import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
 
 import EmployerCheckinMatch._
+import JobImplicits._
 
 trait EmployerFinderFunction extends ScaldingImplicits {
 

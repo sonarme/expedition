@@ -6,6 +6,7 @@ import util.matching.Regex
 import APICalls._
 import com.sonar.expedition.scrawler.pipes.{ScaldingImplicits, JobImplicits}
 
+import JobImplicits._
 
 trait APICalls extends ScaldingImplicits {
 

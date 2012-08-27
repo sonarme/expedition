@@ -2,12 +2,11 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util._
-import com.twitter.scalding.{RichPipe, Args}
+import com.twitter.scalding.{Job, RichPipe, Args, TextLine}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
-import com.twitter.scalding.TextLine
 import java.security.MessageDigest
 import cascading.tuple.Fields
 

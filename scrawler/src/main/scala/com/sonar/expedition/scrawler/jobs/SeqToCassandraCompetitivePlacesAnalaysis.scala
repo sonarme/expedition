@@ -1,13 +1,12 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, Args}
+import com.twitter.scalding.{Job, SequenceFile, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.dossier.dao.cassandra.{CassandraObjectMapper, CompetitiveVenueColumn, JSONSerializer, CompetitiveVenueColumnSerializer}
 import com.sonar.dossier.dto.CompetitiveVenue
 import com.sonar.dossier.dao.cassandra.CompetitiveVenueColumn
 import com.sonar.scalding.cassandra.WideRowScheme
-import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.CassandraSource
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import me.prettyprint.cassandra.serializers._

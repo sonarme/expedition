@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.jobs
 
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.pipes.{CheckinTimeFilter, CheckinInfoPipe}
-import com.twitter.scalding.{GroupBuilder, TextLine, Args}
+import com.twitter.scalding.{Job, GroupBuilder, TextLine, Args}
 import util.matching.Regex
 
 class CollectCheckins(args: Args) extends Job(args) with CheckinInfoPipe {

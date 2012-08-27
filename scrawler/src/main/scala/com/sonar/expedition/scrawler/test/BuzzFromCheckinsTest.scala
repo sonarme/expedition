@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes.{PlacesCorrelation, CheckinGrouperFunction, BuzzFromCheckins}
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
 
 class BuzzFromCheckinsTest(args: Args) extends Job(args) with CheckinGrouperFunction with BuzzFromCheckins with PlacesCorrelation {
 

@@ -9,6 +9,7 @@ import com.sonar.dossier.dto.ServiceProfileDTO
 import com.sonar.dossier.dto.UserEmployment
 import cascading.pipe.joiner._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import JobImplicits._
 
 case class ProfileData(key: String,
                        name: String = "",

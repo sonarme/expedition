@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.test
 import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import JobImplicits._
 
 /*
 inputs : prod exports
@@ -18,7 +19,7 @@ com.sonar.expedition.scrawler.test.RealSocialGraphTest --local --serviceProfileD
 --twitterServiceProfileData "/data/twitterserviceProfileData.txt" --friendData "/data/friendData.txt"
 --checkinData "/data/checkinData.txt" --output "/tmp/matchedFriends.txt"
 
- */
+*/
 
 class RealSocialGraphTest(args: Args) extends DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with RealSocialGraph {
     val serviceProfileInput = args("serviceProfileData")

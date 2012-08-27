@@ -6,7 +6,7 @@ import java.net.URI
 import util.matching.Regex
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
 
 class CrawlGovtDataJobs(args: Args) extends Job(args) {
 

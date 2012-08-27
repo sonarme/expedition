@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{TextLine, Args}
+import com.twitter.scalding.{Job, TextLine, Args}
 import com.sonar.expedition.scrawler.pipes.CheckinGrouperFunction
 
 class FilterNoNameCheckins(args: Args) extends Job(args) with CheckinGrouperFunction {

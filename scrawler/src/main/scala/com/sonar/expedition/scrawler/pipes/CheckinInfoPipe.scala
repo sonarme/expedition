@@ -3,12 +3,12 @@ package com.sonar.expedition.scrawler.pipes
 import java.security.MessageDigest
 import com.twitter.scalding.{RichPipe, Args}
 import util.matching.Regex
-import CheckinInfoPipe._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import com.sonar.expedition.scrawler.clustering.KMeans
 import org.joda.time.DateTime
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import JobImplicits._
 
 trait CheckinInfoPipe extends ScaldingImplicits {
 

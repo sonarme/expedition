@@ -4,6 +4,7 @@ import com.twitter.scalding.{RichPipe, Args}
 import java.util.{Date, Calendar}
 import util.matching.Regex
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import JobImplicits._
 
 trait BusinessGrouperFunction extends ScaldingImplicits {
 

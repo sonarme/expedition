@@ -1,8 +1,7 @@
 package com.sonar.expedition.scrawler.test
 
 import com.sonar.expedition.scrawler.pipes._
-import com.sonar.expedition.scrawler.jobs.{Job, DataAnalyser}
-import com.twitter.scalding.{Args, TextLine}
+import com.twitter.scalding.{Job, Args, TextLine}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class CheckinGrouperFunctionTest(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction {

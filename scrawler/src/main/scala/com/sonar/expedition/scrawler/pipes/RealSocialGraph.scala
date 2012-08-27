@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.pipes
 import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.Haversine
 import java.util.Calendar
+import JobImplicits._
 
 /*
 

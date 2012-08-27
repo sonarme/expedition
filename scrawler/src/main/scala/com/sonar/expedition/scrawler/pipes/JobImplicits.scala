@@ -12,7 +12,7 @@ import scala.collection.JavaConversions._
 import java.util.Calendar
 import java.util.{Map => JMap}
 
-trait JobImplicits {
+object JobImplicits {
 
     /**
      * you should never call these directly, there are here to make

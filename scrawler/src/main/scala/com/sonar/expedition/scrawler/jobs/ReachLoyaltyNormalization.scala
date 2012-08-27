@@ -1,9 +1,14 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, TextLine, RichPipe, Args}
+import com.twitter.scalding._
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.sonar.scalding.cassandra.WideRowScheme
+import com.twitter.scalding.SequenceFile
+import scala.Some
+import com.sonar.scalding.cassandra.CassandraSource
+import com.twitter.scalding.TextLine
 
 class ReachLoyaltyNormalization(args: Args) extends Job(args) {
 

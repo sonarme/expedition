@@ -4,6 +4,7 @@ import util.matching.Regex
 import com.sonar.expedition.scrawler.pipes.CoworkerFinderFunction._
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding.{RichPipe, Args}
+import JobImplicits._
 
 trait CoworkerFinderFunction extends ScaldingImplicits {
 

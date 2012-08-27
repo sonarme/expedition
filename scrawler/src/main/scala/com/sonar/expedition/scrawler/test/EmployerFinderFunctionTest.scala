@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.pipes.EmployerFinderFunction
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
 
 // reads in checkingrouped and employergrouped to output matches
 class EmployerFinderFunctionTest(args: Args) extends Job(args) with EmployerFinderFunction {

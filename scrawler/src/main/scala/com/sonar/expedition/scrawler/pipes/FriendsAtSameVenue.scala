@@ -1,7 +1,8 @@
 package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Args}
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
+import JobImplicits._
 
 trait FriendsAtSameVenue extends ScaldingImplicits {
 

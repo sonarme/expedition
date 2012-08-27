@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.dto
 import com.twitter.scalding.{TextLine, RichPipe, Args}
 import com.sonar.dossier.dto.ServiceProfileDTO
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
 
 class JsonParserDTO(args: Args) extends Job(args) {
     def importData(dataPath: String): RichPipe = {

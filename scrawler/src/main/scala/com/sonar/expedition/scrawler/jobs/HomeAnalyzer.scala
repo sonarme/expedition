@@ -1,14 +1,12 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{RichPipe, Args}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.util._
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.apis.APICalls
 import cascading.pipe.joiner.LeftJoin
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
-import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
 
 class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with CheckinInfoPipe {

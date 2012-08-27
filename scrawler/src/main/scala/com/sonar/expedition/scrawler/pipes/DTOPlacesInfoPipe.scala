@@ -6,6 +6,7 @@ import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import scala.Array
 import com.sonar.expedition.scrawler.dto.PlacesClassifiersDTO
 import com.sonar.expedition.scrawler.dto.PlacesDTO
+import JobImplicits._
 
 trait DTOPlacesInfoPipe extends ScaldingImplicits {
 

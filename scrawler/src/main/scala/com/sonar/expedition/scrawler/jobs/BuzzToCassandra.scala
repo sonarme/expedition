@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, TextLine, Args}
+import com.twitter.scalding.{Job, SequenceFile, TextLine, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._

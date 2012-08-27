@@ -1,14 +1,14 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{RichPipe, Args}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import com.twitter.scalding.SequenceFile
-import com.twitter.scalding.TextLine
 import java.util.{Date, TimeZone}
 import java.text.SimpleDateFormat
 import ch.hsr.geohash.GeoHash
+import com.twitter.scalding.SequenceFile
+import com.twitter.scalding.TextLine
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193

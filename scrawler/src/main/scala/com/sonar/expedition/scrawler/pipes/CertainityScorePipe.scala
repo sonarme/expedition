@@ -4,6 +4,7 @@ import com.twitter.scalding.{RichPipe, Args}
 import cascading.pipe.joiner.LeftJoin
 import com.sonar.expedition.scrawler.util.LocationScorer
 import java.security.MessageDigest
+import JobImplicits._
 
 trait CertainityScorePipe extends ScaldingImplicits {
 

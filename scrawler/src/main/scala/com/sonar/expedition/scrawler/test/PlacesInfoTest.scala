@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes.DTOPlacesInfoPipe
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
 
 class PlacesInfoTest(args: Args) extends Job(args) with DTOPlacesInfoPipe {
 

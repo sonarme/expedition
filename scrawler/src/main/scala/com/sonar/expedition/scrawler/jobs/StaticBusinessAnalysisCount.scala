@@ -1,13 +1,12 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{RichPipe, Args}
+import com.twitter.scalding.{Job, RichPipe, Args, TextLine}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.dossier.dto._
 import com.sonar.dossier.dao.cassandra.JSONSerializer
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{StringSerializer, DoubleSerializer}
-import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 
 // Use args:

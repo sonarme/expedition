@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.test
 
 import com.sonar.expedition.scrawler.pipes.FriendGrouperFunction
 import com.twitter.scalding.{TextLine, Args}
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
 
 
 class FriendGrouperFunctionTest(args: Args) extends Job(args) with FriendGrouperFunction {

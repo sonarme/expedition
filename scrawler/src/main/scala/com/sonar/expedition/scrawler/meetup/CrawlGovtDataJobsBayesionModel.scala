@@ -4,7 +4,7 @@ import com.twitter.scalding.{SequenceFile, TextLine, Args}
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.sonar.expedition.scrawler.pipes.BayesModelPipe
 import cascading.tuple.Fields
-import com.sonar.expedition.scrawler.jobs.Job
+import com.twitter.scalding.Job
 
 class CrawlGovtDataJobsBayesionModel(args: Args) extends Job(args) with BayesModelPipe {
 

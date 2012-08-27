@@ -2,6 +2,7 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util._
+import JobImplicits._
 
 trait SonarCheckinVenue extends RealSocialGraph {
 

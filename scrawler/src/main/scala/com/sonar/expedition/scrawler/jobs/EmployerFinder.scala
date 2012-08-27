@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.jobs
 
 import util.matching.Regex
 import EmployerFinder._
-import com.twitter.scalding.{TextLine, RichPipe, Args}
+import com.twitter.scalding.{Job, TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
 import EmployerCheckinMatch._
 

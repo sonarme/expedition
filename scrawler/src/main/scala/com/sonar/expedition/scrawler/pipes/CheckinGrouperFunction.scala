@@ -2,12 +2,12 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichDate, RichPipe, Args}
 import util.matching.Regex
-import CheckinGrouperFunction._
 import cascading.pipe.joiner.LeftJoin
 import java.security.MessageDigest
 import ch.hsr.geohash.{WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.util.{Date, TimeZone, Calendar}
+import JobImplicits._
 
 trait CheckinGrouperFunction extends ScaldingImplicits {
 

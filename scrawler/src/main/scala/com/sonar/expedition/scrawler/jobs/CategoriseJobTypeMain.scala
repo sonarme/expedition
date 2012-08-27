@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.sonar.expedition.scrawler.pipes.{JobImplicits, DTOProfileInfoPipe}
 
-import com.twitter.scalding.{TextLine, RichPipe, Args}
+import com.twitter.scalding.{Job, TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 

@@ -4,6 +4,7 @@ package com.sonar.expedition.scrawler.pipes
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.twitter.scalding.{RichPipe, Args}
 import util.matching.Regex
+import JobImplicits._
 
 trait FriendGrouperFunction extends ScaldingImplicits {
 

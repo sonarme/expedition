@@ -11,8 +11,12 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.util.Haversine
 import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
-import com.twitter.scalding.{RichDate, Args, SequenceFile, TextLine}
+import com.twitter.scalding._
 import com.sonar.scalding.cassandra.CassandraSource
+import com.sonar.scalding.cassandra.NarrowRowScheme
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.CassandraSource
+import com.twitter.scalding.TextLine
 import com.sonar.scalding.cassandra.NarrowRowScheme
 
 

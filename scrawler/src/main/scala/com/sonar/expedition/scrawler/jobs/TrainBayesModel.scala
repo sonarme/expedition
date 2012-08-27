@@ -1,12 +1,15 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, RichPipe, Args, TextLine}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes.{BayesModelPipe, JobCodeReader}
 import util.matching.Regex
 import TrainBayesModel._
 import cascading.tuple.Fields._
 import cascading.tuple.Fields
 import scala.Some
+import com.twitter.scalding.SequenceFile
+import scala.Some
+import com.twitter.scalding.TextLine
 
 
 /*

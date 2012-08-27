@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util._
-import com.twitter.scalding.{SequenceFile, RichPipe, Args, TextLine}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
@@ -14,6 +14,8 @@ import ch.hsr.geohash.GeoHash
 import EmployerCheckinMatch._
 import Haversine._
 import StemAndMetaphoneEmployer._
+import com.twitter.scalding.SequenceFile
+import com.twitter.scalding.TextLine
 
 /*
 

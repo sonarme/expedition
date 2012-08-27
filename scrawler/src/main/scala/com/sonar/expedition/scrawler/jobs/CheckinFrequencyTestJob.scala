@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import java.nio.ByteBuffer
-import com.twitter.scalding.{RichPipe, Args}
+import com.twitter.scalding.{Job, RichPipe, Args}
 import com.sonar.scalding.cassandra.{NarrowRowScheme, WideRowScheme, CassandraSource}
 import me.prettyprint.cassandra.serializers.{StringSerializer, LongSerializer}
 import CheckinFrequencyTestJob._

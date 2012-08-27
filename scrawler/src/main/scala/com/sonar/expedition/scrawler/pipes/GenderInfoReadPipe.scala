@@ -6,6 +6,7 @@ import com.twitter.scalding.{Args}
 import util.matching.Regex
 
 import GenderInfoReadPipe._
+import JobImplicits._
 
 trait GenderInfoReadPipe extends ScaldingImplicits {
     def DataPipe(malepipe: RichPipe): RichPipe = {

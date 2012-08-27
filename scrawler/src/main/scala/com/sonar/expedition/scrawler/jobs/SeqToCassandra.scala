@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, RichPipe, Args, TextLine}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.dossier.dto._
 import com.sonar.dossier.dao.cassandra.JSONSerializer
@@ -8,6 +8,9 @@ import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import me.prettyprint.cassandra.serializers.{StringSerializer, DoubleSerializer}
 import cascading.tuple.Fields
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.WideRowScheme
+import com.sonar.scalding.cassandra.CassandraSource
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
