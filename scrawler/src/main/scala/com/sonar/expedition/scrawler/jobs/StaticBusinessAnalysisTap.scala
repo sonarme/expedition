@@ -58,9 +58,6 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val placesCorrelation = new PlacesCorrelation(args)
 
 
-
-
-
     val checkins = checkinGroup.unfilteredCheckinsLatLon(TextLine(checkininput))
     val newcheckins = checkinGroup.correlationCheckins(TextLine(newcheckininput))
     val checkinsWithGolden = placesCorrelation.withGoldenId(checkins, newcheckins)
@@ -79,23 +76,21 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
 
 
-
     /* val joinedProfiles = profiles.rename('key->'rowkey)
-    val trainer = new BayesModelPipe(args)
+val trainer = new BayesModelPipe(args)
 
-    val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
-        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
-    }
+}
 
 
-    val jobtypes = joinedProfiles.rename('worktitle -> 'data)
+val jobtypes = joinedProfiles.rename('worktitle -> 'data)
 
-    val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
+val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
 
-    val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
-            .rename('rowkey -> 'key) */
-
+val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
+ .rename('rowkey -> 'key) */
 
 
     val combined = businessGroup.combineCheckinsProfiles(checkinsWithGolden, profiles)
@@ -113,17 +108,15 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val findhomefromchkins = checkinInfoPipe.findClusteroidofUserFromChkins(homeProfilesAndCheckins)
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
-            .map('centroid -> 'workCentroid) {centroid: String => centroid}
+            .map('centroid -> 'workCentroid) {
+        centroid: String => centroid
+    }
             .discard(('key1, 'centroid))
             .joinWithSmaller('key -> 'key1, findhomefromchkins)
-            .map('centroid -> 'homeCentroid) {centroid: String => centroid}
-//            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
-
-
-
-
-
-
+            .map('centroid -> 'homeCentroid) {
+        centroid: String => centroid
+    }
+    //            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
 
 
     val byAge = businessGroup.byAge(combined)
@@ -198,7 +191,6 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
     } */
 
     val totalStatic = (totalAge ++ totalDegree ++ totalGender).project(('rowKey, 'columnName, 'columnValue))
-
 
 
     val loyalty = reachLoyalty.findLoyalty(combined)
@@ -346,8 +338,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) {
             .project(('rowKey, 'columnName, 'columnValue))
 
     val timeSequence = byTime.write(SequenceFile(sequenceOutputTime, Fields.ALL))
-    val timeText = staticOutput.write(TextLine(textOutputTime))
-
+    val timeText = byTime.write(TextLine(textOutputTime))
 
 
 }
