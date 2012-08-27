@@ -81,5 +81,16 @@ class PlacesCorrelation(args: Args) extends Job(args) {
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
     }
 
+    def withGoldenId(newCheckins: RichPipe): RichPipe = {
+        val venueWithGoldenId = correlatedPlaces(newCheckins)
+        venueWithGoldenId.project('venueId, 'goldenId).joinWithSmaller('venueId -> 'venId, newCheckins)
+                .filter('venueId) {
+            fields: (String) =>
+                val venId = fields
+                (!CommonFunctions.isNullOrEmpty(venId))
+        }
+                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+    }
+
 }
 

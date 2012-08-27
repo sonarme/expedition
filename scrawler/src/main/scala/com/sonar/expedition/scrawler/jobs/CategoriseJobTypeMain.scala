@@ -18,7 +18,7 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
     //todo use LuceneTFIDFUtils in utils scala object after fixing the error
     var lucene = new LuceneIndex()
     lucene.initialise
-    val codes = TextLine(args("occupationCodetsv")).project('line)
+    val codes = TextLine(args("occupationCodetsv")).read.project('line)
             .flatMapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
         line: String => {
             line match {

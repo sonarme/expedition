@@ -1,11 +1,20 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
-import com.sonar.expedition.scrawler.pipes.{DTOPlacesInfoPipe, PlacesCorrelation, CheckinGrouperFunction}
+import com.twitter.scalding._
+import com.sonar.expedition.scrawler.pipes.{LocationBehaviourAnalysePipe, DTOPlacesInfoPipe, PlacesCorrelation, CheckinGrouperFunction}
 import com.sonar.dossier.dto.CompetitiveVenue
 import com.sonar.dossier.dao.cassandra.{JSONSerializer, CompetitiveVenueColumn, CompetitiveVenueColumnSerializer}
-import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
+import com.sonar.scalding.cassandra.{NarrowRowScheme, WideRowScheme, CassandraSource}
 import cascading.tuple.Fields
+import java.nio.ByteBuffer
+import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
+import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.sonar.expedition.scrawler.util.Haversine
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.CassandraSource
+import com.twitter.scalding.TextLine
+import com.sonar.scalding.cassandra.NarrowRowScheme
+
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -16,26 +25,124 @@ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinD
 --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193 --places "/tmp/places_dump_US.geojson.txt" --checkinDatawithVenueId "/tmp/checkinDatawithVenueId.txt"
  */
 
-class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
+class CompetitorAnalysisForPlaces(args: Args) extends LocationBehaviourAnalysePipe(args) {
 
     val rpcHostArg = args("rpcHost")
+
     val ppmap = args.getOrElse("ppmap", "")
-    val chkininputData = args("checkinData")
-    //checkinData_big_prod.txt
-    val checkinDatawithVenueId = args("checkinDatawithVenueId")
-    //checkinData_big_prod.txt
+
+    val bayestrainingmodel = args("bayestrainingmodelforlocationtype")
+
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
 
-    val goldenIdpipes = new PlacesCorrelation(args)
+    val placesCorrelation = new PlacesCorrelation(args)
+
     val checkinGrouperPipe = new CheckinGrouperFunction(args)
 
-    val checkinsWithoutVenueId = checkinGrouperPipe.unfilteredCheckinsLatLon(TextLine(chkininputData).read)
-    val checkins = checkinGrouperPipe.correlationCheckins(TextLine(checkinDatawithVenueId).read)
-    val placesVenueGoldenId = goldenIdpipes.withGoldenId(checkinsWithoutVenueId, checkins)
+    val DEFAULT_NO_DATE = RichDate(0L)
+    val NONE_VALUE = "none"
 
-    val similarity = placesVenueGoldenId.groupBy('keyid, 'venName, 'goldenId) {
+    val checkinsInputPipe = CassandraSource(
+        rpcHost = rpcHostArg,
+        privatePublicIpMap = ppmap,
+        keyspaceName = "dossier_ben",
+        columnFamilyName = "Checkin",
+        scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
+            nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                    'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
+                    'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
+            columnNames = List("userProfileId", "serviceType", "serviceProfileId",
+                "serviceCheckinId", "venueName", "venueAddress",
+                "venueId", "checkinTime", "geohash", "latitude",
+                "longitude", "message"))
+    ).map(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+            'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
+            'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
+            'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
+        in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
+                ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
+            val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
+            val keyId = Option(in._2).map(StringSerializer.get().fromByteBuffer).getOrElse("missingKeyId")
+            val serType = Option(in._3).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val serProfileID = Option(in._4).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+            val chknTime = Option(in._9).map(DateSerializer.get().fromByteBuffer).getOrElse(DEFAULT_NO_DATE)
+            val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer).orNull
+            val lat: Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
+            val lng: Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
+            val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+
+            (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
+                    venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
+        }
+    }
+
+
+    val newCheckins = checkinGrouperPipe.correlationCheckinsFromCassandra(checkinsInputPipe)
+    val placesVenueGoldenIdValues = placesCorrelation.withGoldenId(newCheckins)
+    //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+
+    // module : start of determining places type from place name
+
+    val placesClassified = classifyPlaceType(bayestrainingmodel, placesVenueGoldenIdValues)
+            //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName,'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+            .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+            ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)) {
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+
+            (fields._1, fields._2, fields._3, fields._4, fields._5, fields._6, "", fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16)
+
+    }
+
+
+    val placesData = args("placesData")
+
+    val placesPipe = getLocationInfo(TextLine(placesData).read)
+            .project(('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory))
+
+
+    val placesVenueGoldenId = placesVenueGoldenIdValues.leftJoinWithSmaller('venName -> 'propertiesName, placesPipe)
+            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+            .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+            ->
+            ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId, 'distance)) {
+
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+            val distance = {
+                if (fields._7 != null && fields._8 != null && fields._11 != null && fields._12 != null) {
+                    Haversine.haversine(fields._7.toDouble, fields._8.toDouble, fields._11.toDouble, fields._12.toDouble)
+                }
+                else {
+                    -1
+                }
+            }
+            (fields._1, fields._2, fields._3, fields._4, fields._5, "", fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17, fields._18, distance)
+
+    }
+            .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
+        _.min('distance)
+    }.filter('distance) {
+        distance: String => distance != "-1"
+    }.discard('distance)
+            .++(placesClassified)
+            .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+            ->
+            ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venueType, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)) {
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+
+            (fields._1, fields._2, fields._3, fields._4, fields._5, getVenueType(fields._6, fields._7), fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
+
+    }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venueType, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+
+
+    //module: end of detrmining places type from venue name
+
+    val similarity = placesVenueGoldenId.groupBy('keyid, 'venName, 'venueType, 'goldenId) {
         _.size
-    }.rename('size -> 'rating).project('keyid, 'venName, 'goldenId, 'rating)
+    }.rename('size -> 'rating).project('keyid, 'venName, 'venueType, 'goldenId, 'rating)
 
     val numRaters = similarity
             .groupBy('goldenId) {
@@ -48,7 +155,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
 
     val ratings2 =
         ratingsWithSize
-                .rename(('keyid, 'venName, 'goldenId, 'rating, 'numRaters) ->('keyid2, 'venName2, 'goldenId2, 'rating2, 'numRaters2))
+                .rename(('keyid, 'venName, 'venueType, 'goldenId, 'rating, 'numRaters) ->('keyid2, 'venName2, 'venueType2, 'goldenId2, 'rating2, 'numRaters2))
 
 
     val ratingPairs =
@@ -56,9 +163,9 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
                 .joinWithSmaller('keyid -> 'keyid2, ratings2)
                 // De-dupe so that we don't calculate similarity of both (A, B) and (B, A).
                 .filter('venName, 'venName2) {
-            movies: (String, String) => movies._1 < movies._2
+            venues: (String, String) => venues._1 < venues._2
         }
-                .project('venName, 'goldenId, 'rating, 'numRaters, 'venName2, 'goldenId2, 'rating2, 'numRaters2)
+                .project('venName, 'venueType, 'goldenId, 'rating, 'numRaters, 'venName2, 'venueType2, 'goldenId2, 'rating2, 'numRaters2)
 
 
     val vectorCalcs =
@@ -68,7 +175,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
             ratings: (Double, Double) =>
                 (ratings._1 * ratings._2, math.pow(ratings._1, 2), math.pow(ratings._2, 2))
         }
-                .groupBy('venName, 'goldenId, 'venName2, 'goldenId2) {
+                .groupBy('venName, 'venueType, 'goldenId, 'venName2, 'venueType2, 'goldenId2) {
             group =>
                 group.size // length of each vector
                         .sum('ratingProd -> 'dotProduct)
@@ -99,7 +206,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
                 (corr, regCorr, cosSim, jaccard)
         }
                 //can also calculate correlation, 'regularizedCorrelation, 'cosineSimilarity
-                .project(('venName, 'goldenId, 'venName2, 'goldenId2, 'jaccardSimilarity))
+                .project(('venName, 'venueType, 'goldenId, 'venName2, 'venueType2, 'goldenId2, 'jaccardSimilarity))
                 .write(
             SequenceFile(competitiveAnalysisOutput, Fields.ALL))
 
@@ -132,6 +239,13 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) {
         w * unregularizedCorrelation + (1 - w) * priorCorrelation
     }
 
-}
+    def getVenueType(venue1: String, venue2: String): String = {
 
+        if (venue2 != null || venue2 != "")
+            venue2
+        else
+            venue1
+    }
+
+}
 
