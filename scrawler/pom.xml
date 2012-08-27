@@ -501,7 +501,7 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
+                    <!--  <plugin>
                         <groupId>br.com.ingenieux</groupId>
                         <artifactId>mapreduce-maven-plugin</artifactId>
                         <version>0.2.7-RC5</version>
@@ -509,12 +509,12 @@
                             <path>s3://scrawler/${project.build.finalName}-${maven.build.timestamp}.jar</path>
                             <verbose>true</verbose>
                             <logUri>s3://scrawler/debuglogs</logUri>
-                            <!--<hadoopVersion>0.20.205.0</hadoopVersion> getting an error about the AMI when using this-->
+                            &lt;!&ndash;<hadoopVersion>0.20.205.0</hadoopVersion> getting an error about the AMI when using this&ndash;&gt;
                             <args>
-                                <arg>--enable-debugging</arg>
-                                <arg>--hdfs</arg>
-                                <arg>--rpcHost 184.73.11.214</arg>
-                                <!-- this is cassandra stag -->
+                                <arg>-.-enable-debugging</arg>
+                                <arg>-.-hdfs</arg>
+                                <arg>-.-rpcHost 184.73.11.214</arg>
+                                &lt;!&ndash; this is cassandra stag &ndash;&gt;
                             </args>
                         </configuration>
                         <executions>
@@ -522,12 +522,12 @@
                                 <id>run-new-job-2</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <!-- run the job -->
+                                    &lt;!&ndash; run the job &ndash;&gt;
                                     <goal>run-job-flow</goal>
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin>
+                    </plugin>-->
                 </plugins>
             </build>
         </profile>
