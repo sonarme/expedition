@@ -14,58 +14,176 @@ group checkins by friends, sort by time, filter by location and
 
 class RealSocialGraph(args: Args) extends Job(args) {
 
-    // val havver = new Haversine
-
+    val hourPrecision = 3
+    val locationPrecision = 0.3
 
     // similar to friends at same venue
-    /*
+
     def friendsNearbyByFriends(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
-                .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
-            fields: (String, String) =>
-                val (userIdString, serviceProfileId) = fields
-                val uIdString = userIdString.trim
-                val serviceId = serviceProfileId.trim
-                (uIdString, serviceId)
-        }.project('uId, 'serviceId)
+        val mergedFriends = mergeFriends(serviceIdsInput, friendsInput)
 
-        val findFriendSonarId = serviceIdsInput.project('row_keyfrnd, 'fbId, 'lnId)
 
-        val facebookFriends = findFriendSonarId.joinWithLarger('fbId -> 'serviceId, userIdGroupedFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
 
-        val linkedinFriends = findFriendSonarId.joinWithLarger('lnId -> 'serviceId, userIdGroupedFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+        val chunkedCheckins = checkinInput
+                // group by time to avoid counting too much, count once per day
+                .map('chknTime -> 'timeChunk) {
+            checkinTime: String => {
+                val timeFilter = Calendar.getInstance()
+                val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                timeFilter.setTime(checkinDate)
+                (timeFilter.getTimeInMillis / 86400000) // 1000 * 60 * 60 * 24 = for 24 hour chunks
+            }
+        }
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'timeChunk))
 
-        val mergedFriends = linkedinFriends.++(facebookFriends)
-                .project('uId, 'row_keyfrnd, 'fbId, 'lnId)
+        val friendsCheckins = chunkedCheckins.joinWithSmaller('keyid -> 'friendkey, mergedFriends)
+                .rename(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'timeChunk) ->
+                ('friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour, 'friendTimeChunk))
+                .unique('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour, 'friendTimeChunk)
 
-        val friendsCheckins = checkinInput.joinWithSmaller('keyid -> 'row_keyfrnd, mergedFriends)
-                .rename(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour) ->
-                ('friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour))
-                .unique('uId, 'friendKey, 'friendService, 'friendProfileID, 'friendCheckinID, 'friendVenName, 'friendVenAddress, 'friendChknTime, 'friendGhash, 'friendLoc, 'friendDayOfYear, 'friendHour)
+        val crossDayCheckins = chunkedCheckins.flatMap(('timeChunk, 'hour) ->('timeChunk2, 'hour2)) {
+            fields: (Int, Double) => {
+                val (chunk, hour) = fields
+                if (hour < hourPrecision)
+                    Some(chunk - 1, hour + 24)
+                else if (hour > (24 - hourPrecision))
+                    Some(chunk + 1, hour - 24)
+                else
+                    None
+            }
+        }
+                .discard(('timeChunk, 'hour))
+                .rename(('timeChunk2, 'hour2) ->('timeChunk, 'hour))
+                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'hour, 'timeChunk))
 
-        val matchingCheckins = checkinInput.joinWithSmaller('keyid -> 'uId, friendsCheckins)
-                .filter('loc, 'friendLoc, 'friendDayOfYear, 'dayOfYear, 'friendHour, 'hour) {
+        val mergedCheckins = (chunkedCheckins ++ crossDayCheckins)
+                .joinWithSmaller(('keyid, 'timeChunk) ->('uId, 'friendTimeChunk), friendsCheckins)
+                .filter('loc, 'friendLoc, 'friendTimeChunk, 'timeChunk, 'friendHour, 'hour) {
             fields: (String, String, Int, Int, Double, Double) =>
                 val (originalLoc, friendLoc, friendDay, originalDay, friendHour, originalHour) = fields
                 val originalLat = originalLoc.split(":").head.toDouble
                 val originalLng = originalLoc.split(":").last.toDouble
                 val friendLat = friendLoc.split(":").head.toDouble
                 val friendLng = friendLoc.split(":").last.toDouble
-                (havver.haversine(originalLat, originalLng, friendLat, friendLng) < 0.3) && (friendDay == originalDay) && (originalHour <= (friendHour + 1.5)) && (originalHour >= (friendHour - 1.5)) && (!originalLoc.equals("0.0:0.0")) && (!friendLoc.equals("0.0:0.0"))
-        } //.project('uId, 'friendKey, 'loc, 'friendLoc, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour)
+                (Haversine.haversine(originalLat, originalLng, friendLat, friendLng) < locationPrecision) && (friendDay == originalDay) && (originalHour <= (friendHour + hourPrecision)) && (originalHour >= (friendHour - hourPrecision)) && (!originalLoc.equals("0.0:0.0")) && (!friendLoc.equals("0.0:0.0"))
+        }
+
+
+        val matchingCheckins = mergedCheckins
+
+                // count once per day
+                .unique(('uId, 'friendKey, 'timeChunk))
+                .groupBy(('uId, 'friendKey)) {
+            _.size
+        }
+                .joinWithLarger('friendKey -> 'friendkey, serviceIdsInput)
+                .rename('uname -> 'uname2)
+                .project(('uId, 'friendKey, 'uname2, 'size))
+                .joinWithLarger('uId -> 'friendkey, serviceIdsInput)
+                .project(('uId, 'friendKey, 'uname, 'uname2, 'size))
 
         matchingCheckins
-    } */
+    }
 
 
     // group into chunks and cross within chunks
     def friendsNearbyByChunks(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
-        // ********
-        // chunking
-        // ********
+
+        val joinedChunks = timeLocChunking(checkinInput)
+
+        //********
+        // merging
+        //********
+
+        val mergedFriends = mergeFriends(serviceIdsInput, friendsInput)
+
+
+        val friendsCheckins = joinedChunks.joinWithSmaller(('keyid, 'keyid2) ->('uId, 'friendkey), mergedFriends)
+                .groupBy(('keyid, 'keyid2)) {
+            _.size
+        }
+                .joinWithLarger('keyid2 -> 'friendkey, serviceIdsInput)
+                .rename('uname -> 'uname2)
+                .project(('keyid, 'keyid2, 'uname2, 'size))
+                .joinWithLarger('keyid -> 'friendkey, serviceIdsInput)
+                .project(('keyid, 'keyid2, 'uname, 'uname2, 'size))
+
+
+
+
+
+
+        friendsCheckins
+    }
+
+    def groupChunk(input: RichPipe): RichPipe = {
+        val output = input.unique(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+                // filter out chunks of size one, then flatten
+                .groupBy('timeChunk, 'locChunk) {
+            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
+                    .size
+        }
+                .filter('size) {
+            size: Int => size > 1
+        }
+                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
+            fields: List[(String, String, String)] => fields
+        }
+                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
+        output
+    }
+
+    def mergeFriends(serviceInput: RichPipe, friendInput: RichPipe): RichPipe = {
+
+        val userIdGroupedFriends = friendInput.project('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
+                .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
+            fields: (String, String) =>
+                val (userIdString, serviceProfileId) = fields
+                val uIdString = userIdString.trim
+                val serviceId = serviceProfileId.trim
+                (uIdString, serviceId)
+        }.project('uId, 'serviceType, 'serviceId)
+
+        val findFriendSonarId = serviceInput.project('friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        val facebookFriends = findFriendSonarId
+                .joinWithLarger('fbid -> 'serviceId, userIdGroupedFriends)
+                .filter('serviceType) {
+            serviceType: String => serviceType.equals("facebook")
+        }
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        val linkedinFriends = findFriendSonarId
+                .joinWithLarger('lnid -> 'serviceId, userIdGroupedFriends)
+                .filter('serviceType) {
+            serviceType: String => serviceType.equals("linkedin")
+        }
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        val twitterFriends = findFriendSonarId
+                .joinWithLarger('twid -> 'serviceId, userIdGroupedFriends)
+                .filter('serviceType) {
+            serviceType: String => serviceType.equals("twitter")
+        }
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        val foursquareFriends = findFriendSonarId
+                .joinWithLarger('fsid -> 'serviceId, userIdGroupedFriends)
+                .filter('serviceType) {
+            serviceType: String => serviceType.equals("foursquare")
+        }
+                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        val mergedFriends = linkedinFriends.++(facebookFriends).++(twitterFriends).++(foursquareFriends)
+                .unique('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
+
+        mergedFriends
+
+    }
+
+    def timeLocChunking(checkinInput: RichPipe): RichPipe = {
+
         val chunked = checkinInput
                 // filter out (0,0)
                 .filter('loc) {
@@ -80,7 +198,7 @@ class RealSocialGraph(args: Args) extends Job(args) {
                 ((timeFilter.getTimeInMillis / 14400000), ((timeFilter.getTimeInMillis + 7200000) / 14400000)) //1000 * 60 * 60 * 4 = for 4 hour chunks
             }
         }
-                // group location by 0.002 x 0.002 boxes
+                // group location by 0.002 x 0.002 boxes, roughly 200m by 200m at equator, slightly smaller when farther from equator
                 .map('loc ->('locChunk, 'locChunk2, 'locChunk3, 'locChunk4)) {
             locString: String => {
                 val lat = locString.split(":").head.toDouble
@@ -131,88 +249,12 @@ class RealSocialGraph(args: Args) extends Job(args) {
         val joinedChunks8 = chunked8
                 .joinWithSmaller(('timeChunk, 'locChunk) ->('timeChunk, 'locChunk), chunked82)
 
-        val joinedChunks = (joinedChunks1 ++ joinedChunks2 ++ joinedChunks3 ++ joinedChunks4 ++ joinedChunks5 ++ joinedChunks6 ++ joinedChunks7 ++ joinedChunks8)
+                //val joinedChunks = (joinedChunks1 ++ joinedChunks2 ++ joinedChunks3 ++ joinedChunks4 ++ joinedChunks5 ++ joinedChunks6 ++ joinedChunks7 ++ joinedChunks8)
                 .unique(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID, 'keyid2, 'serType2, 'serProfileID2))
-//        val joinedChunks = joinedChunks1
+        val joinedChunks = joinedChunks1
 
-        //********
-        // merging
-        //********
-        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
-                .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
-            fields: (String, String) =>
-                val (userIdString, serviceProfileId) = fields
-                val uIdString = userIdString.trim
-                val serviceId = serviceProfileId.trim
-                (uIdString, serviceId)
-        }.project('uId, 'serviceType, 'serviceId)
+        joinedChunks
 
-        val findFriendSonarId = serviceIdsInput.project('friendkey, 'fbid, 'lnid, 'twid, 'fsid)
-
-        val facebookFriends = findFriendSonarId
-                .joinWithLarger('fbid -> 'serviceId, userIdGroupedFriends)
-                .filter('serviceType) {
-            serviceType: String => serviceType.equals("facebook")
-        }
-                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
-
-        val linkedinFriends = findFriendSonarId
-                .joinWithLarger('lnid -> 'serviceId, userIdGroupedFriends)
-                .filter('serviceType) {
-            serviceType: String => serviceType.equals("linkedin")
-        }
-                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
-
-        val twitterFriends = findFriendSonarId
-                .joinWithLarger('twid -> 'serviceId, userIdGroupedFriends)
-                .filter('serviceType) {
-            serviceType: String => serviceType.equals("twitter")
-        }
-                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
-
-        val foursquareFriends = findFriendSonarId
-                .joinWithLarger('fsid -> 'serviceId, userIdGroupedFriends)
-                .filter('serviceType) {
-            serviceType: String => serviceType.equals("foursquare")
-        }
-                .project('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
-
-        val mergedFriends = linkedinFriends.++(facebookFriends).++(twitterFriends).++(foursquareFriends)
-                .unique('uId, 'friendkey, 'fbid, 'lnid, 'twid, 'fsid)
-
-        val friendsCheckins = joinedChunks.joinWithSmaller(('keyid, 'keyid2) ->('uId, 'friendkey), mergedFriends)
-                .groupBy(('keyid, 'keyid2)){
-            _.size
-        }
-                .joinWithLarger('keyid2 -> 'friendkey, serviceIdsInput)
-                .rename('uname -> 'uname2)
-                .project(('keyid, 'keyid2, 'uname2, 'size))
-                .joinWithLarger('keyid -> 'friendkey, serviceIdsInput)
-                .project(('keyid, 'keyid2, 'uname, 'uname2, 'size))
-
-
-
-
-
-
-        friendsCheckins
-    }
-
-    def groupChunk(input: RichPipe): RichPipe = {
-        val output = input.unique(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-                // filter out chunks of size one, then flatten
-                .groupBy('timeChunk, 'locChunk) {
-            _.toList[(String, String, String)](('keyid, 'serType, 'serProfileID) -> 'checkinList)
-                    .size
-        }
-                .filter('size) {
-            size: Int => size > 1
-        }
-                .flatMap('checkinList ->('keyid, 'serType, 'serProfileID)) {
-            fields: List[(String, String, String)] => fields
-        }
-                .project(('timeChunk, 'locChunk, 'keyid, 'serType, 'serProfileID))
-        output
     }
 
 
