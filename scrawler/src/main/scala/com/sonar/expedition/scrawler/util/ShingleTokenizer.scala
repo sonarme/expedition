@@ -9,11 +9,9 @@ import java.util.regex.Pattern
 
 object ShingleTokenizer {
 
-    val SPACE_PATTERN = Pattern.compile("[ ]+")
+    def shingleize(value: String, gramSize: Int) = {
 
-    def shingleize(value: String, gramSize: Int): java.util.List[String] = {
-
-        val tokens = SPACE_PATTERN.split(value)
+        val tokens = value.split("\\s+")
         val wordList = new OpenObjectIntHashMap[String](tokens.length * gramSize)
 
         val sf: ShingleFilter = new ShingleFilter(new BayesFeatureMapper.IteratorTokenStream(new ArrayIterator[String](tokens)), gramSize)
