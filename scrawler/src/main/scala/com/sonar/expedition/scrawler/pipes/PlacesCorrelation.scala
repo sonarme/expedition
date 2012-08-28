@@ -46,13 +46,13 @@ trait PlacesCorrelation extends ScaldingImplicits {
                 geosector.longValue()
         }
                 .groupBy('serType, 'venId) {
-            _.head('venName, 'geosector)
+            _.head('venName, 'stemmedVenName, 'geosector)
         }
-                .groupBy('venName, 'geosector) {
+                .groupBy('stemmedVenName, 'geosector) {
             _
 
-                    .sortWithTake(('venId, 'serType) -> 'correlatedVenueIds, 4) {
-                (venueId1: (String, String), venueId2: (String, String)) => CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId1._2)) > CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId2._2))
+                    .sortWithTake(('venId, 'serType, 'venName) -> 'correlatedVenueIds, 4) {
+                (venueId1: (String, String, String), venueId2: (String, String, String)) => CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId1._2)) > CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId2._2))
             }
 
         }.map('correlatedVenueIds -> ('goldenId)) {
@@ -61,12 +61,12 @@ trait PlacesCorrelation extends ScaldingImplicits {
                 goldenId._2 + ":" + goldenId._1
             }
         }
-                .flatMap('correlatedVenueIds ->('venueId, 'venueIdService)) {
-            listOfVenueIds: List[(String, String)] => {
+                .flatMap('correlatedVenueIds ->('venueId, 'venueIdService, 'venName)) {
+            listOfVenueIds: List[(String, String, String)] => {
                 listOfVenueIds
             }
         }
-                .project('correlatedVenueIds, 'venName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
+                .project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
 
         withGoldenId
     }
@@ -85,7 +85,7 @@ trait PlacesCorrelation extends ScaldingImplicits {
 
     def withGoldenId(newCheckins: RichPipe): RichPipe = {
         val venueWithGoldenId = correlatedPlaces(newCheckins)
-        venueWithGoldenId.project('venueId, 'goldenId).joinWithSmaller('venueId -> 'venId, newCheckins)
+        venueWithGoldenId.project('venueId, 'goldenId).joinWithLarger('venueId -> 'venId, newCheckins)
                 .filter('venueId) {
             fields: (String) =>
                 val venId = fields
