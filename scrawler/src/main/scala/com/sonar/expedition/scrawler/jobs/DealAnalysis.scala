@@ -48,7 +48,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val dealVenues = correlatedPlaces(newCheckins)
             .joinWithTiny('geosector -> 'merchantGeosector, deals).groupBy('geosector) {
         _.sortWithTake(('stemmedVenName -> 'stemmedMerchantName) -> 'singleVenue, 1) {
-            (a: (String, String), b: (String, String)) => levenshtein.compareInt(a._1, a._2) < levenshtein.compareInt(b._1, b._2)
+            (a: (String, String), b: (String, String)) => Levenshtein.compareInt(a._1, a._2) < Levenshtein.compareInt(b._1, b._2)
         }.head('goldenId, 'merchantName, 'dealId)
     }
     dealVenues.write(SequenceFile(dealsOutput, ('goldenId, 'merchantName, 'dealId)))
