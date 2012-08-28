@@ -7,9 +7,6 @@ import org.apache.mahout.common.iterator.ArrayIterator
 import org.apache.mahout.math.map.OpenObjectIntHashMap
 import java.util.regex.Pattern
 
-class ShingleTokenizer {
-}
-
 object ShingleTokenizer {
 
     val SPACE_PATTERN = Pattern.compile("[ ]+")
@@ -31,7 +28,7 @@ object ShingleTokenizer {
                 }
             }
         } while (sf.incrementToken)
-    wordList.keys()
+        wordList.keys()
     }
 
 }
