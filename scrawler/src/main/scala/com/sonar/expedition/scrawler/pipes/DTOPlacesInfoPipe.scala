@@ -61,7 +61,11 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
     def parseJson(jsonStringOption: Option[String]): Option[PlacesDTO] = {
         jsonStringOption map {
             jsonString =>
-                ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[PlacesDTO])
+                try {
+                    ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[PlacesDTO])
+                } catch {
+                    case e => throw new RuntimeException("Error parsing JSON: " + jsonString, e)
+                }
         }
     }
 
