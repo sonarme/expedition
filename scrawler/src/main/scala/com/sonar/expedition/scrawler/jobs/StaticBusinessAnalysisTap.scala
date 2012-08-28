@@ -53,7 +53,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val checkins = checkinSource(args)
+    val checkins = checkinSource(args, withVenuesOnly = false)
 
     //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
     val newCheckins = correlationCheckinsFromCassandra(checkins)
@@ -79,9 +79,9 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
             ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)) {
         fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, Gender, Double, String, String) =>
         //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
-            val keys = ("facebook:" + fields._3 + "," + "twitter:" + fields._6 + "," + "foursquare:" + fields._5).split(",")
-            for (key <- keys)
-            yield (key, fields._2, fields._3, fields._4, fields._5, fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
+            List("facebook:" + fields._3, "twitter:" + fields._6, "foursquare:" + fields._5) map {
+                key => (key, fields._2, fields._3, fields._4, fields._5, fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
+            }
     }
 
     /*

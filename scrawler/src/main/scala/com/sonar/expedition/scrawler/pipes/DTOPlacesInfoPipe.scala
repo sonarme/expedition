@@ -49,11 +49,11 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                         classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, linenum)
         }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)
-                .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
+        /* only NY: .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
             fields: (String, String, String) =>
                 val (state, lat, lng) = fields
                 state == "NY" && lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8
-        }
+        }*/
 
         placesData
     }
@@ -61,7 +61,11 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
     def parseJson(jsonStringOption: Option[String]): Option[PlacesDTO] = {
         jsonStringOption map {
             jsonString =>
-                ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[PlacesDTO])
+                try {
+                    ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[PlacesDTO])
+                } catch {
+                    case e => throw new RuntimeException("Error parsing JSON: " + jsonString, e)
+                }
         }
     }
 
