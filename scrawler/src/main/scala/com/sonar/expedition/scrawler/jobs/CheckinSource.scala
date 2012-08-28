@@ -19,7 +19,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
     val DefaultNoDate = RichDate(0L)
     val NoneValue = "none"
 
-    def checkinSource(args: Args, withVenuesOnly: Boolean = false) = {
+    def checkinSource(args: Args, withVenuesOnly: Boolean) = {
         val rpcHostArg = args.optional("rpcHost")
         val ppmap = args.getOrElse("ppmap", "")
         val checkinsInputArg = args.optional("checkinsInput")
