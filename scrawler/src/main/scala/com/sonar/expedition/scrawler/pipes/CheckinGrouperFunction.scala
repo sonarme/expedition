@@ -4,7 +4,7 @@ import com.twitter.scalding.{RichDate, RichPipe, Args}
 import util.matching.Regex
 import cascading.pipe.joiner.LeftJoin
 import java.security.MessageDigest
-import ch.hsr.geohash.{WGS84Point, BoundingBox}
+import ch.hsr.geohash.{GeoHash, WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.util.{Date, TimeZone, Calendar}
 import JobImplicits._
@@ -84,28 +84,20 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
 
     def checkinsWithMessage(input: RichPipe): RichPipe = {
         val data = input
-                .flatMapTo('line ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)) {
+                .flatMapTo('line ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
             line: String => {
                 line match {
                     case CheckinExtractLineWithVenueId(golden, id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
-                        val timeFilter = Calendar.getInstance()
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
-                        timeFilter.setTime(checkinDate)
-                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
-                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
                         val goldenId = golden + ":" + id
-                        Some((goldenId, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, venueId, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
+                        val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
+                        Some((serviceType + ":" + venueId, goldenId, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
                     }
 
                     case CheckinExtractLineProdData(rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
-                        val timeFilter = Calendar.getInstance()
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
-                        timeFilter.setTime(checkinDate)
-                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
-                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
-                        Some((rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, venueId, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
+                        val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
+                        Some((serviceType + ":" + venueId, rowkey, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
 
                     }
                     case _ => {
@@ -115,7 +107,7 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
                 }
             }
         }
-                .unique(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg))
+        //.unique(('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg))
 
         data
     }

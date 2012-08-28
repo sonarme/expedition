@@ -1,12 +1,13 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{TextLine, RichPipe, Args}
+import com.twitter.scalding.{Tsv, TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine, StemAndMetaphoneEmployer}
 import cascading.pipe.joiner.{RightJoin, Joiner, LeftJoin}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.dto.{ServiceType, Priorities}
 import PlacesCorrelation._
 import JobImplicits._
+import cascading.tuple.Fields
 
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
 
@@ -22,10 +23,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         val placesClassified = classifyPlaceType(bayestrainingmodel, placesVenueGoldenIdValues)
                 //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName,'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
                 .map('venTypeFromModel -> 'venTypeFromPlacesData) {
-            fields: String =>
-
-                ""
-
+            venTypeFromModel: String => ""
         }
 
 
@@ -33,11 +31,12 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 .project(('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory))
 
 
-        placesVenueGoldenIdValues.leftJoinWithSmaller('venName -> 'propertiesName, placesPipe)
+        placesVenueGoldenIdValues
+                .leftJoinWithSmaller('venName -> 'propertiesName, placesPipe)
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
                 .map('classifiersCategory ->('venTypeFromModel, 'venTypeFromPlacesData)) {
-            classifiersCategory: String =>
-                ("", classifiersCategory)
+
+            classifiersCategory: String => ("", classifiersCategory)
         }.discard(('classifiersCategory, 'geometryLatitude, 'geometryLongitude))
                 /* .mapTo(('geometryLatitude, 'geometryLongitude, 'lat, 'lng) -> 'distance) {
                     fields: (String, String, String, String) =>
@@ -52,6 +51,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 }.discard('distance)*/
                 .++(placesClassified)
                 .map(('venTypeFromModel, 'venTypeFromPlacesData) -> 'venueType) {
+
             in: (String, String) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
                 getVenueType(venTypeFromModel, venTypeFromPlacesData)
@@ -74,51 +74,42 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         oldCheckinPipe
     }
 
-    def correlatedPlaces(checkins: RichPipe): RichPipe = {
-        val withGoldenId = checkins
-                .map('venName -> 'stemmedVenName) {
-            fields: (String) =>
-                val (venName) = fields
+    def correlatedPlaces(checkins: RichPipe): RichPipe =
+        checkins.flatMap(('lat, 'lng, 'venName) ->('geosector, 'stemmedVenName)) {
+            // add geosector and stemmed venue name
+            fields: (String, String, String) =>
+                val (lat, lng, venName) = fields
                 val stemmedVenName = StemAndMetaphoneEmployer.getStemmed(venName)
-                (stemmedVenName)
-        }
-                .filter('venName, 'stemmedVenName) {
-            fields: (String, String) => {
-                val (venueName, stemmedVenueName) = fields
-                (!CommonFunctions.isNullOrEmpty(venueName) || !CommonFunctions.isNullOrEmpty(stemmedVenueName))
-            }
-        }
-                .map(('lat, 'lng) -> 'geosector) {
-            fields: (String, String) =>
-                val (lat, lng) = fields
-                val geosector = GeoHash.withBitPrecision(lat.toDouble, lng.toDouble, PlaceCorrelationSectorSize)
-                geosector.longValue()
-        }
-                .groupBy('serType, 'venId) {
-            _.head('venName, 'stemmedVenName, 'geosector)
-        }
-                .groupBy('stemmedVenName, 'geosector) {
-            _
+                if (CommonFunctions.isNullOrEmpty(venName) && CommonFunctions.isNullOrEmpty(stemmedVenName)) None
+                else {
+                    val geosector = GeoHash.withBitPrecision(lat.toDouble, lng.toDouble, PlaceCorrelationSectorSize).longValue()
+                    Some((geosector, stemmedVenName))
+                }
 
-                    .sortWithTake(('venId, 'serType, 'venName) -> 'correlatedVenueIds, 4) {
-                (venueId1: (String, String, String), venueId2: (String, String, String)) => CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId1._2)) > CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId2._2))
+        }.groupBy('serType, 'venId) {
+            // dedupe
+            _.head('venName, 'stemmedVenName, 'geosector)
+
+        }.groupBy('stemmedVenName, 'geosector) {
+            // correlate
+            _.sortWithTake(('venId, 'serType, 'venName) -> 'correlatedVenueIds, 4) {
+                (venueId1: (String, String, String), venueId2: (String, String, String)) =>
+                    CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId1._2)) > CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId2._2))
             }
 
         }.map('correlatedVenueIds -> ('goldenId)) {
+            // golden id
             listOfVenueIds: List[(String, String, String)] => {
                 val goldenId = listOfVenueIds.head
                 goldenId._2 + ":" + goldenId._1
             }
-        }
-                .flatMap('correlatedVenueIds ->('venueId, 'venueIdService, 'venName)) {
-            listOfVenueIds: List[(String, String, String)] => {
-                listOfVenueIds
-            }
-        }
-                .project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
 
-        withGoldenId
-    }
+        }.flatMap('correlatedVenueIds ->('venueId, 'venueIdService, 'venName)) {
+            // flatten
+            listOfVenueIds: List[(String, String, String)] => listOfVenueIds
+
+        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
+
 
     def withGoldenId(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
         val checkinsWithVenueId = addVenueIdToCheckins(oldCheckins, newCheckins)
@@ -136,9 +127,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         val venueWithGoldenId = correlatedPlaces(newCheckins)
         venueWithGoldenId.project('venueId, 'goldenId).joinWithLarger('venueId -> 'venId, newCheckins)
                 .filter('venueId) {
-            fields: (String) =>
-                val venId = fields
-                (!CommonFunctions.isNullOrEmpty(venId))
+            venId: String => !CommonFunctions.isNullOrEmpty(venId)
         }
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
     }

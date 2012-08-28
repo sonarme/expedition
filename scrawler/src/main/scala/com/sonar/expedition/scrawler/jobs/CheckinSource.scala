@@ -4,7 +4,7 @@ import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}
 import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
 import java.text.SimpleDateFormat
-import com.twitter.scalding.{Args, RichDate, TextLine}
+import com.twitter.scalding.{RichPipe, Args, RichDate, TextLine}
 import ch.hsr.geohash.GeoHash
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import scala.Some
@@ -19,41 +19,13 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
     val DefaultNoDate = RichDate(0L)
     val NoneValue = "none"
 
-    def checkinSource(args: Args, withVenuesOnly: Boolean) = {
+    def checkinSource(args: Args, withVenuesOnly: Boolean): RichPipe = {
         val rpcHostArg = args.optional("rpcHost")
         val ppmap = args.getOrElse("ppmap", "")
         val checkinsInputArg = args.optional("checkinsInput")
         checkinsInputArg match {
             case Some(checkinsInput) =>
-                def getDate(chknTime: String) = {
-                    val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'")
-                    try {
-                        val chekingTime = chknTime.substring(chknTime.lastIndexOf(":") + 1)
-                        Some(simpleDateFormat.parse(chekingTime))
-
-                    } catch {
-                        case e => None
-                    }
-                }
-
                 checkinsWithMessage(TextLine(checkinsInput))
-
-                        .flatMapTo(
-                    ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)
-                            ->
-                            ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)
-                ) {
-
-                    fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-                        val (keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, chknTime, ghash, lat, lng, dayOfYear, dayOfWeek, hour, msg) = fields
-
-                        val gHashAsLong = Option(ghash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
-                        getDate(chknTime) map {
-                            checkinTime =>
-                                (serType + ":" + venId, keyid, serType, hashed(serProfileID), serCheckinID, venName, venAddress, venId, checkinTime, gHashAsLong, lat.toDouble, lng.toDouble, msg)
-                        }
-                }
-
 
             case None =>
                 CassandraSource(
