@@ -13,10 +13,11 @@ import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.sonar.expedition.scrawler.util.CommonFunctions
 import com.sonar.expedition.scrawler.pipes.{ScaldingImplicits, CheckinGrouperFunction}
 import com.sonar.expedition.scrawler.pipes.JobImplicits._
+import java.util.Date
 
 trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
     // TODO: bad practice to use default values
-    val DefaultNoDate = RichDate(0L)
+    val DefaultNoDate = new Date(0L)
     val NoneValue = "none"
 
     def checkinSource(args: Args, withVenuesOnly: Boolean): RichPipe = {
