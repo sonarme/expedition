@@ -194,11 +194,11 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
             fields: (Double, Double, Double, Double, Double, Double, Double, Double) =>
 
                 val (size, dotProduct, ratingSum, rating2Sum, ratingNormSq, rating2NormSq, numRaters, numRaters2) = fields
-                val PRIOR_COUNT = 10
-                val PRIOR_CORRELATION = 0
+                val priorCount = 10
+                val priorCorrelation = 0
 
                 val corr = correlation(size, dotProduct, ratingSum, rating2Sum, ratingNormSq, rating2NormSq)
-                val regCorr = regularizedCorrelation(size, dotProduct, ratingSum, rating2Sum, ratingNormSq, rating2NormSq, PRIOR_COUNT, PRIOR_CORRELATION)
+                val regCorr = regularizedCorrelation(size, dotProduct, ratingSum, rating2Sum, ratingNormSq, rating2NormSq, priorCount, priorCorrelation)
                 val cosSim = cosineSimilarity(dotProduct, math.sqrt(ratingNormSq), math.sqrt(rating2NormSq))
                 val jaccard = jaccardSimilarity(size, numRaters, numRaters2)
 
@@ -211,7 +211,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
 
 
     def correlation(size: Double, dotProduct: Double, ratingSum: Double,
-                    rating2Sum: Double, ratingNormSq: Double, rating2NormSq: Double): Double = {
+                    rating2Sum: Double, ratingNormSq: Double, rating2NormSq: Double) = {
 
         val numerator = size * dotProduct - ratingSum * rating2Sum
         val denominator = math.sqrt(size * ratingNormSq - ratingSum * ratingSum) * math.sqrt(size * rating2NormSq - rating2Sum * rating2Sum)
@@ -219,14 +219,9 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
         numerator / denominator
     }
 
-    def jaccardSimilarity(usersInCommon: Double, totalUsers1: Double, totalUsers2: Double) = {
-        val union = totalUsers1 + totalUsers2 - usersInCommon
-        usersInCommon / union
-    }
+    def jaccardSimilarity(usersInCommon: Double, totalUsers1: Double, totalUsers2: Double) = usersInCommon / (totalUsers1 + totalUsers2 - usersInCommon)
 
-    def cosineSimilarity(dotProduct: Double, ratingNorm: Double, rating2Norm: Double) = {
-        dotProduct / (ratingNorm * rating2Norm)
-    }
+    def cosineSimilarity(dotProduct: Double, ratingNorm: Double, rating2Norm: Double) = dotProduct / (ratingNorm * rating2Norm)
 
     def regularizedCorrelation(size: Double, dotProduct: Double, ratingSum: Double,
                                rating2Sum: Double, ratingNormSq: Double, rating2NormSq: Double,
