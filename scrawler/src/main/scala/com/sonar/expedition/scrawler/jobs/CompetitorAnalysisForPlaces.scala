@@ -29,57 +29,14 @@ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinD
 --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193 --places "/tmp/places_dump_US.geojson.txt" --checkinDatawithVenueId "/tmp/checkinDatawithVenueId.txt"
  */
 
-class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinGrouperFunction {
-
-    val rpcHostArg = args("rpcHost")
-
-    val ppmap = args.getOrElse("ppmap", "")
+class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
 
     val bayestrainingmodel = args("bayestrainingmodelforlocationtype")
 
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
     val placesData = args("placesData")
 
-    val DEFAULT_NO_DATE = RichDate(0L)
-    val NONE_VALUE = "none"
-
-    val checkinsInputPipe = CassandraSource(
-        rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
-        keyspaceName = "dossier_ben",
-        columnFamilyName = "Checkin",
-        scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
-            nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-                    'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-                    'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
-            columnNames = List("userProfileId", "serviceType", "serviceProfileId",
-                "serviceCheckinId", "venueName", "venueAddress",
-                "venueId", "checkinTime", "geohash", "latitude",
-                "longitude", "message"))
-    ).mapTo(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-            'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-            'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
-            'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
-        in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
-                ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
-            val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
-            val keyId = Option(in._2).map(StringSerializer.get().fromByteBuffer).getOrElse("missingKeyId")
-            val serType = Option(in._3).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val serProfileID = Option(in._4).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val chknTime = Option(in._9).map(DateSerializer.get().fromByteBuffer).getOrElse(DEFAULT_NO_DATE)
-            val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer).orNull
-            val lat: Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
-            val lng: Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
-            val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-
-            (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
-                    venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
-        }
-    }
+    val checkinsInputPipe = checkinSource(args)
 
 
     val newCheckins = correlationCheckinsFromCassandra(checkinsInputPipe)
