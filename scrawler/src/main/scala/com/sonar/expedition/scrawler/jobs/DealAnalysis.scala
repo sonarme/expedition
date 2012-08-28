@@ -130,9 +130,9 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             .joinWithTiny('geosector -> 'merchantGeosector, deals).groupBy('geosector) {
         _.sortWithTake(('stemmedVenName -> 'stemmedMerchantName) -> 'singleVenue, 1) {
             (a: (String, String), b: (String, String)) => levenshtein.compareInt(a._1, a._2) < levenshtein.compareInt(b._1, b._2)
-        }.head('goldenId, 'merchantName)
+        }.head('goldenId, 'merchantName, 'dealId)
     }
-    dealVenues.write(SequenceFile(dealsOutput, ('goldenId, 'merchantName)))
+    dealVenues.write(SequenceFile(dealsOutput, ('goldenId, 'merchantName, 'dealId)))
 }
 
 object DealAnalysis {
