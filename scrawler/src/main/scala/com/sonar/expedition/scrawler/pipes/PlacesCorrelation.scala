@@ -105,7 +105,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
             }
 
         }.map('correlatedVenueIds -> ('goldenId)) {
-            listOfVenueIds: List[(String, String)] => {
+            listOfVenueIds: List[(String, String, String)] => {
                 val goldenId = listOfVenueIds.head
                 goldenId._2 + ":" + goldenId._1
             }
