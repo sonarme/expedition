@@ -123,13 +123,11 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
     }.discard('locationJSON)
 
-    val levenshtein = new Levenshtein()
-
     val newCheckins = correlationCheckinsFromCassandra(checkins)
     val dealVenues = correlatedPlaces(newCheckins)
             .joinWithTiny('geosector -> 'merchantGeosector, deals).groupBy('geosector) {
         _.sortWithTake(('stemmedVenName -> 'stemmedMerchantName) -> 'singleVenue, 1) {
-            (a: (String, String), b: (String, String)) => levenshtein.compareInt(a._1, a._2) < levenshtein.compareInt(b._1, b._2)
+            (a: (String, String), b: (String, String)) => Levenshtein.compareInt(a._1, a._2) < Levenshtein.compareInt(b._1, b._2)
         }.head('goldenId, 'merchantName)
     }
     dealVenues.write(SequenceFile(dealsOutput, ('goldenId, 'merchantName)))

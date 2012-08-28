@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.util
 
 
 object EmployerCheckinMatch extends Serializable {
-    val levver = new Levenshtein
+
     //metaphoner.setMaxCodeLen(6)
     val maxDistance = 1
 
@@ -49,7 +49,7 @@ object EmployerCheckinMatch extends Serializable {
         val emp = StemAndMetaphoneEmployer.removeStopWords(employer)
         val ven = StemAndMetaphoneEmployer.removeStopWords(venueName)
 
-        (levver.compareInt(emp, ven) <= maxDistance) && !emp.matches("") && !ven.matches("")
+        (Levenshtein.compareInt(emp, ven) <= maxDistance) && !emp.matches("") && !ven.matches("")
 
     }
 
