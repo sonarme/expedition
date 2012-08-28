@@ -18,6 +18,7 @@ import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.TextLine
 import com.sonar.scalding.cassandra.NarrowRowScheme
+import cascading.pipe.Pipe
 
 
 // Use args:
@@ -29,7 +30,7 @@ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinD
 --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193 --places "/tmp/places_dump_US.geojson.txt" --checkinDatawithVenueId "/tmp/checkinDatawithVenueId.txt"
  */
 
-class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
+class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinSource {
 
     val bayestrainingmodel = args("bayestrainingmodelforlocationtype")
 
@@ -38,61 +39,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
 
     val checkinsInputPipe = checkinSource(args)
 
-
-    val newCheckins = correlationCheckinsFromCassandra(checkinsInputPipe)
-    val placesVenueGoldenIdValues = withGoldenId(newCheckins)
-    //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-
-    // module : start of determining places type from place name
-
-    val placesClassified = classifyPlaceType(bayestrainingmodel, placesVenueGoldenIdValues)
-            //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName,'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-            .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-            ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)) {
-        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-
-            (fields._1, fields._2, fields._3, fields._4, fields._5, fields._6, "", fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16)
-
-    }
-
-
-    val placesPipe = getLocationInfo(TextLine(placesData).read)
-            .project(('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory))
-
-
-    val placesVenueGoldenId = placesVenueGoldenIdValues.leftJoinWithSmaller('venName -> 'propertiesName, placesPipe)
-            .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-            .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-            ->
-            ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId, 'distance)) {
-
-        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-            val distance = {
-                if (fields._7 != null && fields._8 != null && fields._11 != null && fields._12 != null) {
-                    Haversine.haversine(fields._7.toDouble, fields._8.toDouble, fields._11.toDouble, fields._12.toDouble)
-                }
-                else {
-                    -1
-                }
-            }
-            (fields._1, fields._2, fields._3, fields._4, fields._5, "", fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17, fields._18, distance)
-
-    }
-            .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
-        _.min('distance)
-    }.filter('distance) {
-        distance: String => distance != "-1"
-    }.discard('distance)
-            .++(placesClassified)
-            .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-            ->
-            ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venueType, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)) {
-        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-
-            (fields._1, fields._2, fields._3, fields._4, fields._5, getVenueType(fields._6, fields._7), fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
-
-    }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venueType, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-
+    val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
 
     //module: end of detrmining places type from venue name
 
@@ -190,13 +137,6 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
         w * unregularizedCorrelation + (1 - w) * priorCorrelation
     }
 
-    def getVenueType(venue1: String, venue2: String): String = {
-
-        if (venue2 != null || venue2 != "")
-            venue2
-        else
-            venue1
-    }
 
 }
 

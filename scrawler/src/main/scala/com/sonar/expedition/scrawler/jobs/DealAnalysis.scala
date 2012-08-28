@@ -13,14 +13,12 @@ import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}
 import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
 import com.sonar.expedition.scrawler.pipes.{CheckinGrouperFunction, PlacesCorrelation}
-import com.sonar.expedition.scrawler.jobs.DealLocation
 import scala.Some
 import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.Tsv
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import com.sonar.expedition.scrawler.jobs.DealLocation
 import com.twitter.scalding.SequenceFile
 import scala.Some
 import com.sonar.scalding.cassandra.CassandraSource
