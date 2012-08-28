@@ -37,7 +37,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
     val placesData = args("placesData")
 
-    val checkinsInputPipe = checkinSource(args)
+    val checkinsInputPipe = checkinSource(args, withVenuesOnly = true)
 
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
 

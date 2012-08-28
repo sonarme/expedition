@@ -53,7 +53,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val checkins = checkinSource(args)
+    val checkins = checkinSource(args, withVenuesOnly = false)
 
     //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
     val newCheckins = correlationCheckinsFromCassandra(checkins)

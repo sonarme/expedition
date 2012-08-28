@@ -106,7 +106,7 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
 
             .write(
-        SequenceFile(output, Fields.ALL))
+        Tsv(output, Fields.ALL))
 
 
 }
