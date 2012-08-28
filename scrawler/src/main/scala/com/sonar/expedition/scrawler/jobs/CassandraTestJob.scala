@@ -23,7 +23,7 @@ class CassandraTestJob(args: Args) extends Job(args) {
         scheme = WideRowScheme(keyField = 'sonarUserIdB,
             nameField = ('columnNameB, 'columnValueB))
     )
-            .map(('sonarUserIdB, 'columnNameB, 'columnValueB) -> ('sonarId)) {
+            .mapTo(('sonarUserIdB, 'columnNameB, 'columnValueB) -> ('sonarId)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {
             val sid = StringSerializer.get().fromByteBuffer(in._1)
             (sid)

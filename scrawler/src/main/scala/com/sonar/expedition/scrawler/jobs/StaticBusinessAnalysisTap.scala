@@ -72,7 +72,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInf
                 "serviceCheckinId", "venueName", "venueAddress",
                 "venueId", "checkinTime", "geohash", "latitude",
                 "longitude", "message"))
-    ).flatMap(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+    ).flatMapTo(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
             'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
             'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {

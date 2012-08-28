@@ -56,7 +56,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                 "serviceCheckinId", "venueName", "venueAddress",
                 "venueId", "checkinTime", "geohash", "latitude",
                 "longitude", "message"))
-    ).map(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+    ).mapTo(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
             'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
             'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {

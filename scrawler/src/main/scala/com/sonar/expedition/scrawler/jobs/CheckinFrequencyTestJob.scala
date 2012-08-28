@@ -28,7 +28,7 @@ class CheckinFrequencyTestJob(args: Args) extends Job(args) {
         scheme = NarrowRowScheme(keyField = 'checkinIdB,
             nameFields = ('venueIdB, 'checkinTimeB), columnNames = List("venueId", "checkinTime"))
     )
-            .flatMap(('checkinIdB, 'venueIdB, 'checkinTimeB) ->('venueId, 'checkinTimeHour)) {
+            .flatMapTo(('checkinIdB, 'venueIdB, 'checkinTimeB) ->('venueId, 'checkinTimeHour)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {
             // filter out checkins without venue or checkin time
             for (venueId <- Option(StringSerializer.get().fromByteBuffer(in._2)) if venueId.nonEmpty;
