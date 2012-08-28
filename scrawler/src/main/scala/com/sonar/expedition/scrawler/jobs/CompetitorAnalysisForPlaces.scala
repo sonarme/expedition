@@ -38,6 +38,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
     val bayestrainingmodel = args("bayestrainingmodelforlocationtype")
 
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
+    val placesData = args("placesData")
 
     val DEFAULT_NO_DATE = RichDate(0L)
     val NONE_VALUE = "none"
@@ -97,8 +98,6 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
 
     }
 
-
-    val placesData = args("placesData")
 
     val placesPipe = getLocationInfo(TextLine(placesData).read)
             .project(('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory))

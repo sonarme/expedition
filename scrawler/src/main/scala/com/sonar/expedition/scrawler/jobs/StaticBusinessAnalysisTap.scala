@@ -14,6 +14,7 @@ import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.TextLine
 import com.sonar.scalding.cassandra.NarrowRowScheme
+import com.sonar.expedition.scrawler.util.CommonFunctions
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -71,7 +72,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInf
                 "serviceCheckinId", "venueName", "venueAddress",
                 "venueId", "checkinTime", "geohash", "latitude",
                 "longitude", "message"))
-    ).map(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+    ).flatMap(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
             'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
             'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
             'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
@@ -90,9 +91,12 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInf
             val lat: Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
             val lng: Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
             val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-
-            (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
-                    venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
+            // use only checkins with venues
+            if (CommonFunctions.isNullOrEmpty(venId))
+                None
+            else
+                Some((rowKeyDes, keyId, serType, serProfileID, serCheckinID,
+                        venName, venAddress, venId, chknTime, ghash, lat, lng, msg))
         }
     }
 

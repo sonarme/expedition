@@ -48,7 +48,7 @@ trait PlacesCorrelation extends ScaldingImplicits {
                 .groupBy('serType, 'venId) {
             _.head('venName, 'geosector)
         }
-                .groupBy('venName, 'geosector) {
+                .groupBy('stemmedVenName, 'geosector) {
             _
 
                     .sortWithTake(('venId, 'serType) -> 'correlatedVenueIds, 4) {
@@ -66,7 +66,7 @@ trait PlacesCorrelation extends ScaldingImplicits {
                 listOfVenueIds
             }
         }
-                .project('correlatedVenueIds, 'venName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
+                .project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
 
         withGoldenId
     }
@@ -85,7 +85,7 @@ trait PlacesCorrelation extends ScaldingImplicits {
 
     def withGoldenId(newCheckins: RichPipe): RichPipe = {
         val venueWithGoldenId = correlatedPlaces(newCheckins)
-        venueWithGoldenId.project('venueId, 'goldenId).joinWithSmaller('venueId -> 'venId, newCheckins)
+        venueWithGoldenId.project('venueId, 'goldenId).joinWithLarger('venueId -> 'venId, newCheckins)
                 .filter('venueId) {
             fields: (String) =>
                 val venId = fields
