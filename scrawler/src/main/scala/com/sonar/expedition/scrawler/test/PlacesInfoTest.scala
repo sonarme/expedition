@@ -1,16 +1,15 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding.{TextLine, Args, Job}
+import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes.DTOPlacesInfoPipe
+import com.twitter.scalding.Job
 
-class PlacesInfoTest(args: Args) extends Job(args) {
+class PlacesInfoTest(args: Args) extends Job(args) with DTOPlacesInfoPipe {
 
     val placesData = args("placesData")
     val jobOutput = args("output")
 
-    val placesTest = new DTOPlacesInfoPipe(args)
-
     val pipe1 = TextLine(placesData).read.project('line)
-    val pipe2 = placesTest.getPlacesInfo(pipe1).write(TextLine(jobOutput))
+    val pipe2 = getPlacesInfo(pipe1).write(TextLine(jobOutput))
 
 }

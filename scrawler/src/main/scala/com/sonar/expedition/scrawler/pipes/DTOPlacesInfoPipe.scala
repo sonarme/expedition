@@ -1,11 +1,14 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.dto._
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import scala.Array
+import com.sonar.expedition.scrawler.dto.PlacesClassifiersDTO
+import com.sonar.expedition.scrawler.dto.PlacesDTO
+import JobImplicits._
 
-class DTOPlacesInfoPipe(args: Args) extends Job(args) {
+trait DTOPlacesInfoPipe extends ScaldingImplicits {
 
 
     def getPlacesInfo(placesData: RichPipe): RichPipe = {

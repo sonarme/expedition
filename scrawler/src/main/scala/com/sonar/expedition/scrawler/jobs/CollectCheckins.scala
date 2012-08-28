@@ -2,21 +2,19 @@ package com.sonar.expedition.scrawler.jobs
 
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.pipes.{CheckinTimeFilter, CheckinInfoPipe}
-import com.twitter.scalding.{GroupBuilder, TextLine, Job, Args}
+import com.twitter.scalding.{Job, GroupBuilder, TextLine, Args}
 import util.matching.Regex
 
-class CollectCheckins(args: Args) extends Job(args) {
+class CollectCheckins(args: Args) extends Job(args) with CheckinInfoPipe {
     val chkininputData = TextLine(args("input"))
     val output = TextLine(args("output"))
     val output1 = TextLine(args("output1"))
     val output2 = TextLine(args("output2"))
 
-    val chkins = new CheckinInfoPipe(args)
-
     //rowkey,fbname, fbid,  lnid, work_company, curr_city, jobtype, checkin lat,  checkin long,  venue name,  time_chkin
 
 
-    val chkres1 = chkins.getCheckinsDataPipeCollectinLatLon(chkininputData.read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
+    val chkres1 = getCheckinsDataPipeCollectinLatLon(chkininputData.read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
             .groupBy(Fields.ALL) {
         _.sortBy(('keyid, 'chknTime))
     }
@@ -31,7 +29,7 @@ class CollectCheckins(args: Args) extends Job(args) {
             .project('keyid2)
     //.write(TextLine("/tmp/ci.txt"))
 
-    val chkres2 = chkins.getCheckinsDataPipeCollectinLatLon(chkininputData.read) //('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    val chkres2 = getCheckinsDataPipeCollectinLatLon(chkininputData.read) //('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
     //.project('keyid)
     //.write(TextLine("/tmp/co.txt"))
 
@@ -43,7 +41,7 @@ class CollectCheckins(args: Args) extends Job(args) {
     chkres1.write(output)
     /*
     find time separted chkins
-    val chkres1= chkins.getCheckinsDataPipe(TextLine(chkininputData).read).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    val chkres1= getCheckinsDataPipe(TextLine(chkininputData).read).project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
             .groupBy(Fields.ALL){ _.sortBy('keyid,'chknTime) }
             .filter('venName)
             {
@@ -65,7 +63,7 @@ class CollectCheckins(args: Args) extends Job(args) {
 
     }*/
 
-    val chkres3 = chkins.getCheckinsDataPipe(chkininputData.read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+    val chkres3 = getCheckinsDataPipe(chkininputData.read).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
             .groupBy(Fields.ALL) {
         _.sortBy(('keyid, 'chknTime))
     }

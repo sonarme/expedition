@@ -1,13 +1,14 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 
-import com.twitter.scalding.{Job, Args}
+import com.twitter.scalding.{Args}
 import util.matching.Regex
 
 import GenderInfoReadPipe._
+import JobImplicits._
 
-class GenderInfoReadPipe(args: Args) extends Job(args) {
+trait GenderInfoReadPipe extends ScaldingImplicits {
     def DataPipe(malepipe: RichPipe): RichPipe = {
 
         val pipe = malepipe.project('line).flatMapTo('line ->('name, 'freq, 'cum_freq, 'rank)) {

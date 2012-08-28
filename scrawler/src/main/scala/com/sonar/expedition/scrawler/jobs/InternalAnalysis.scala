@@ -2,12 +2,11 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.sonar.expedition.scrawler.apis.APICalls
 import com.sonar.expedition.scrawler.util._
-import com.twitter.scalding._
+import com.twitter.scalding.{Job, RichPipe, Args, TextLine}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.pipes._
 import scala.util.matching.Regex
 import cascading.pipe.joiner._
-import com.twitter.scalding.TextLine
 import java.security.MessageDigest
 import cascading.tuple.Fields
 
@@ -22,14 +21,12 @@ output : the file to which the non visited profile links will be written to
 */
 
 
-class InternalAnalysis(args: Args) extends Job(args) {
+class InternalAnalysis(args: Args) extends Job(args) with DTOProfileInfoPipe {
 
     val inputData = args("serviceProfileData")
     val profileCount = args("profileCount")
     val serviceCount = args("serviceCount")
     val geoCount = args("geoCount")
-
-    val employerGroupedServiceProfilePipe = new DTOProfileInfoPipe(args)
 
     val data = TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -50,7 +47,7 @@ class InternalAnalysis(args: Args) extends Job(args) {
             .write(TextLine(profileCount))
 
 
-    val gcount = employerGroupedServiceProfilePipe.getDTOProfileInfoInTuples(data)
+    val gcount = getDTOProfileInfoInTuples(data)
             .map('city -> 'cityCleaned) {
         city: String => {
             StemAndMetaphoneEmployer.removeStopWords(city)

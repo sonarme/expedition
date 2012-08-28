@@ -3,9 +3,10 @@ package com.sonar.expedition.scrawler.pipes
 import util.matching.Regex
 import com.sonar.expedition.scrawler.pipes.CoworkerFinderFunction._
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
-import com.twitter.scalding.{RichPipe, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
+import JobImplicits._
 
-class CoworkerFinderFunction(args: Args) extends Job(args) {
+trait CoworkerFinderFunction extends ScaldingImplicits {
 
     /*
     def findCoworkers(serviceProfileInput: RichPipe, friendsInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
@@ -251,7 +252,8 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
-                originalEmployer.equalsIgnoreCase(friendsEmployer)
+
+                (originalEmployer != null && originalEmployer.equalsIgnoreCase(friendsEmployer))
             }
         }.rename(('row_keyfbuser, 'emplyer) ->('originalUId, 'employer)).project('originalUId, 'friendUId, 'employer).unique('originalUId, 'friendUId, 'employer)
 
@@ -267,7 +269,7 @@ class CoworkerFinderFunction(args: Args) extends Job(args) {
                 .filter('emp, 'emplyer) {
             fields: (String, String) => {
                 val (originalEmployer, friendsEmployer) = fields
-                originalEmployer.equalsIgnoreCase(friendsEmployer)
+                (originalEmployer != null && originalEmployer.equalsIgnoreCase(friendsEmployer))
             }
         }.rename(('row_keylnuser, 'row_keyfrnd, 'emplyer) ->('originalUId, 'friendUId, 'employer)).project('originalUId, 'friendUId, 'employer).unique('originalUId, 'friendUId, 'employer)
 

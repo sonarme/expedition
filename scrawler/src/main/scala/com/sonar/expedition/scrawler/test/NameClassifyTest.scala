@@ -1,7 +1,7 @@
 /*
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding.{Job, Args, TextLine}
+import com.twitter.scalding.{Args, TextLine}
 import javax.print.attribute.standard.JobSheets
 import com.sonar.expedition.scrawler.pipes.GenderFromNameProbablity
 import util.matching.Regex

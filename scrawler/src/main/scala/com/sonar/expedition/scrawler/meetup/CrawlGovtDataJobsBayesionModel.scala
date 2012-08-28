@@ -1,11 +1,12 @@
 package com.sonar.expedition.scrawler.meetup
 
-import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
+import com.twitter.scalding.{SequenceFile, TextLine, Args}
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.sonar.expedition.scrawler.pipes.BayesModelPipe
 import cascading.tuple.Fields
+import com.twitter.scalding.Job
 
-class CrawlGovtDataJobsBayesionModel(args: Args) extends Job(args) {
+class CrawlGovtDataJobsBayesionModel(args: Args) extends Job(args) with BayesModelPipe {
 
     val trainingmodel = args.getOrElse("bayestrainingmodelforsalary", "/tmp/bayestrainingmodelforsalary")
     val jobsdata = "/tmp/datajobs"
@@ -27,8 +28,7 @@ class CrawlGovtDataJobsBayesionModel(args: Args) extends Job(args) {
         line: Int => (line.!=(-1))
     }.project(('key, 'token, 'doc))
 
-    val trainer = new BayesModelPipe(args)
-    val model = trainer.trainBayesModel(jobsPipe);
+    val model = trainBayesModel(jobsPipe);
     model.write(SequenceFile(trainingmodel, Fields.ALL))
 
 }

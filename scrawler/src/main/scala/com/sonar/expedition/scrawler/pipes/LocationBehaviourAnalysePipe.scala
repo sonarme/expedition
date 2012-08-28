@@ -1,18 +1,18 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{SequenceFile, RichPipe, Args, TextLine}
 import java.util.Calendar
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.service.PrecomputationSettings
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
-import com.twitter.scalding.TextLine
 import cascading.tuple.Fields
 import java.text.{DecimalFormat, NumberFormat}
+import JobImplicits._
 
 /*
 com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindata "/tmp/checkinDatatest.txt" --output "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"  --timedifference "24" --geohashsectorsize "20"
- */
-class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
+*/
+trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe {
 
     def getLocationInfo(placesData: RichPipe): RichPipe = {
 
@@ -83,8 +83,8 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
         }
     }
 
-    def filterTime(chkinpipe1: RichPipe, chkinpipe2: RichPipe, timediff: String, geoHashSectorSize: String, prodtest: Int): RichPipe = {
-        val pipe = chkinpipe1.joinWithSmaller('keyid -> 'keyid1, chkinpipe2).project(('keyid, 'venName1, 'chknTime1, 'latitude, 'longitude, 'venName, 'chknTime, 'latitude1, 'longitude1))
+    def filterTime(chkinpipe: RichPipe, chkinpipe2: RichPipe, timediff: String, geoHashSectorSize: String, prodtest: Int): RichPipe = {
+        val pipe = chkinpipe.joinWithSmaller('keyid -> 'keyid1, chkinpipe2).project(('keyid, 'venName1, 'chknTime1, 'latitude, 'longitude, 'venName, 'chknTime, 'latitude1, 'longitude1))
                 .unique(('keyid, 'venName1, 'chknTime1, 'latitude, 'longitude, 'venName, 'chknTime, 'latitude1, 'longitude1))
                 .filter(('venName1, 'venName)) {
             fields: (String, String) =>
@@ -100,13 +100,69 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
                 val (keyid, venname1, chknTime1, latitude, longitude, venname2, chknTime, latitude2, longitude2) = fields
                 (venname1, chknTime1, latitude, longitude, venname2, chknTime, latitude2, longitude2, 1, keyid) //add one to do a sum('countTIMES) inside the pipe to find out total count of users moving from  'venNameFROM to 'venNameTO
         }
-                .groupBy(('venNameFROM, 'chknTime1, 'latitudeFrom1, 'longitudeFrom1, 'venNameTO, 'chknTime, 'latitudeTo1, 'longitudeTo1, 'keyidS)) {
+                .groupBy(('venNameFROM, 'venNameTO, 'keyidS)) {
             _.size
         }.rename('size -> 'countTIMES)
         val geohashedpipe = convertlatlongToGeohash(pipe, geoHashSectorSize)
         geohashedpipe
+
+        /* val output = chkinpipe.groupAll {
+    _.sortBy('chknTime)
+}
+.groupBy('keyid) {
+    _.reduce(('chknTime, 'venName, 'latitude, 'longitude) ->('chknTimeList, 'venNameList, 'latitude, 'longitude)) {
+
+        (left: (String, String, String, String), right: (String, String, String, String)) =>
+
+
+        (left._1 + "::" + right._1, left._2 + "::" + right._2, left._3 + "::" + right._3, left._4 + "::" + right._4)
     }
 
+    //_.mapStream(('chknTime, 'venName, 'latitude, 'longitude, 'serCheckinID) ->('chknTimeList, 'venNameList, 'latitude, 'longitude, 'serCheckinID)) {
+    //_.mapStream(('chknTime, 'venName, 'latitude, 'longitude, 'serCheckinID) ->('chknTimeList, 'venNameList, 'latitude, 'longitude, 'serCheckinID)) {
+
+     /*   _.mapStream(('chknTime) ->('chknTimeList)) {
+
+            checkins: Iterator[Fields] =>
+            checkins.sliding(2)
+            /*checkins: Iterator[Fields] => {
+            checkins.sliding(2).filter {
+                checkinPair:List[Fields] => {
+                    case (checkin1, checkin2) if (DateRange(checkin1._1 + Hours(4)).contains(checkin2._1)) => true
+                    case _ => false
+                }
+            }*//*.flatMap {
+                pairAsList => {
+                    val checkinEntry1 = pairAsList(0)
+                    val checkinEntry2 = pairAsList(1)
+                    (checkinEntry1._5, checkinEntry2._5)
+                }
+
+            }*/
+     }*/
+
+}
+.mapTo(('keyid,'chknTimeList, 'venNameList, 'latitude, 'longitude)->('keyid,'chknTimeList, 'venNameList, 'latitude, 'longitude)){
+    fields: (String, String, String, String,String)=>
+    val (keyid,chknTimeList, venNameList, latitude, longitude) = fields
+
+    val checkinfiltered= filterCheckin(chknTimeList)
+    (keyid,checkinfiltered, venNameList, latitude, longitude)
+}
+        .write(TextLine("/tmp/testlist"))*/
+
+
+    }
+
+
+    /*def filterCheckin(checkinDates:String):Iterator[List[String]]={
+
+
+          // todo
+           val checkinPairs = checkinDates.split("::").toList.sliding(2)
+
+
+    }*/
     def convertlatlongToGeohash(inpipe: RichPipe, geoHashSectorSize: String
                                        ): RichPipe = {
         val outpipe = inpipe.mapTo(('venNameFROM, 'chknTime1, 'latitudeFrom1, 'longitudeFrom1, 'venNameTO, 'chknTime, 'latitudeTo1, 'longitudeTo1, 'countTIMES, 'keyidS) ->
@@ -158,20 +214,30 @@ class LocationBehaviourAnalysePipe(args: Args) extends DTOPlacesInfoPipe(args) {
     }
 
     def classifyTFIDF(bayestrainingmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
-        val trainer = new BayesModelPipe(args)
         val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
             fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
         }
         val chkinpipe4 = chkinpipefileterdtime.project('venNameTO).rename('venNameTO -> 'data)
-        val trainedto = trainer.calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataTo, 'keyTo, 'weightTo)) //project('data, 'key, 'weight)
+        val trainedto = calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataTo, 'keyTo, 'weightTo)) //project('data, 'key, 'weight)
         val classifiedplacesto = chkinpipefileterdtime.joinWithSmaller('venNameTO -> 'dataTo, trainedto).project(('keyidS, 'venNameFROM, 'ghashFrom, 'venNameTO, 'countTIMES, 'ghashTo, 'keyTo, 'weightTo)) /*.write(TextLine(trainingclassifiedfinal))*/
 
         val chkinpipe5 = classifiedplacesto.project('venNameFROM).rename('venNameFROM -> 'data)
-        val trainedfrom = trainer.calcProb(seqModel, chkinpipe5).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataFrom, 'keyFrom, 'weightFrom)) //project('data, 'key, 'weight)
+        val trainedfrom = calcProb(seqModel, chkinpipe5).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('dataFrom, 'keyFrom, 'weightFrom)) //project('data, 'key, 'weight)
 
         val classifiedjobs = classifiedplacesto.joinWithSmaller('venNameFROM -> 'dataFrom, trainedfrom).project(('keyidS, 'countTIMES, 'venNameFROM, 'ghashFrom, 'keyFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
         classifiedjobs.project(('keyidS, 'countTIMES, 'venNameFROM, 'ghashFrom, 'keyFrom, 'weightFrom, 'venNameTO, 'ghashTo, 'keyTo, 'weightTo))
 
+    }
+
+
+    def classifyPlaceType(bayestrainingmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
+        val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+            fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+        }
+        val chkinpipe4 = chkinpipefileterdtime.project('venName).rename('venName -> 'data)
+        val trainedto = calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)) //project('data, 'key, 'weight)
+        val classifiedplaces = chkinpipefileterdtime.joinWithSmaller('venName -> 'data, trainedto).project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'key, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)).rename('key -> 'venTypeFromModel)
+        classifiedplaces
     }
 
 

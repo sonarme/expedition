@@ -1,6 +1,6 @@
 //package com.sonar.expedition.scrawler.publicprofile
 //
-//import com.twitter.scalding.{TextLine, Job, Args}
+//import com.twitter.scalding.{TextLine, Args}
 //import org.jsoup.nodes.Document
 //
 //class FacebookPublicProfileParse(args: Args) extends Job(args) {

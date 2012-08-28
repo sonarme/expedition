@@ -1,17 +1,17 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
+import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
-import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 
 /*
 com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype"
 
  */
-class LocationBehaviourAnalyseBayesModel(args: Args) extends LocationBehaviourAnalysePipe(args) {
+class LocationBehaviourAnalyseBayesModel(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with BayesModelPipe {
 
     val trainingmodel = args("bayestrainingmodelforlocationtype")
     val placesData = args("placesData")
@@ -27,8 +27,7 @@ class LocationBehaviourAnalyseBayesModel(args: Args) extends LocationBehaviourAn
 
     }.project(('key, 'token, 'doc))
 
-    val trainer = new BayesModelPipe(args)
-    val model = trainer.trainBayesModel(placesPipe);
+    val model = trainBayesModel(placesPipe)
     model.write(SequenceFile(trainingmodel, Fields.ALL))
 
 

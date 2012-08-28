@@ -1,6 +1,6 @@
 //package com.sonar.expedition.scrawler.publicprofile
 //
-//import com.twitter.scalding._
+//import com.twitter.scalding.{RichPipe, Args}
 //import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
 //import org.jsoup.nodes.{Element, Document}
 //import java.net.URL

@@ -1,12 +1,13 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{Job, Args, RichPipe}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.{StemAndMetaphoneEmployer, CommonFunctions, ShingleTokenizer}
 import cascading.pipe.joiner.LeftJoin
 import cascading.tuple.Fields
 import com.sonar.dossier.dto.ServiceType
+import JobImplicits._
 
-class BuzzFromCheckins(args: Args) extends Job(args) {
+trait BuzzFromCheckins extends ScaldingImplicits {
 
 
     def getShingles(checkinsWithMessage: RichPipe): RichPipe = {
@@ -48,7 +49,7 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
                 (!CommonFunctions.isNullOrEmpty(venName))
         }
                 .joinWithLarger('stemmedVenName -> 'singleShingle, shingles)
-//                .unique(('stemmedVenName, 'goldenId))
+                //                .unique(('stemmedVenName, 'goldenId))
                 .groupBy('stemmedVenName, 'goldenId) {
             _.size('shinglesPerVenue)
         }
@@ -56,9 +57,9 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
             _
                     .sum('shinglesPerVenue -> 'buzzCount)
                     .toList[String]('goldenId -> 'goldenIdList)
-//                    .sortWithTake('goldenId -> 'goldenIdList, 100000) {
-//                (venueId1: (String), venueId2: (String)) => venueId1 > venueId2
-//            }
+            //                    .sortWithTake('goldenId -> 'goldenIdList, 100000) {
+            //                (venueId1: (String), venueId2: (String)) => venueId1 > venueId2
+            //            }
         }
                 .groupAll {
             _
@@ -77,7 +78,7 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
                 //        }
                 .groupAll {
             _
-                    .average('buzzCount ->('avg))
+                    .average('buzzCount -> ('avg))
         }
         buzzStats
     }
@@ -100,7 +101,7 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
         max
     }
 
-    def normalizedBuzz(buzz: RichPipe, buzzStats: RichPipe): RichPipe = {
+    def normalizeBuzz(buzz: RichPipe, buzzStats: RichPipe): RichPipe = {
         val normalizedBuzz = buzz
                 .crossWithTiny(buzzStats)
                 .map(('buzzCount, 'avg) -> ('normalized)) {
@@ -115,7 +116,7 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
 
     }
 
-    def buzzScore(normalizedBuzz: RichPipe, min: RichPipe, max: RichPipe): RichPipe = {
+    def calculateBuzzScore(normalizedBuzz: RichPipe, min: RichPipe, max: RichPipe): RichPipe = {
         val buzzScore = normalizedBuzz
                 .crossWithTiny(min)
                 .crossWithTiny(max)
@@ -134,7 +135,6 @@ class BuzzFromCheckins(args: Args) extends Job(args) {
             goldenIdList
     }
             .project('stemmedVenName, 'buzzCount, 'buzzScore, 'golden)
-
 
 
 }

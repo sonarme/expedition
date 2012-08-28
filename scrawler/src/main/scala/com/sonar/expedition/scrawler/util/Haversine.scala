@@ -4,9 +4,6 @@ import math._
 
 //http://rosettacode.org/wiki/Haversine_formula#Scala
 
-class Haversine {
-}
-
 object Haversine extends Serializable {
     val R = 6372.8 //earth radius in km
 

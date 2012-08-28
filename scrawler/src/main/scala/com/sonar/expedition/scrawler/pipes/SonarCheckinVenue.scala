@@ -1,9 +1,10 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util._
+import JobImplicits._
 
-class SonarCheckinVenue(args: Args) extends Job(args) {
+trait SonarCheckinVenue extends RealSocialGraph {
 
     // input of unfiltered checkins
     // ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'dayOfWeek, 'hour)
@@ -11,7 +12,6 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
 
         val default = ("", "", 0.0, 0.0, 0)
         val cutoff = 3
-        val merger = new RealSocialGraph(args)
 
         val sonarPipe = checkins
                 .filter('serType) {
@@ -29,9 +29,9 @@ class SonarCheckinVenue(args: Args) extends Job(args) {
         }
 
         // ('uId, 'friendKey, 'uname, 'uname2, 'size)
-        val mergedFriends = merger
-                .friendsNearbyByFriends(friends, checkins, serviceProfiles)
-                .project(('uId, 'friendKey))
+        val mergedFriends =
+            friendsNearbyByFriends(friends, checkins, serviceProfiles)
+                    .project(('uId, 'friendKey))
 
         val friendCheckins = checkins
                 .filter('serType) {

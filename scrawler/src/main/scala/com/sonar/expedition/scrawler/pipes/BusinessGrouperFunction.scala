@@ -1,11 +1,12 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, Job, Args}
-import java.util.Calendar
+import com.twitter.scalding.{RichPipe, Args}
+import java.util.{Date, Calendar}
 import util.matching.Regex
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import JobImplicits._
 
-class BusinessGrouperFunction(args: Args) extends Job(args) {
+trait BusinessGrouperFunction extends ScaldingImplicits {
 
     def combineCheckinsProfiles(checkinInput: RichPipe, serviceProfileInput: RichPipe): RichPipe = {
 
@@ -13,9 +14,9 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
         //('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc, 'dayOfYear, 'dayOfWeek, 'hour, 'venueId, 'goldenId)
         checkinInput.joinWithSmaller('keyid -> 'key, serviceProfileInput)
                 .map('chknTime ->('hourChunk, 'dayChunk)) {
-            checkinTime: String => {
+            checkinTime: Date => {
                 val timeFilter = Calendar.getInstance()
-                val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                val checkinDate = checkinTime
                 timeFilter.setTime(checkinDate)
                 val hour = (timeFilter.getTimeInMillis / 3600000) // 1000 * 60 * 60  = for hour chunks
                 val day = (timeFilter.getTimeInMillis / 86400000) // 1000 * 60 * 60 * 24 = for 24 hour chunks
@@ -34,7 +35,7 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
         }
     }
 
-    def byAge(combinedInput: RichPipe): RichPipe = {
+    def groupByAge(combinedInput: RichPipe): RichPipe = {
         combinedInput
                 .map('age -> 'ageBracket) {
             age: Int => {
@@ -65,7 +66,7 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
         }
     }
 
-    def byGender(combinedInput: RichPipe): RichPipe = {
+    def groupByGender(combinedInput: RichPipe): RichPipe = {
         combinedInput
                 .filter('impliedGender) {
             gend: Gender => !(gend == Gender.unknown)
@@ -76,7 +77,7 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
         }
     }
 
-    def byDegree(combinedInput: RichPipe): RichPipe = {
+    def groupByDegree(combinedInput: RichPipe): RichPipe = {
         combinedInput
                 .map('degree -> 'degreeCat) {
             degree: String => {
@@ -97,7 +98,7 @@ class BusinessGrouperFunction(args: Args) extends Job(args) {
         }
     }
 
-    def byIncome(combinedInput: RichPipe): RichPipe = {
+    def groupByIncome(combinedInput: RichPipe): RichPipe = {
         combinedInput
                 .filter('worktitle) {
             worktitle: String => !isNullOrEmpty(worktitle)

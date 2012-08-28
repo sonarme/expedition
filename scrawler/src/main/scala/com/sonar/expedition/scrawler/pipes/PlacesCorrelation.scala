@@ -1,12 +1,14 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, TextLine, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine, StemAndMetaphoneEmployer}
 import cascading.pipe.joiner.{RightJoin, Joiner, LeftJoin}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.dto.{ServiceType, Priorities}
+import PlacesCorrelation._
+import JobImplicits._
 
-class PlacesCorrelation(args: Args) extends Job(args) {
+trait PlacesCorrelation extends ScaldingImplicits {
 
     def addVenueIdToCheckins(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
         val newCheckinGrouperPipe = newCheckins
@@ -40,7 +42,7 @@ class PlacesCorrelation(args: Args) extends Job(args) {
                 .map(('lat, 'lng) -> 'geosector) {
             fields: (String, String) =>
                 val (lat, lng) = fields
-                val geosector = GeoHash.withCharacterPrecision(lat.toDouble, lng.toDouble, 7)
+                val geosector = GeoHash.withBitPrecision(lat.toDouble, lng.toDouble, PlaceCorrelationSectorSize)
                 geosector.longValue()
         }
                 .groupBy('serType, 'venId) {
@@ -81,5 +83,19 @@ class PlacesCorrelation(args: Args) extends Job(args) {
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
     }
 
+    def withGoldenId(newCheckins: RichPipe): RichPipe = {
+        val venueWithGoldenId = correlatedPlaces(newCheckins)
+        venueWithGoldenId.project('venueId, 'goldenId).joinWithSmaller('venueId -> 'venId, newCheckins)
+                .filter('venueId) {
+            fields: (String) =>
+                val venId = fields
+                (!CommonFunctions.isNullOrEmpty(venId))
+        }
+                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+    }
+
 }
 
+object PlacesCorrelation {
+    val PlaceCorrelationSectorSize = 35
+}

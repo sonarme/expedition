@@ -1,18 +1,15 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding.{TextLine, Job, Args}
+import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.twitter.scalding.Job
 
-class FriendsAtSameVenueTest(args: Args) extends Job(args) {
+class FriendsAtSameVenueTest(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with FriendsAtSameVenue {
     val serviceProfileInput = args("serviceProfileData")
     val friendsInput = args("friendData")
     val checkinsInput = args("checkinData")
     val matchedFriends = args("matchedFriends")
-
-    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
-    val checkinGrouperPipe = new CheckinGrouperFunction(args)
-    val friendGrouper = new FriendGrouperFunction(args)
 
     val data = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -24,14 +21,13 @@ class FriendsAtSameVenueTest(args: Args) extends Job(args) {
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data)
+    val joinedProfiles = getDTOProfileInfoInTuples(data)
 
-    val friendsNearby = new FriendsAtSameVenue(args)
-    val friends = friendGrouper.groupFriends(TextLine(friendsInput).read)
+    val friends = groupFriends(TextLine(friendsInput).read)
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
-    val chkindata = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinsInput).read)
+    val chkindata = unfilteredCheckins(TextLine(checkinsInput).read)
 
-    val findFriendsAtTheSameVenue = friendsNearby.friendsAtSameVenue(friends, chkindata, serviceIds)
+    val findFriendsAtTheSameVenue = friendsAtSameVenueDuplicate(friends, chkindata, serviceIds)
             .project(('uId, 'friendKey, 'venName, 'friendVenName, 'dayOfYear, 'friendDayOfYear, 'hour, 'friendHour))
             .write(TextLine(matchedFriends))
 

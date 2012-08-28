@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.util
 
 
-class EmployerCheckinMatch extends Serializable {
+object EmployerCheckinMatch extends Serializable {
     val levver = new Levenshtein
     //metaphoner.setMaxCodeLen(6)
     val maxDistance = 1
@@ -53,9 +53,5 @@ class EmployerCheckinMatch extends Serializable {
 
     }
 
-
-}
-
-object EmployerCheckinMatch extends Serializable {
 
 }

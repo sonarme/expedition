@@ -2,42 +2,41 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
-import com.sonar.expedition.scrawler.util.CommonFunctions._
-import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, StringSerializer, DoubleSerializer}
 import cascading.tuple.Fields
-import java.nio.ByteBuffer
-import com.sonar.scalding.cassandra.CassandraSource
-import com.sonar.scalding.cassandra.NarrowRowScheme
-import com.sonar.scalding.cassandra.CassandraSource
-import com.sonar.scalding.cassandra.NarrowRowScheme
+import com.sonar.expedition.scrawler.util.CommonFunctions._
+import java.util.{Date, TimeZone}
+import java.text.SimpleDateFormat
+import ch.hsr.geohash.GeoHash
 import com.twitter.scalding.SequenceFile
-import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.TextLine
-import com.sonar.scalding.cassandra.NarrowRowScheme
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
+
+/*
+com.sonar.expedition.scrawler.jobs.StaticBusinessAnalysisTapFromTextFile --hdfs --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
+--serviceProfileInput "/tmp/serviceProfileData.txt" --twitterServiceProfileInput "/tmp/twitterServiceProfileDatasmallest.txt" --checkinInput "/tmp/checkinDatatest.txt" --friendInput "/tmp/friendData.txt"
+ --bayestrainingmodelforsalary "/tmp/bayestrainingmodelforsalary" --sequenceOutputStatic "/tmp/sequenceOutputStatic" --sequenceOutputTime "/tmp/sequenceOutputTime" --textOutputStatic "/tmp/textOutputStatic" --textOutputTime "/tmp/textOutputTime"
+ */
+class StaticBusinessAnalysisTapFromTextFile(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
 
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
-
+    val DEFAULT_FILTER_DATE = "2000-08-04T16:23:13.000Z"
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
-    //    val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
-    //    val newcheckininput = args("newCheckinInput")
     val sequenceOutputStatic = args("sequenceOutputStatic")
     val sequenceOutputTime = args("sequenceOutputTime")
     val textOutputStatic = args("textOutputStatic")
     val textOutputTime = args("textOutputTime")
     val timeSeriesOnly = args.getOrElse("timeSeriesOnly", "false").toBoolean
+    val checkininput = args("checkinInput")
 
-    val DEFAULT_NO_DATE = RichDate(0L)
-    val NONE_VALUE = "none"
+    implicit val defaultTimezone = TimeZone.getTimeZone(args.getOrElse("tz", "America/New_York"))
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -58,48 +57,48 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInf
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val checkins = CassandraSource(
-        rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
-        keyspaceName = "dossier",
-        columnFamilyName = "Checkin",
-        scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
-            nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-                    'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-                    'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
-            columnNames = List("userProfileId", "serviceType", "serviceProfileId",
-                "serviceCheckinId", "venueName", "venueAddress",
-                "venueId", "checkinTime", "geohash", "latitude",
-                "longitude", "message"))
-    ).map(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-            'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-            'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
-            'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
-        in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
-                ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
-            val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
-            val keyId = Option(in._2).map(StringSerializer.get().fromByteBuffer).getOrElse("missingKeyId")
-            val serType = Option(in._3).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val serProfileID = Option(in._4).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
-            val chknTime = Option(in._9).map(DateSerializer.get().fromByteBuffer).getOrElse(DEFAULT_NO_DATE)
-            val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer).orNull
-            val lat: Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
-            val lng: Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
-            val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NONE_VALUE)
+    val checkins = checkinsWithMessage(TextLine(checkininput))
 
-            (rowKeyDes, keyId, serType, serProfileID, serCheckinID,
-                    venName, venAddress, venId, chknTime, ghash, lat, lng, msg)
+            .mapTo(
+        ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg)
+                ->
+                ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)
+    ) {
+
+        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+            val (keyid, serType, serProfileID, serCheckinID, venName, venAddress, venId, chknTime, ghash, lat, lng, dayOfYear, dayOfWeek, hour, msg) = fields
+
+            val gHashAsLong = Option(ghash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
+            val checkinTime = getDate(chknTime)
+            //val richDate = RichDate(checkinTime)
+            (serType + ":" + venId, keyid, serType, hashed(serProfileID), serCheckinID, venName, venAddress, venId, checkinTime, gHashAsLong, lat.toDouble, lng.toDouble, msg)
+    }
+
+    def getDate(chknTime: String): Date = {
+
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ss.SSS'Z'")
+        val date = {
+            try {
+                val chekingTime = chknTime.substring(chknTime.lastIndexOf(":") + 1)
+                simpleDateFormat.parse(chekingTime)
+
+            } catch {
+                //handle date parsing if RE doesnt match:
+                //2012-08-04T16:23:13.000Z
+                //::foursquare::1694154::501d4c71e4b0af03cf4a440a::Marinas House(:::::2012-08-04T16:23:13.000Z::dn0pr6yrc5xz::35.040870666503906::-89.67276000976562::4f879915e4b0202c048fcaef::
+                case e => simpleDateFormat.parse(DEFAULT_FILTER_DATE)
+
+
+            }
         }
+        date
+
     }
 
 
-    //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
+    //facebook:428112530552458                facebook        100000013594714 486290991381350 Kobe Airport - 神戸空港         428112530552458 Fri Aug 04 16:23:13 EDT 2000    -1368785845864561184    34.636644171583 135.22792465066 無事到着！      217     6       16      facebook:100000013594714
+    // ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg,'dayOfYear, 'dayOfWeek, 'hour, 'keyid))
     val newCheckins = correlationCheckinsFromCassandra(checkins)
-    //    val newcheckins = correlationCheckins(TextLine(newcheckininput))
     val checkinsWithGolden = withGoldenId(newCheckins)
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -113,6 +112,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInf
             val (gender, prob) = GenderFromNameProbability.gender(name)
             (gender, prob)
     }
+    //0011df62-82fe-3cf7-8fee-ab676fbc3c27    Tom B.  13e25b49bd71f5628c7fc92ca8ced47b                0011df6282fe8cf78feeab676fbc3c27        9df9309b2c938b6bb50ed8b0584b48ef                        Winston-Salem, NC                                       male    1.0     -1      NA
 
     val profiles = ageEducationPipe(total)
             .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
@@ -124,31 +124,31 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with DTOProfileInf
             val keys = ("facebook:" + fields._3 + "," + "twitter:" + fields._6 + "," + "foursquare:" + fields._5).split(",")
             for (key <- keys)
             yield (key, fields._2, fields._3, fields._4, fields._5, fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
+
     }
 
-    /*
-val joinedProfiles = profiles.rename('key->'rowkey)
-val trainer = new BayesModelPipe(args)
+    /*val joinedProfiles = profiles.rename('key->'rowkey)
+    val trainer = new BayesModelPipe(args)
 
-val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
-fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
+    val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+    fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
-}
+    }
 
 
-val jobtypes = joinedProfiles.rename('worktitle -> 'data)
+    val jobtypes = joinedProfiles.rename('worktitle -> 'data)
 
-val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
+    val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
 
-val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
- .rename('rowkey -> 'key) */
-
+    val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
+     .rename('rowkey -> 'key)
+    */
 
     val combined = combineCheckinsProfiles(checkinsWithGolden, profiles)
 
     if (!timeSeriesOnly) {
 
-        val chkindata = groupCheckins(newCheckins).write(TextLine("/tmp/chkindata"))
+        val chkindata = groupCheckins(newCheckins)
 
         val friendData = TextLine(friendinput).read.project('line)
 
@@ -160,7 +160,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
         val friendsForCoworker = groupFriends(friendData)
 
-        val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata).write(TextLine("/tmp/coworkerCheckins"))
+        val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
         val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
 
@@ -185,7 +185,6 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 .map(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, ageBracket, frequency) = in
-
                 val targetVenueGoldenId = venueKey + "_age"
                 val column = ageBracket
                 val value = frequency.toDouble
@@ -367,23 +366,24 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 .project(('rowKey, 'columnName, 'columnValue))
 
         /* val byIncome = byIncome(combined)
-   .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-in: (String, String, Int) =>
-   val (venueKey, income, frequency) = in
+                    .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int) =>
+                    val (venueKey, income, frequency) = in
 
-   val targetVenueGoldenId = venueKey + "_income"
-   val column = income
-   val value = frequency.toDouble
+                    val targetVenueGoldenId = venueKey + "_income"
+                    val column = income
+                    val value = frequency.toDouble
 
-   (targetVenueGoldenId, column, value)
-}
-   .project(('rowKey, 'columnName, 'columnValue))   */
-
+                    (targetVenueGoldenId, column, value)
+            }
+                    .project(('rowKey, 'columnName, 'columnValue))
+        */
         val staticOutput =
             (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 
         val staticSequence = staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
         val staticText = staticOutput.write(TextLine(textOutputStatic))
+
     }
 
     val byTime = timeSeries(combined)
@@ -405,3 +405,4 @@ in: (String, String, Int) =>
 
 
 }
+

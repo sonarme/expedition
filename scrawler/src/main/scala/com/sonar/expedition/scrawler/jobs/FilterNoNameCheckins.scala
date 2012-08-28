@@ -1,15 +1,14 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{TextLine, Job, Args}
+import com.twitter.scalding.{Job, TextLine, Args}
 import com.sonar.expedition.scrawler.pipes.CheckinGrouperFunction
 
-class FilterNoNameCheckins(args: Args) extends Job(args) {
+class FilterNoNameCheckins(args: Args) extends Job(args) with CheckinGrouperFunction {
 
     val checkinData = args("checkinData")
     val checkinsWithNamesOutput = args("checkinsWithNamesOutput")
-    val checkinGrouperPipe = new CheckinGrouperFunction(args)
 
-    val checkinPipe = checkinGrouperPipe.unfilteredCheckins(TextLine(checkinData).read)
+    val checkinPipe = unfilteredCheckins(TextLine(checkinData).read)
             .filter(('venName)) {
         fields: (String) =>
             val (venName) = fields

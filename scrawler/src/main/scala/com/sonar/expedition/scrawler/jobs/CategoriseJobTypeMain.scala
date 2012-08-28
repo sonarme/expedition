@@ -1,24 +1,22 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
-import util.matching.Regex
+import com.sonar.expedition.scrawler.pipes.{JobImplicits, DTOProfileInfoPipe}
 
-import com.twitter.scalding._
-import com.twitter.scalding.TextLine
+import com.twitter.scalding.{Job, TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 
 /*  com.sonar.expedition.scrawler.jobs.CategoriseJobTypeMain --hdfs --occupationCodetsv "/tmp/occupationCodetsv.txt" --JobClassifiedOutput "/tmp/JobClassifiedOutput" --serviceProfileData "/tmp/serviceProfileData.txt"
 
 */
-class CategoriseJobTypeMain(args: Args) extends Job(args) {
+class CategoriseJobTypeMain(args: Args) extends Job(args) with DTOProfileInfoPipe {
 
     val output3 = TextLine(args("JobClassifiedOutput"))
 
     //todo use LuceneTFIDFUtils in utils scala object after fixing the error
     var lucene = new LuceneIndex()
     lucene.initialise
-    val codes = TextLine(args("occupationCodetsv")).project('line)
+    val codes = TextLine(args("occupationCodetsv")).read.project('line)
             .flatMapTo('line ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctite)) {
         line: String => {
             line match {
@@ -47,8 +45,7 @@ class CategoriseJobTypeMain(args: Args) extends Job(args) {
         }
     }).project(('id, 'serviceType, 'jsondata))
 
-    val dtoProfileGetPipe = new DTOProfileInfoPipe(args)
-    val joinedProfiles = dtoProfileGetPipe.getDTOProfileInfoInTuples(data1)
+    val joinedProfiles = getDTOProfileInfoInTuples(data1)
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle)).map('worktitle -> 'worktitle1) {
         fields: (String) =>
             val (job) = fields

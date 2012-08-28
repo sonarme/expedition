@@ -30,6 +30,7 @@
         <encoding>UTF-8</encoding>
     </properties>
     <dependencies>
+
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.9.1</artifactId>
@@ -45,7 +46,6 @@
             <groupId>com.twitter</groupId>
             <artifactId>scalding_2.9.1</artifactId>
             <version>0.7.3</version>
-
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
@@ -501,7 +501,7 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
+                    <!--  <plugin>
                         <groupId>br.com.ingenieux</groupId>
                         <artifactId>mapreduce-maven-plugin</artifactId>
                         <version>0.2.7-RC5</version>
@@ -509,12 +509,12 @@
                             <path>s3://scrawler/${project.build.finalName}-${maven.build.timestamp}.jar</path>
                             <verbose>true</verbose>
                             <logUri>s3://scrawler/debuglogs</logUri>
-                            <!--<hadoopVersion>0.20.205.0</hadoopVersion> getting an error about the AMI when using this-->
+                            &lt;!&ndash;<hadoopVersion>0.20.205.0</hadoopVersion> getting an error about the AMI when using this&ndash;&gt;
                             <args>
-                                <arg>--enable-debugging</arg>
-                                <arg>--hdfs</arg>
-                                <arg>--rpcHost 184.73.11.214</arg>
-                                <!-- this is cassandra stag -->
+                                <arg>-.-enable-debugging</arg>
+                                <arg>-.-hdfs</arg>
+                                <arg>-.-rpcHost 184.73.11.214</arg>
+                                &lt;!&ndash; this is cassandra stag &ndash;&gt;
                             </args>
                         </configuration>
                         <executions>
@@ -522,14 +522,43 @@
                                 <id>run-new-job-2</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <!-- run the job -->
+                                    &lt;!&ndash; run the job &ndash;&gt;
                                     <goal>run-job-flow</goal>
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin>
+                    </plugin>-->
                 </plugins>
             </build>
         </profile>
     </profiles>
+    <repositories>
+        <repository>
+            <id>sonar-nexus</id>
+            <url>http://sonar-nexus.elasticbeanstalk.com/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>conjars.org</id>
+            <url>http://conjars.org/repo</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>sonar-nexus</id>
+            <url>http://sonar-nexus.elasticbeanstalk.com/content/groups/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
 </project>

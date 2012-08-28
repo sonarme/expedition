@@ -2,10 +2,8 @@ package com.sonar.expedition.scrawler.util
 
 import org.apache.commons.codec.language._
 import scala.transient
-
-class StemAndMetaphoneEmployer extends Serializable {
-
-}
+import com.sonar.expedition.scrawler.pipes.JobImplicits
+import com.twitter.scalding.{FieldConversions, TupleConversions}
 
 object StemAndMetaphoneEmployer extends Serializable {
     @transient

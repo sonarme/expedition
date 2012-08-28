@@ -2,7 +2,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import util.matching.Regex
-import com.twitter.scalding.{Job, Args, TextLine}
+import com.twitter.scalding.{Args, TextLine}
 import cascading.pipe.joiner.OuterJoin
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.sonar.expedition.scrawler.jobs

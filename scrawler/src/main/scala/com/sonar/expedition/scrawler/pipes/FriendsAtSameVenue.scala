@@ -1,10 +1,13 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
+import com.twitter.scalding.Job
+import JobImplicits._
 
-class FriendsAtSameVenue(args: Args) extends Job(args) {
+trait FriendsAtSameVenue extends ScaldingImplicits {
 
-    def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
+    // TODO: this is a duplicate of friendsAtSameVenue in CheckinGrouperFunction, but there are slight differences, esp in the naming of tuples. CLEANUP!
+    def friendsAtSameVenueDuplicate(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
         val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {

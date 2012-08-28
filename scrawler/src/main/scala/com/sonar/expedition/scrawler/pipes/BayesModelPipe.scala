@@ -1,10 +1,10 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichPipe, Job}
-import com.twitter.scalding.{Job, Args}
+import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
+import JobImplicits._
 
-class BayesModelPipe(args: Args) extends Job(args) {
+trait BayesModelPipe extends ScaldingImplicits {
 
 
     def trainBayesModel(input: RichPipe): RichPipe = {
@@ -177,41 +177,41 @@ class BayesModelPipe(args: Args) extends Job(args) {
         }
     }
 
-   /* def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
-        data.map('data -> 'value) {
-            line: String => {
-                StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
+    /* def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
+            data.map('data -> 'value) {
+                line: String => {
+                    StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
+                }
             }
-        }
-                .flatMap('value -> 'token) {
-            value: Array[String] =>
-                value
-        }
-                .joinWithLarger(('token -> 'token), model)
-                .groupBy(('data, 'key)) {
-            _.toList[Double]('normTFIDF -> 'weightList)
-        }
-                .map('weightList -> 'weight) {
-            list: List[Double] => {
-                list.foldLeft[Double](0.0)((a, b) => a + b)
+                    .flatMap('value -> 'token) {
+                value: Array[String] =>
+                    value
             }
-        }.groupBy('data) {
-            _.toList[(Double, String)](('weight, 'key) -> 'weightKeyList)
-        }
-                .map(('weightKeyList) ->('weight, 'key)) {
-            fields: (List[(Double, String)]) =>
-                val (weightKeyList) = fields
-                val weightKey = weightKeyList.max
-                (weightKey._1, weightKey._2)
+                    .joinWithLarger(('token -> 'token), model)
+                    .groupBy(('data, 'key)) {
+                _.toList[Double]('normTFIDF -> 'weightList)
+            }
+                    .map('weightList -> 'weight) {
+                list: List[Double] => {
+                    list.foldLeft[Double](0.0)((a, b) => a + b)
+                }
+            }.groupBy('data) {
+                _.toList[(Double, String)](('weight, 'key) -> 'weightKeyList)
+            }
+                    .map(('weightKeyList) ->('weight, 'key)) {
+                fields: (List[(Double, String)]) =>
+                    val (weightKeyList) = fields
+                    val weightKey = weightKeyList.max
+                    (weightKey._1, weightKey._2)
 
-        }.filter('data) {
-            data: String =>
-                (data != null)
-        }
-                .project(('data, 'key, 'weight))
+            }.filter('data) {
+                data: String =>
+                    (data != null)
+            }
+                    .project(('data, 'key, 'weight))
 
-    }
-*/
+        }
+    */
 
     def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
         data.flatMap('data -> 'token) {
@@ -224,10 +224,10 @@ class BayesModelPipe(args: Args) extends Job(args) {
             _.sum('normTFIDF -> 'weight)
         }
 
-        .groupBy('data) {
+                .groupBy('data) {
             _.max('weight, 'key)
         }
-         .filter('data) {
+                .filter('data) {
             data: String =>
                 (data != null)
         }

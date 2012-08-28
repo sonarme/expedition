@@ -1,20 +1,22 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding._
+import com.twitter.scalding.{RichDate, RichPipe, Args}
 import util.matching.Regex
-import java.util.Calendar
-import CheckinGrouperFunction._
 import cascading.pipe.joiner.LeftJoin
 import java.security.MessageDigest
 import ch.hsr.geohash.{WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import java.util.{Date, TimeZone, Calendar}
+import JobImplicits._
 
-class CheckinGrouperFunction(args: Args) extends Job(args) {
+trait CheckinGrouperFunction extends ScaldingImplicits {
+
+    implicit lazy val tz = TimeZone.getTimeZone("America/New_York")
 
 
     def groupCheckins(input: RichPipe): RichPipe = {
 
-        val data = unfilteredCheckins(input)
+        val data = unfilteredCheckinsFromCassandra(input)
                 .filter('dayOfWeek) {
             dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
         }.filter('hour) {
@@ -27,7 +29,7 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def groupHomeCheckins(input: RichPipe): RichPipe = {
 
-        val data = unfilteredCheckins(input)
+        val data = unfilteredCheckinsFromCassandra(input)
                 .filter('dayOfWeek, 'hour) {
             fields: (Int, Double) =>
                 val (dayOfWeek, hour) = fields
@@ -95,6 +97,17 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                         val goldenId = golden + ":" + id
                         Some((goldenId, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, venueId, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
                     }
+
+                    case CheckinExtractLineProdData(rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
+                        val timeFilter = Calendar.getInstance()
+                        val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                        timeFilter.setTime(checkinDate)
+                        val date = timeFilter.get(Calendar.DAY_OF_YEAR)
+                        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+                        val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                        Some((rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, venueId, checkinTime, geoHash, lat, lng, date, dayOfWeek, time, msg))
+
+                    }
                     case _ => {
                         println("Coudn't extract line using regex: " + line)
                         None
@@ -105,6 +118,32 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
                 .unique(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'msg))
 
         data
+    }
+
+    def correlationCheckinsFromCassandra(input: RichPipe): RichPipe = {
+        input.map(('chknTime, 'serType, 'serProfileID) ->('dayOfYear, 'dayOfWeek, 'hour, 'keyid)) {
+            fields: (Date, String, String) => {
+                val (checkinTime, serviceType, serviceProfileId) = fields
+                val richDate = RichDate(checkinTime)
+                val timeFilter = richDate.toCalendar
+                val dayOfYear = new Integer(timeFilter.get(Calendar.DAY_OF_YEAR))
+                val dayOfWeek = new Integer(timeFilter.get(Calendar.DAY_OF_WEEK))
+                val hourOfDay = new Integer(timeFilter.get(Calendar.HOUR_OF_DAY))
+                //val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+                val goldenId = serviceType + ":" + serviceProfileId
+                (dayOfYear, dayOfWeek, hourOfDay, goldenId)
+            }
+
+        }
+    }
+
+    def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {
+        input.map(('lat, 'lng) -> ('loc)) {
+            fields: (Double, Double) =>
+                val (lat, lng) = fields
+                val loc = lat.toString + ":" + lng.toString
+                (loc)
+        }
     }
 
     def correlationCheckins(input: RichPipe): RichPipe = {
@@ -214,8 +253,8 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
 
     def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendsInput.project(('userProfileId, 'serviceProfileId, 'friendName))
-                .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
+        val userIdGroupedFriends = friendsInput.project(('keyid, 'serviceProfileId, 'friendName))
+                .map(('keyid, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields
                 val uIdString = userIdString.trim
@@ -252,7 +291,4 @@ class CheckinGrouperFunction(args: Args) extends Job(args) {
         matchingCheckins
     }
 
-}
-
-object CheckinGrouperFunction {
 }

@@ -1,6 +1,6 @@
 /*package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{TextLine, Job, Args}
+import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes.{DTOProfileInfoPipe, CheckinGrouperFunction}
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.util.CommonFunctions._

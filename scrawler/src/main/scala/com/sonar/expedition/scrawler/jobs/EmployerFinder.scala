@@ -2,11 +2,11 @@ package com.sonar.expedition.scrawler.jobs
 
 import util.matching.Regex
 import EmployerFinder._
-import com.twitter.scalding._
+import com.twitter.scalding.{Job, TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
+import EmployerCheckinMatch._
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
-
 class EmployerFinder(args: Args) extends Job(args) {
 
     val serviceProfileInput = args("employerGroupedServiceProfiles")
@@ -36,8 +36,7 @@ class EmployerFinder(args: Args) extends Job(args) {
             .mapTo(('userId, 'venueName, 'employer, 'latitude, 'longitude) ->('numberId, 'venueName, 'employer, 'latitude, 'longitude)) {
         fields: (String, String, String, String, String) =>
             val (userId, venue, workplace, lat, lng) = fields
-            val matcher = new EmployerCheckinMatch
-            val matchedName = matcher.checkMetaphone(workplace, venue)
+            val matchedName = checkMetaphone(workplace, venue)
             var result = ("", "", "", "", "")
             if (matchedName == true) {
                 result = (userId, workplace, venue, lat, lng)

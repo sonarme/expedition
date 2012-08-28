@@ -2,10 +2,11 @@ package com.sonar.expedition.scrawler.pipes
 
 
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import com.twitter.scalding._
+import com.twitter.scalding.{RichPipe, Args}
 import util.matching.Regex
+import JobImplicits._
 
-class FriendGrouperFunction(args: Args) extends Job(args) {
+trait FriendGrouperFunction extends ScaldingImplicits {
 
     def groupFriends(input: RichPipe): RichPipe = {
 
@@ -28,10 +29,4 @@ class FriendGrouperFunction(args: Args) extends Job(args) {
 
 
 }
-
-object FriendGrouperFunction {
-
-}
-
-
 

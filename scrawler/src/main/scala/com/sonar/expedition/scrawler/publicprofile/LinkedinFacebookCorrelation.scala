@@ -1,6 +1,6 @@
 //package com.sonar.expedition.scrawler.publicprofile
 //
-//import com.twitter.scalding.{SequenceFile, TextLine, Job, Args}
+//import com.twitter.scalding.{SequenceFile, TextLine, Args}
 //import com.sonar.dossier.dto.ServiceProfileDTO
 //import org.jsoup.nodes.Document
 //import cascading.scheme.hadoop.WritableSequenceFile
