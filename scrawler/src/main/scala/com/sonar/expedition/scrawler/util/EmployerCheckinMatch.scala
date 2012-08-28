@@ -2,54 +2,43 @@ package com.sonar.expedition.scrawler.util
 
 
 object EmployerCheckinMatch extends Serializable {
-    val levver = new Levenshtein
+
     //metaphoner.setMaxCodeLen(6)
-    val maxDistance = 1
+    val MaxDistance = 1
 
     /* checks if the employer stem matches the venueName stem and returns a boolean */
 
-    def checkStemMatch(employer: String, venueName: String): Boolean = {
-
-        StemAndMetaphoneEmployer.removeStopWords(employer).matches(StemAndMetaphoneEmployer.removeStopWords(venueName))
-    }
+    def checkStemMatch(employer: String, venueName: String) = StemAndMetaphoneEmployer.removeStopWords(employer) == StemAndMetaphoneEmployer.removeStopWords(venueName)
 
     /* checks if any of the employer stemmed metaphones matches any of the venueName stemmed metaphones and returns a boolean */
 
-    def checkMetaphone(employer: String, venueName: String): Boolean = {
-
-        var bool = false
-        if (!employer.matches("") && !venueName.matches("")) {
+    def checkMetaphone(employer: String, venueName: String) = {
+        if (employer != "" && venueName != "") {
             val empMet1 = StemAndMetaphoneEmployer.getStemmedMetaphone(employer)
             val empMet2 = StemAndMetaphoneEmployer.getStemmedAlternateMetaphone(employer)
             val venMet1 = StemAndMetaphoneEmployer.getStemmedMetaphone(venueName)
             val venMet2 = StemAndMetaphoneEmployer.getStemmedAlternateMetaphone(venueName)
-            bool = empMet1.matches(venMet1) || empMet1.matches(venMet2) || empMet2.matches(venMet1) || empMet2.matches(venMet2)
-        }
-        bool
+            empMet1 == venMet1 || empMet1 == venMet2 || empMet2 == venMet1 || empMet2 == venMet2
+        } else false
     }
 
     def checkMetaphoneJobType(job: String): String = {
-        var bool = false
-        if (!job.matches("") && !job.matches("")) {
+        if (job == "") job
+        else {
             val job_type1 = StemAndMetaphoneEmployer.getStemmedMetaphone(job)
             val job_type2 = StemAndMetaphoneEmployer.getStemmedAlternateMetaphone(job)
-            bool = job_type1.matches(job_type2)
-            if (bool)
+            if (job_type1 == job_type2)
                 job_type2
-            else {
+            else
                 job
-            }
-        } else {
-            job
         }
     }
 
     /* checks if the employer and venue stems are within a Levenshtein distance of one. will return false for null strings */
-    def checkLevenshtein(employer: String, venueName: String): Boolean = {
+    def checkLevenshtein(employer: String, venueName: String) = {
         val emp = StemAndMetaphoneEmployer.removeStopWords(employer)
         val ven = StemAndMetaphoneEmployer.removeStopWords(venueName)
-
-        (levver.compareInt(emp, ven) <= maxDistance) && !emp.matches("") && !ven.matches("")
+        emp != "" && ven != "" && Levenshtein.compareInt(emp, ven) <= MaxDistance
 
     }
 

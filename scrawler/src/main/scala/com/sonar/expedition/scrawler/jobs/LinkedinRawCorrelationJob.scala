@@ -25,7 +25,7 @@ class LinkedinRawCorrelationJob(args: Args) extends Job(args) {
         scheme = WideRowScheme(keyField = 'privacySPLB,
             nameField = ('splB, 'profile))
     )
-            .flatMap(('privacySPLB, 'splB, 'profile) ->('rawCorrelationRowKey, 'rawCorrelationData, 'empty)) {
+            .flatMapTo(('privacySPLB, 'splB, 'profile) ->('rawCorrelationRowKey, 'rawCorrelationData, 'empty)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {
             val (_, splB, profileB) = in
             // target user's service profile link

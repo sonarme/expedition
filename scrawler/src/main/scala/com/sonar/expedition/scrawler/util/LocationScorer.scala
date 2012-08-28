@@ -1,67 +1,30 @@
 package com.sonar.expedition.scrawler.util
 
 object LocationScorer extends Serializable {
-    val levver = new Levenshtein
 
-    def getScore(workName: String, workLat: String, workLng: String, placeName: String, placeLat: String, placeLng: String): Tuple2[Double, Double] = {
-        var levDistance = 0.0
-        var havDistance = 0.0
-        if (placeLat == null) {
-            havDistance = -1.0
-        }
-        else {
-            havDistance = Haversine.haversine(workLat.toDouble, workLng.toDouble, placeLat.toDouble, placeLng.toDouble)
-        }
-        if (placeName == null) {
-            levDistance = -1.0
-        }
-        else {
-            levDistance = levver.compareInt(workName, placeName)
-        }
+    def getScore(workName: String, workLat: String, workLng: String, placeName: String, placeLat: String, placeLng: String) = {
+        val havDistance =
+            if (placeLat == null) -1.0 else Haversine.haversine(workLat.toDouble, workLng.toDouble, placeLat.toDouble, placeLng.toDouble)
+        val levDistance =
+            if (placeName == null) -1.0 else Levenshtein.compareInt(workName, placeName)
         (levDistance, havDistance)
     }
 
-    def certaintyScore(scores: Tuple2[Double, Double], workName: String, placeName: String): Double = {
-        var certainty = 0.0
-        if (placeName == null) {
-            certainty.+(-3.15)
-        }
+    def certaintyScore(scores: (Double, Double), workName: String, placeName: String): Double =
+        if (placeName == null)
+            -3.15
         else if (workName == placeName) {
-            certainty = certainty + 10
-            if (scores._2 >= (0.0) && scores._2 <= (2.0)) {
-                certainty = certainty + 10.0 + (scores._2 * (-1.0))
-                certainty
-            }
-            else {
-                certainty = certainty + (scores._2 * (-1.0))
-                certainty
-            }
+            val offset = if (scores._2 >= 0 && scores._2 <= 2.0) 20 else 10
+            offset - scores._2
         }
         else {
-            if (scores._1 >= (0.0) && scores._1 <= (2.0)) {
-                certainty = certainty + 10.0
-                if (scores._2 >= (0.0) && scores._2 <= (2.0)) {
-                    certainty = certainty + 10.0 + (scores._1 * (-1.0)) + (scores._2 * (-1.0))
-                    certainty
+            val offset =
+                if (scores._1 >= 0.0 && scores._1 <= 2.0) {
+                    if (scores._2 >= 0.0 && scores._2 <= 2.0) 20 else 10
                 }
-                else {
-                    certainty = certainty + (scores._1 * (-1.0)) + (scores._2 * (-1.0))
-                    certainty
-                }
-            }
-            else if (scores._2 >= (0.0) && scores._2 <= (2.0)) {
-                certainty = certainty + 10.0 + (scores._1 * (-1.0)) + (scores._2 * (-1.0))
-                certainty
-            }
-            else {
-                certainty.+(scores._1.*(-1.0)).+(scores._2.*(-1.0))
-            }
+                else if (scores._2 >= 0.0 && scores._2 <= 2.0) 10 else 0
+            offset - scores._1 - scores._2
         }
-    }
 
-
-}
-
-class LocationScorer {
 
 }
