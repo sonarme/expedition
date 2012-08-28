@@ -21,11 +21,10 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
         val placesClassified = classifyPlaceType(bayestrainingmodel, placesVenueGoldenIdValues)
                 //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName,'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-                .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-                ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)) {
-            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
+                .map('venTypeFromModel -> 'venTypeFromPlacesData) {
+            fields: String =>
 
-                (fields._1, fields._2, fields._3, fields._4, fields._5, fields._6, "", fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16)
+                ""
 
         }
 
@@ -36,34 +35,26 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
         placesVenueGoldenIdValues.leftJoinWithSmaller('venName -> 'propertiesName, placesPipe)
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-                .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-                ->
-                ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId, 'distance)) {
-
-            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-                val distance = {
-                    if (fields._7 != null && fields._8 != null && fields._11 != null && fields._12 != null) {
-                        Haversine.haversine(fields._7.toDouble, fields._8.toDouble, fields._11.toDouble, fields._12.toDouble)
-                    }
-                    else {
-                        -1
-                    }
+                .map('classifiersCategory ->('venTypeFromModel, 'venTypeFromPlacesData)) {
+            classifiersCategory: String =>
+                ("", classifiersCategory)
+        }.discard(('classifiersCategory, 'geometryLatitude, 'geometryLongitude))
+                /* .mapTo(('geometryLatitude, 'geometryLongitude, 'lat, 'lng) -> 'distance) {
+                    fields: (String, String, String, String) =>
+                        if (fields._1 != null && fields._2 != null && fields._3 != null && fields._4 != null)
+                            Haversine.haversine(fields._1.toDouble, fields._2.toDouble, fields._3.toDouble, fields._4.toDouble)
+                        else -1
                 }
-                (fields._1, fields._2, fields._3, fields._4, fields._5, "", fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17, fields._18, distance)
-
-        }
-                .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
-            _.min('distance)
-        }.filter('distance) {
-            distance: String => distance != "-1"
-        }.discard('distance)
+                        .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
+                    _.min('distance)
+                }.filter('distance) {
+                    distance: Double => distance != -1
+                }.discard('distance)*/
                 .++(placesClassified)
-                .mapTo(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-                ->
-                ('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venueType, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)) {
-            fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String) =>
-
-                (fields._1, fields._2, fields._3, fields._4, fields._5, getVenueType(fields._6, fields._7), fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
+                .map(('venTypeFromModel, 'venTypeFromPlacesData) -> 'venueType) {
+            in: (String, String) =>
+                val (venTypeFromModel, venTypeFromPlacesData) = in
+                getVenueType(venTypeFromModel, venTypeFromPlacesData)
 
         }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venueType, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
     }
