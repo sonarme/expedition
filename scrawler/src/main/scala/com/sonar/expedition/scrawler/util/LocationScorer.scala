@@ -14,13 +14,16 @@ object LocationScorer extends Serializable {
         if (placeName == null)
             -3.15
         else if (workName == placeName) {
-            if (scores._2 >= 0 && scores._2 <= 2.0) 20 - scores._2 else 10 - scores._2
+            val offset = if (scores._2 >= 0 && scores._2 <= 2.0) 20 else 10
+            offset - scores._2
         }
         else {
-            if (scores._1 >= 0.0 && scores._1 <= 2.0) {
-                if (scores._2 >= 0.0 && scores._2 <= 2.0) 20 - scores._1 - scores._2 else 10 - scores._1 - scores._2
-            }
-            else if (scores._2 >= 0.0 && scores._2 <= 2.0) 10 - scores._1 - scores._2 else -scores._1 - scores._2
+            val offset =
+                if (scores._1 >= 0.0 && scores._1 <= 2.0) {
+                    if (scores._2 >= 0.0 && scores._2 <= 2.0) 20 else 10
+                }
+                else if (scores._2 >= 0.0 && scores._2 <= 2.0) 10 else 0
+            offset - scores._1 - scores._2
         }
 
 
