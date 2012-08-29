@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.Haversine
-import JobImplicits._
+
 
 trait ReachLoyaltyAnalysis extends ScaldingImplicits {
 

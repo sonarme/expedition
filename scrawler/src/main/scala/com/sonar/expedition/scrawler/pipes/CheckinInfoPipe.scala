@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 import com.sonar.expedition.scrawler.clustering.KMeans
 import org.joda.time.DateTime
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import JobImplicits._
+
 
 trait CheckinInfoPipe extends ScaldingImplicits {
 

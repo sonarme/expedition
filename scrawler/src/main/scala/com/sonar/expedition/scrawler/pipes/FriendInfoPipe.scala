@@ -5,7 +5,7 @@ import util.matching.Regex
 import FriendInfoPipe._
 
 import com.twitter.scalding.{Args}
-import JobImplicits._
+
 
 trait FriendInfoPipe extends ScaldingImplicits {
     def friendsDataPipe(checkinInput: RichPipe): RichPipe = {

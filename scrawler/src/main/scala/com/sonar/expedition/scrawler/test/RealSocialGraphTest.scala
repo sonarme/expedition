@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.test
 import com.twitter.scalding.{TextLine, Args}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import JobImplicits._
+
 
 /*
 inputs : prod exports

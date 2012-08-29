@@ -6,7 +6,7 @@ import cascading.pipe.joiner.{RightJoin, Joiner, LeftJoin}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.dto.{ServiceType, Priorities}
 import PlacesCorrelation._
-import JobImplicits._
+
 import cascading.tuple.Fields
 
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
@@ -37,18 +37,18 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 .map('classifiersCategory ->('venTypeFromModel, 'venTypeFromPlacesData)) {
 
             classifiersCategory: String => ("", classifiersCategory)
-        }.discard(('classifiersCategory, 'geometryLatitude, 'geometryLongitude))
-                /* .mapTo(('geometryLatitude, 'geometryLongitude, 'lat, 'lng) -> 'distance) {
-                    fields: (String, String, String, String) =>
-                        if (fields._1 != null && fields._2 != null && fields._3 != null && fields._4 != null)
-                            Haversine.haversine(fields._1.toDouble, fields._2.toDouble, fields._3.toDouble, fields._4.toDouble)
-                        else -1
-                }
-                        .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
-                    _.min('distance)
-                }.filter('distance) {
-                    distance: Double => distance != -1
-                }.discard('distance)*/
+        }
+                .map(('geometryLatitude, 'geometryLongitude, 'lat, 'lng) -> 'distance) {
+            fields: (java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double) =>
+                if (fields._1 != null && fields._2 != null && fields._3 != null && fields._4 != null)
+                    Haversine.haversine(fields._1, fields._2, fields._3, fields._4)
+                else -1
+        }
+                .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
+            _.min('distance)
+        }.filter('distance) {
+            distance: Double => distance != -1
+        }.discard('classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'distance)
                 .++(placesClassified)
                 .map(('venTypeFromModel, 'venTypeFromPlacesData) -> 'venueType) {
 
