@@ -19,7 +19,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
     val DefaultNoDate = new Date(0L)
     val NoneValue = "none"
 
-    def checkinSource(args: Args, withVenuesOnly: Boolean): RichPipe = {
+    def checkinSource(args: Args, venuesOnly: Boolean): RichPipe = {
         val rpcHostArg = args.optional("rpcHost")
         val ppmap = args.getOrElse("ppmap", "")
         val checkinsInputArg = args.optional("checkinsInput")
@@ -61,7 +61,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                         val lng: Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
                         val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
                         // only checkins with venues
-                        if (withVenuesOnly && CommonFunctions.isNullOrEmpty(venId))
+                        if (venuesOnly && CommonFunctions.isNullOrEmpty(venId))
                             None
                         else
                             Some((rowKeyDes, keyId, serType, serProfileID, serCheckinID,

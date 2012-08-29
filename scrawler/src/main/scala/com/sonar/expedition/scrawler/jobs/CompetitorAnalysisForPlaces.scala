@@ -37,7 +37,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
     val placesData = args("placesData")
 
-    val checkins = checkinSource(args, withVenuesOnly = true)
+    val checkins = checkinSource(args, true)
     val checkinsWithExtra = correlationCheckinsFromCassandra(checkins)
     val allCheckins = checkinsWithExtra.project('keyid, 'venId)
     val placesVenueGoldenId =

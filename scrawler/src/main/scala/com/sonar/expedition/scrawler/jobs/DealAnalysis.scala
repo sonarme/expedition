@@ -31,7 +31,7 @@ import cascading.pipe.Pipe
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
-    val checkins: Pipe = checkinSource(args, withVenuesOnly = true)
+    val checkins: Pipe = checkinSource(args, true)
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON)).map(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
         in: (String, String) =>
