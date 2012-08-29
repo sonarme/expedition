@@ -44,11 +44,11 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     Haversine.haversine(fields._1, fields._2, fields._3, fields._4)
                 else -1
         }
-                .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
+                .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId, 'venTypeFromModel, 'venTypeFromPlacesData) {
             _.min('distance)
         }.filter('distance) {
             distance: Double => distance != -1
-        }.discard('classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'distance)
+        }.discard('distance)
                 .++(placesClassified)
                 .map(('venTypeFromModel, 'venTypeFromPlacesData) -> 'venueType) {
 
