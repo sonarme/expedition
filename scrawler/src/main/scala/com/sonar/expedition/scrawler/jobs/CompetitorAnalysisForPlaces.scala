@@ -32,7 +32,7 @@ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinD
 
 class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinSource {
 
-    val bayestrainingmodel = args("bayestrainingmodelforlocationtype")
+    val bayestrainingmodel = args("bayestrainingmodelforvenuetype")
 
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
     val placesData = args("placesData")
