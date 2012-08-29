@@ -15,14 +15,14 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
 
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
     val similarity = placesVenueGoldenId.groupBy('goldenId) {
-        _.toList[(Double, Double, String, String)](('lat, 'lng, 'venName, 'venueType) -> 'venueDataList)
-    }.map('venueDataList ->('lat, 'lng, 'venName, 'venueTypes)) {
-        groupData: List[(Double, Double, String, String)] =>
-            val (lat, lng, venName, _) = groupData.head
+        _.toList[(List[(String, String)], Double, Double, String, String)](('correlatedVenueIds, 'lat, 'lng, 'venName, 'venueType) -> 'venueDataList)
+    }.map('venueDataList ->('correlatedVenueIds, 'lat, 'lng, 'venName, 'venueTypes)) {
+        groupData: List[(List[(String, String)], Double, Double, String, String)] =>
+            val (correlatedVenueIds, lat, lng, venName, _) = groupData.head
             val venueTypes = groupData.flatMap {
-                case (_, _, _, venType) => if (CommonFunctions.isNullOrEmpty(venType)) None else Some(venType)
+                case (_, _, _, _, venType) => if (CommonFunctions.isNullOrEmpty(venType)) None else Some(venType)
             }
-            (lat, lng, venName, venueTypes)
+            (correlatedVenueIds, lat, lng, venName, venueTypes)
     }.discard('venueDataList)
             .write(SequenceFile(output, Fields.ALL))
 

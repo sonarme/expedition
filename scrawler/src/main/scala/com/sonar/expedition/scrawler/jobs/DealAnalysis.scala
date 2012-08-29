@@ -6,7 +6,6 @@ import org.codehaus.jackson.`type`.TypeReference
 import java.util
 import com.sonar.expedition.scrawler.util.{Levenshtein, CommonFunctions, StemAndMetaphoneEmployer}
 import ch.hsr.geohash.GeoHash
-import com.sonar.expedition.scrawler.pipes.PlacesCorrelation.PlaceCorrelationSectorSize
 import DealAnalysis._
 import reflect.BeanProperty
 import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}

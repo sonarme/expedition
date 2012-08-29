@@ -106,7 +106,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
     if (!timeSeriesOnly) {
 
-        val chkindata = groupCheckins(newCheckins).write(TextLine("/tmp/chkindata"))
+        val chkindata = groupCheckins(newCheckins)
 
         val friendData = TextLine(friendinput).read.project('line)
 

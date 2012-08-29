@@ -37,9 +37,14 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
     val placesData = args("placesData")
 
-    val checkinsInputPipe = checkinSource(args, withVenuesOnly = true)
-
-    val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
+    val checkins = checkinSource(args, withVenuesOnly = true)
+    val checkinsWithExtra = correlationCheckinsFromCassandra(checkins)
+    val allCheckins = checkinsWithExtra.project('keyid, 'venId)
+    val placesVenueGoldenId =
+        placeClassification(checkins, bayestrainingmodel, placesData)
+                .project('goldenId, 'venName, 'venueId, 'venueType)
+                .joinWithLarger('venueId -> 'venId, allCheckins)
+                .project('keyid, 'venName, 'venueType, 'goldenId)
 
     //module: end of detrmining places type from venue name
 
