@@ -58,12 +58,11 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
     val newCheckins = correlationCheckinsFromCassandra(checkins)
     //    val newcheckins = correlationCheckins(TextLine(newcheckininput))
-    val checkinsWithGolden = withGoldenId(newCheckins)
-            .map(('lat, 'lng) -> ('loc)) {
+    val checkinsWithGoldenIdAndLoc = withGoldenId(newCheckins)
+            .map(('lat, 'lng) -> 'loc) {
         fields: (String, String) =>
             val (lat, lng) = fields
-            val loc = lat + ":" + lng
-            (loc)
+            lat + ":" + lng
     }
 
     val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
@@ -73,15 +72,12 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     }
 
     val profiles = ageEducationPipe(total)
-            .project(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree))
-            .flatMapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)
-            ->
-            ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)) {
-        fields: (String, String, String, String, String, String, String, String, String, String, String, String, String, Gender, Double, String, String) =>
-        //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
-            List("facebook:" + fields._3, "twitter:" + fields._6, "foursquare:" + fields._5) map {
-                key => (key, fields._2, fields._3, fields._4, fields._5, fields._6, fields._7, fields._8, fields._9, fields._10, fields._11, fields._12, fields._13, fields._14, fields._15, fields._16, fields._17)
-            }
+            .discard('key)
+            .flatMap(('fbid, 'lnid, 'fsid, 'twid) -> 'key) {
+        in: (String, String, String, String) =>
+            val (fbid, lnid, fsid, twid) = in
+            //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
+            List("facebook:" + fbid, "twitter:" + twid, "foursquare:" + fsid)
     }
 
     /*
@@ -102,7 +98,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
  .rename('rowkey -> 'key) */
 
 
-    val combined = combineCheckinsProfiles(checkinsWithGolden, profiles)
+    val combined = combineCheckinsProfiles(checkinsWithGoldenIdAndLoc, profiles)
 
     if (!timeSeriesOnly) {
 
