@@ -15,7 +15,7 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
 
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
     // grouping venue types together
-    val placeClassification = placesVenueGoldenId.groupBy('goldenId) {
+    val placeClassificationPipe = placesVenueGoldenId.groupBy('goldenId) {
         _.toList[(List[(String, String)], Double, Double, String, String)](('correlatedVenueIds, 'venueLat, 'venueLng, 'venName, 'venueType) -> 'venueDataList)
     }.flatMap('venueDataList ->('correlatedVenueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)) {
         groupData: List[(List[String], Double, Double, String, String)] =>
