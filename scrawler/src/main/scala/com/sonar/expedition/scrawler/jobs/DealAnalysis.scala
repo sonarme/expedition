@@ -1,8 +1,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
-import org.codehaus.jackson.map.ObjectMapper
-import org.codehaus.jackson.`type`.TypeReference
+import com.fasterxml.jackson.databind.{DeserializationFeature, DeserializationConfig, ObjectMapper}
 import java.util
 import com.sonar.expedition.scrawler.util.{Levenshtein, CommonFunctions, StemAndMetaphoneEmployer}
 import ch.hsr.geohash.GeoHash
@@ -27,6 +26,7 @@ import com.sonar.scalding.cassandra.NarrowRowScheme
 import util.Date
 import java.text.SimpleDateFormat
 import cascading.pipe.Pipe
+import com.fasterxml.jackson.core.`type`.TypeReference
 
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val dealsInput = args("dealsInput")
@@ -36,7 +36,11 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON)).map(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
         in: (String, String) =>
             val (merchantName, locationJSON) = in
-            val dealLocations = DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, new TypeReference[util.List[DealLocation]] {})
+            val dealLocations = try {
+                DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, new TypeReference[util.List[DealLocation]] {})
+            } catch {
+                case e => throw new RuntimeException("JSON:" + locationJSON, e)
+            }
             val dealLocation = dealLocations.head
             val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
@@ -50,7 +54,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, String) =>
             val (stemmedVenName, stemmedMerchantName) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            if (levenshtein > 4) None else Some(-levenshtein)
+            if (levenshtein > 2) None else Some(-levenshtein)
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
     }
@@ -59,6 +63,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
 object DealAnalysis {
     val DealObjectMapper = new ObjectMapper
+    DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 }
 
 case class DealLocation(

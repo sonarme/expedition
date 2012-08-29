@@ -17,7 +17,7 @@ trait FriendGrouperFunction extends ScaldingImplicits {
                     // change when we use prod data
                     case FriendProdExtractLine(id, serviceType, serviceId, friendName) => Some((id, serviceType, hashed(serviceId), friendName))
                     case FriendExtractLine(id, other2, serviceId, serviceType, friendName, other) => Some((id, serviceType, hashed(serviceId), friendName))
-                    case _ => println("frienddata export"); None
+                    case _ => None
                 }
             }
         }

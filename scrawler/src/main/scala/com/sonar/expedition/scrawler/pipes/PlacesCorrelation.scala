@@ -115,11 +115,11 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
     }
 
     def withGoldenId(newCheckins: RichPipe): RichPipe = {
-        val venueWithGoldenId = correlatedPlaces(newCheckins)
-        venueWithGoldenId.project('venueId, 'goldenId).joinWithLarger('venueId -> 'venId, newCheckins)
-                .filter('venueId) {
+        val withVenue = newCheckins.filter('venId) {
             venId: String => !CommonFunctions.isNullOrEmpty(venId)
         }
+        val venueWithGoldenId = correlatedPlaces(withVenue)
+        venueWithGoldenId.project('venueId, 'goldenId).joinWithLarger('venueId -> 'venId, withVenue)
                 .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
     }
 

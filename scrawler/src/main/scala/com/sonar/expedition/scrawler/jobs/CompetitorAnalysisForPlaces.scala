@@ -42,15 +42,15 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
     val allCheckins = checkinsWithExtra.project('keyid, 'venId)
     val placesVenueGoldenId =
         placeClassification(checkins, bayestrainingmodel, placesData)
-                .project('goldenId, 'venName, 'venueId, 'venueType)
+                .unique('goldenId, 'venueId)
                 .joinWithLarger('venueId -> 'venId, allCheckins)
-                .project('keyid, 'venName, 'venueType, 'goldenId)
+                .project('keyid, 'goldenId)
 
     //module: end of detrmining places type from venue name
-
-    val similarity = placesVenueGoldenId.groupBy('keyid, 'venName, 'venueType, 'goldenId) {
+    // keyid is servicetype:serviceprofileid
+    val similarity = placesVenueGoldenId.groupBy('keyid, 'goldenId) {
         _.size
-    }.rename('size -> 'rating).project('keyid, 'venName, 'venueType, 'goldenId, 'rating)
+    }.rename('size -> 'rating).project('keyid, 'goldenId, 'rating)
 
     val numRaters = similarity
             .groupBy('goldenId) {
@@ -63,17 +63,17 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
 
     val ratings2 =
         ratingsWithSize
-                .rename(('keyid, 'venName, 'venueType, 'goldenId, 'rating, 'numRaters) ->('keyid2, 'venName2, 'venueType2, 'goldenId2, 'rating2, 'numRaters2))
+                .rename(('keyid, 'goldenId, 'rating, 'numRaters) ->('keyid2, 'goldenId2, 'rating2, 'numRaters2))
 
 
     val ratingPairs =
         ratingsWithSize
                 .joinWithSmaller('keyid -> 'keyid2, ratings2)
                 // De-dupe so that we don't calculate similarity of both (A, B) and (B, A).
-                .filter('venName, 'venName2) {
+                .filter('goldenId, 'goldenId2) {
             venues: (String, String) => venues._1 < venues._2
         }
-                .project('venName, 'venueType, 'goldenId, 'rating, 'numRaters, 'venName2, 'venueType2, 'goldenId2, 'rating2, 'numRaters2)
+                .project('goldenId, 'rating, 'numRaters, 'goldenId2, 'rating2, 'numRaters2)
 
 
     val vectorCalcs =
@@ -83,7 +83,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
             ratings: (Double, Double) =>
                 (ratings._1 * ratings._2, math.pow(ratings._1, 2), math.pow(ratings._2, 2))
         }
-                .groupBy('venName, 'venueType, 'goldenId, 'venName2, 'venueType2, 'goldenId2) {
+                .groupBy('goldenId, 'goldenId2) {
             group =>
                 group.size // length of each vector
                         .sum('ratingProd -> 'dotProduct)
@@ -114,7 +114,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                 (corr, regCorr, cosSim, jaccard)
         }
                 //can also calculate correlation, 'regularizedCorrelation, 'cosineSimilarity
-                .project(('venName, 'venueType, 'goldenId, 'venName2, 'venueType2, 'goldenId2, 'jaccardSimilarity))
+                .project('goldenId, 'goldenId2, 'jaccardSimilarity)
                 .write(
             SequenceFile(competitiveAnalysisOutput, Fields.ALL))
 
