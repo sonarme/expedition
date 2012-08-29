@@ -39,7 +39,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 val (venTypeFromModel, venTypeFromPlacesData) = in
                 getVenueType(venTypeFromModel, venTypeFromPlacesData)
 
-        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueIdService, 'venueType, 'venueLat, 'venueLng)
+        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueType, 'venueLat, 'venueLng)
     }
 
     def addVenueIdToCheckins(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
@@ -76,26 +76,30 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         }.groupBy('stemmedVenName, 'geosector) {
             // correlate
             _.sortWithTake(('venId, 'serType, 'venName, 'lat, 'lng) -> 'groupData, 4) {
-                (venueId1: (String, String, String, Double, Double), venueId2: (String, String, String, Double, Double)) =>
-                    CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId1._2)) > CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId2._2))
+                (in1: (String, String, String, Double, Double), in2: (String, String, String, Double, Double)) =>
+                    val venueId1 = in1._1
+                    val venueId2 = in2._1
+                    val serviceType1 = ServiceType.valueOf(in1._2)
+                    val serviceType2 = ServiceType.valueOf(in2._2)
+                    CommonFunctions.venueGoldenIdPriorities(serviceType1) > CommonFunctions.venueGoldenIdPriorities(serviceType2) ||
+                            serviceType1 == serviceType2 && venueId1.compareTo(venueId2) > 0
             }
 
-        }.flatMap('groupData ->('goldenId, 'correlatedVenueIds, 'venueId, 'venueIdService, 'venName, 'venueLat, 'venueLng)) {
+        }.flatMap('groupData ->('goldenId, 'correlatedVenueIds, 'venueId, 'venName, 'venueLat, 'venueLng)) {
             // flatten
             groupData: List[(String, String, String, Double, Double)] =>
             // remove venName from group data
                 val correlatedVenueIds = groupData map {
-                    case (venueId, venueIdService, _, _, _) => (venueId, venueIdService)
+                    case (venueId, _, _, _, _) => venueId
                 }
                 // create golden id
-                val (venueId, venueIdService, _, lat, lng) = groupData.head
-                val goldenId = venueIdService + ":" + venueId
+                val goldenId = correlatedVenueIds.head
                 // create data for flattening
                 groupData map {
-                    case (venueId, venueIdService, venName, lat, lng) => (goldenId, correlatedVenueIds, venueId, venueIdService, venName, lat, lng)
+                    case (venueId, _, venName, lat, lng) => (goldenId, correlatedVenueIds, venueId, venName, lat, lng)
                 }
 
-        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueIdService, 'venueLat, 'venueLng)
+        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueLat, 'venueLng)
 
 
     def withGoldenId(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {

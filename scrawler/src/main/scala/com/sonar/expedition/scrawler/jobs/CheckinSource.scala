@@ -65,7 +65,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                             None
                         else
                             Some((rowKeyDes, keyId, serType, serProfileID, serCheckinID,
-                                    venName, venAddress, venId, chknTime, ghash, lat, lng, msg))
+                                    venName, venAddress, serType + ":" + venId, chknTime, ghash, lat, lng, msg))
                     }
                 }
         }
