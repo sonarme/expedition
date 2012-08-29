@@ -22,7 +22,7 @@ trait BuzzFromCheckins extends ScaldingImplicits {
                 .map('msg -> 'message) {
             fields: (String) =>
                 val message = fields
-                val msg = StemAndMetaphoneEmployer.getStemmed(message)
+                val msg = StemAndMetaphoneEmployer.removeStopWords(message)
                 msg
         }
                 .flatMap(('venName, 'message) -> 'singleShingle) {
@@ -40,7 +40,7 @@ trait BuzzFromCheckins extends ScaldingImplicits {
                 .map('venName -> 'stemmedVenName) {
             fields: (String) =>
                 val (venName) = fields
-                val stemmedVenName = StemAndMetaphoneEmployer.getStemmed(venName)
+                val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
                 (stemmedVenName)
         }
                 .filter('stemmedVenName) {

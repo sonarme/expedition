@@ -23,14 +23,16 @@ object StemAndMetaphoneEmployer extends Serializable {
 
     /* removes stop words, punctuation and extra whitespace from a employer string */
 
-    def removeStopWords(employer: String): String = {
+    def removeStopWords(employer: String) =
         if (employer == null)
             ""
-        else {
-
-            employer.replaceAll( """\.[a-zA-Z][a-zA-Z][a-zA-Z]?(?= |$)""", "").replaceAll( """\p{P}""", "").replaceAll( """(^|(?<= ))(?i)(a|an|and|are|as|at|be|but|by|for|if|in|into|is|it|no|not|of|on|or|such|that|the|their|then|there|these|they|this|to|was|will|with|inc|incorporated|co|ltd|llc|group|corp|corporation|company|limited|hq)(?= |$)""", "").replaceAll( """\s+""", " ").replaceFirst( """\s*""", "").replaceFirst(" $", "").toLowerCase
-        }
-    }
+        else employer
+                .replaceAll( """\.[a-zA-Z][a-zA-Z][a-zA-Z]?(?= |$)""", "")
+                .replaceAll( """\p{P}""", "")
+                .replaceAll( """(^|(?<= ))(?i)(a|an|and|are|as|at|be|but|by|for|if|in|into|is|it|no|not|of|on|or|such|that|the|their|then|there|these|they|this|to|was|will|with|inc|incorporated|co|ltd|llc|group|corp|corporation|company|limited|hq)(?= |$)""", "")
+                .replaceAll( """\s+""", " ")
+                .trim
+                .toLowerCase
 
     /* outputs the metaphone encoding of an employer string */
 
@@ -90,15 +92,6 @@ object StemAndMetaphoneEmployer extends Serializable {
             val meta1 = getMetaphone(stem)
             val meta2 = getAlternateMetaphone(stem)
             (employer, stem, meta1, meta2)
-        }
-    }
-
-    def getStemmed(employer: String): String = {
-        if (employer == null)
-            ""
-        else {
-            val stem = removeStopWords(employer)
-            stem
         }
     }
 

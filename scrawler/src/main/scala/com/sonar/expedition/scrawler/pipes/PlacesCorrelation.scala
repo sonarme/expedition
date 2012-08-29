@@ -62,7 +62,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
             // add geosector and stemmed venue name
             fields: (Double, Double, String) =>
                 val (lat, lng, venName) = fields
-                val stemmedVenName = StemAndMetaphoneEmployer.getStemmed(venName)
+                val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
                 if (CommonFunctions.isNullOrEmpty(venName) && CommonFunctions.isNullOrEmpty(stemmedVenName)) None
                 else {
                     val geosector = GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize).longValue()
