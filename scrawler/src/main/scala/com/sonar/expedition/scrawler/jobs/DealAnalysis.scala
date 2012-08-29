@@ -1,8 +1,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
-import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper}
-import org.codehaus.jackson.`type`.TypeReference
+import com.fasterxml.jackson.databind.{DeserializationFeature, DeserializationConfig, ObjectMapper}
 import java.util
 import com.sonar.expedition.scrawler.util.{Levenshtein, CommonFunctions, StemAndMetaphoneEmployer}
 import ch.hsr.geohash.GeoHash
@@ -27,6 +26,7 @@ import com.sonar.scalding.cassandra.NarrowRowScheme
 import util.Date
 import java.text.SimpleDateFormat
 import cascading.pipe.Pipe
+import com.fasterxml.jackson.core.`type`.TypeReference
 
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val dealsInput = args("dealsInput")
@@ -63,7 +63,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
 object DealAnalysis {
     val DealObjectMapper = new ObjectMapper
-    DealObjectMapper.disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
+    DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 }
 
 case class DealLocation(
