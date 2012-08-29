@@ -77,7 +77,7 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
             .map('worked ->('stemmedWorked, 'mtphnWorked)) {
         fields: String =>
             val (worked) = fields
-            val stemmedWorked = StemAndMetaphoneEmployer.getStemmed(worked)
+            val stemmedWorked = StemAndMetaphoneEmployer.removeStopWords(worked)
             val mtphnWorked = StemAndMetaphoneEmployer.getStemmedMetaphone(worked)
 
             (stemmedWorked, mtphnWorked)
@@ -89,7 +89,7 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
             .map('propertiesName ->('stemmedName, 'mtphnName)) {
         fields: String =>
             val (placeName) = fields
-            val stemmedName = StemAndMetaphoneEmployer.getStemmed(placeName)
+            val stemmedName = StemAndMetaphoneEmployer.removeStopWords(placeName)
             val mtphnName = StemAndMetaphoneEmployer.getStemmedMetaphone(placeName)
             (stemmedName, mtphnName)
     }.project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'stemmedName, 'mtphnName, 'propertiesTags, 'propertiesCountry,

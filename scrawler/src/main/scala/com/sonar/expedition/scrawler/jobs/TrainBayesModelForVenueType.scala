@@ -8,12 +8,12 @@ import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
 
 /*
-com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforlocationtype "/tmp/bayestrainingmodelforlocationtype"
+com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforvenuetype "/tmp/bayestrainingmodelforvenuetype"
 
  */
-class LocationBehaviourAnalyseBayesModel(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with BayesModelPipe {
+class TrainBayesModelForVenueType(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with BayesModelPipe {
 
-    val trainingmodel = args("bayestrainingmodelforlocationtype")
+    val trainingmodel = args("bayestrainingmodelforvenuetype")
     val placesData = args("placesData")
 
     val placesPipe = getLocationInfo(TextLine(placesData).read)
@@ -21,9 +21,10 @@ class LocationBehaviourAnalyseBayesModel(args: Args) extends Job(args) with Loca
             .flatMapTo(('propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'linenum) ->('key, 'token, 'doc)) {
         fields: (String, String, String, String, String, Int) =>
             val (propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, docid) = fields
-            val tokens = (StemAndMetaphoneEmployer.getStemmed(propertiesName) + " " + StemAndMetaphoneEmployer.getStemmed(propertiesTags) + " " + StemAndMetaphoneEmployer.getStemmed(classifiersCategory) + " "
-                    + StemAndMetaphoneEmployer.getStemmed(classifiersType) + " " + StemAndMetaphoneEmployer.getStemmed(classifiersSubcategory)).split(" ");
-            for (key <- tokens) yield (classifiersCategory.toLowerCase, key.trim, docid)
+
+            List(propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory) map {
+                key => (classifiersCategory.toLowerCase, key, docid)
+            }
 
     }.project(('key, 'token, 'doc))
 

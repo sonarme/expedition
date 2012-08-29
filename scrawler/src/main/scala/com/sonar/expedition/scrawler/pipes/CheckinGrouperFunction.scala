@@ -91,13 +91,13 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         val goldenId = golden + ":" + id
                         val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
-                        Some((serviceType + ":" + venueId, goldenId, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
+                        Some((serviceType + ":" + serviceCheckinId, goldenId, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
                     }
 
                     case CheckinExtractLineProdData(rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
-                        Some((serviceType + ":" + venueId, rowkey, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
+                        Some((serviceType + ":" + serviceCheckinId, rowkey, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
 
                     }
                     case _ => {

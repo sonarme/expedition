@@ -5,17 +5,17 @@ import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine, StemAndMe
 import cascading.pipe.joiner.{RightJoin, Joiner, LeftJoin}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.dto.{ServiceType, Priorities}
-import PlacesCorrelation._
 
 import cascading.tuple.Fields
 
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
+    val PlaceCorrelationSectorSize = 30
 
     def getVenueType(venue1: String, venue2: String): String = if (venue2 != null || venue2 != "") venue2 else venue1
 
     def placeClassification(checkins: RichPipe, bayestrainingmodel: String, placesData: String) = {
         val newCheckins = correlationCheckinsFromCassandra(checkins)
-        val placesVenueGoldenIdValues = withGoldenId(newCheckins)
+        val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
         //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
 
         // module : start of determining places type from place name
@@ -31,32 +31,15 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 .project(('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory))
 
 
-        placesVenueGoldenIdValues
+        placesClassified
                 .leftJoinWithSmaller('venName -> 'propertiesName, placesPipe)
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-                .map('classifiersCategory ->('venTypeFromModel, 'venTypeFromPlacesData)) {
-
-            classifiersCategory: String => ("", classifiersCategory)
-        }
-                .map(('geometryLatitude, 'geometryLongitude, 'lat, 'lng) -> 'distance) {
-            fields: (java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double) =>
-                if (fields._1 != null && fields._2 != null && fields._3 != null && fields._4 != null)
-                    Haversine.haversine(fields._1, fields._2, fields._3, fields._4)
-                else -1
-        }
-                .groupBy('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venTypeFromModel, 'venTypeFromPlacesData, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId) {
-            _.min('distance)
-        }.filter('distance) {
-            distance: Double => distance != -1
-        }.discard('classifiersCategory, 'geometryLatitude, 'geometryLongitude, 'distance)
-                .++(placesClassified)
-                .map(('venTypeFromModel, 'venTypeFromPlacesData) -> 'venueType) {
+                .map(('venTypeFromModel, 'classifiersCategory) -> 'venueType) {
 
             in: (String, String) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
                 getVenueType(venTypeFromModel, venTypeFromPlacesData)
 
-        }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venueType, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueType, 'venueLat, 'venueLng)
     }
 
     def addVenueIdToCheckins(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
@@ -79,7 +62,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
             // add geosector and stemmed venue name
             fields: (Double, Double, String) =>
                 val (lat, lng, venName) = fields
-                val stemmedVenName = StemAndMetaphoneEmployer.getStemmed(venName)
+                val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
                 if (CommonFunctions.isNullOrEmpty(venName) && CommonFunctions.isNullOrEmpty(stemmedVenName)) None
                 else {
                     val geosector = GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize).longValue()
@@ -88,31 +71,35 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
         }.groupBy('serType, 'venId) {
             // dedupe
-            _.head('venName, 'stemmedVenName, 'geosector)
+            _.head('venName, 'stemmedVenName, 'geosector, 'lat, 'lng)
 
         }.groupBy('stemmedVenName, 'geosector) {
             // correlate
-            _.sortWithTake(('venId, 'serType, 'venName) -> 'groupData, 4) {
-                (venueId1: (String, String, String), venueId2: (String, String, String)) =>
-                    CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId1._2)) > CommonFunctions.venueGoldenIdPriorities(ServiceType.valueOf(venueId2._2))
+            _.sortWithTake(('venId, 'serType, 'venName, 'lat, 'lng) -> 'groupData, 4) {
+                (in1: (String, String, String, Double, Double), in2: (String, String, String, Double, Double)) =>
+                    val venueId1 = in1._1
+                    val venueId2 = in2._1
+                    val serviceType1 = ServiceType.valueOf(in1._2)
+                    val serviceType2 = ServiceType.valueOf(in2._2)
+                    CommonFunctions.venueGoldenIdPriorities(serviceType1) > CommonFunctions.venueGoldenIdPriorities(serviceType2) ||
+                            serviceType1 == serviceType2 && venueId1.compareTo(venueId2) > 0
             }
 
-        }.flatMap('groupData ->('goldenId, 'correlatedVenueIds, 'venueId, 'venueIdService, 'venName)) {
+        }.flatMap('groupData ->('goldenId, 'correlatedVenueIds, 'venueId, 'venName, 'venueLat, 'venueLng)) {
             // flatten
-            groupData: List[(String, String, String)] =>
+            groupData: List[(String, String, String, Double, Double)] =>
             // remove venName from group data
                 val correlatedVenueIds = groupData map {
-                    case (venueId, venueIdService, venName) => (venueId, venueIdService)
+                    case (venueId, _, _, _, _) => venueId
                 }
                 // create golden id
-                val (venueId, venueIdService, _) = groupData.head
-                val goldenId = venueIdService + ":" + venueId
+                val goldenId = correlatedVenueIds.head
                 // create data for flattening
                 groupData map {
-                    case (venueId, venueIdService, venName) => (goldenId, correlatedVenueIds, venueId, venueIdService, venName)
+                    case (venueId, _, venName, lat, lng) => (goldenId, correlatedVenueIds, venueId, venName, lat, lng)
                 }
 
-        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueIdService)
+        }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueLat, 'venueLng)
 
 
     def withGoldenId(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
@@ -138,6 +125,3 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
 }
 
-object PlacesCorrelation {
-    val PlaceCorrelationSectorSize = 30
-}

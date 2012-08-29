@@ -226,7 +226,7 @@ trait CoworkerFinderFunction extends ScaldingImplicits {
         val employerGroupedEmployeeUserIds = userEmployer.map('worked -> 'emp) {
             employer: String =>
             /*if (employer == null) null else TODO */
-                StemAndMetaphoneEmployer.getStemmed(employer).take(30)
+                StemAndMetaphoneEmployer.removeStopWords(employer).take(30)
 
         }.project(('emp, 'key))
 

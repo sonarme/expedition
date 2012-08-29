@@ -5,7 +5,10 @@ import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 
 
 trait BayesModelPipe extends ScaldingImplicits {
-
+    val specialWordSet1 = Set("has", "was", "does", "goes", "dies", "yes", "gets", "its")
+    val specialWordSet2 = Set("sses", "xes", "hes")
+    val specialWordSet3 = Set("ies")
+    val specialWordSet4 = Set("s", "ss", "is", "us", "pos", "ses")
 
     def trainBayesModel(input: RichPipe): RichPipe = {
 
@@ -147,11 +150,7 @@ trait BayesModelPipe extends ScaldingImplicits {
     }
 
     def stripEnglishPlural(word: String): String = {
-        // too small?
-        val specialWordSet1 = Set("has", "was", "does", "goes", "dies", "yes", "gets", "its")
-        val specialWordSet2 = Set("sses", "xes", "hes")
-        val specialWordSet3 = Set("ies")
-        val specialWordSet4 = Set("s", "ss", "is", "us", "pos", "ses")
+
         // too small?
         if (word.length < 1) {
             word

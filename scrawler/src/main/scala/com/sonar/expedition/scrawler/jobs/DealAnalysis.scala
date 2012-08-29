@@ -6,7 +6,6 @@ import org.codehaus.jackson.`type`.TypeReference
 import java.util
 import com.sonar.expedition.scrawler.util.{Levenshtein, CommonFunctions, StemAndMetaphoneEmployer}
 import ch.hsr.geohash.GeoHash
-import com.sonar.expedition.scrawler.pipes.PlacesCorrelation.PlaceCorrelationSectorSize
 import DealAnalysis._
 import reflect.BeanProperty
 import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}
@@ -39,7 +38,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val (merchantName, locationJSON) = in
             val dealLocations = DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, new TypeReference[util.List[DealLocation]] {})
             val dealLocation = dealLocations.head
-            val stemmedMerchantName = StemAndMetaphoneEmployer.getStemmed(merchantName)
+            val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
             (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
     }.discard('locationJSON)
