@@ -52,9 +52,9 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
             if (levenshtein > 4) None else Some(-levenshtein)
     }.groupBy('geosector) {
-        _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'levenshtein)
+        _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
     }
-    dealVenues.write(Tsv(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'levenshtein)))
+    dealVenues.write(Tsv(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
 }
 
 object DealAnalysis {
