@@ -36,12 +36,14 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
 
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
     val placesData = args("placesData")
+    val placeClassification = args("placeClassification")
 
     val checkins = checkinSource(args, true)
     val checkinsWithExtra = correlationCheckinsFromCassandra(checkins)
     val allCheckins = checkinsWithExtra.project('keyid, 'venId)
+    val places = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).read
     val placesVenueGoldenId =
-        placeClassification(checkins, bayestrainingmodel, placesData)
+        places
                 .unique('goldenId, 'venueId)
                 .joinWithLarger('venueId -> 'venId, allCheckins)
                 .project('keyid, 'goldenId)
@@ -94,7 +96,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                         .max('numRaters) // Just an easy way to make sure the numRaters field stays.
                         .max('numRaters2)
         }
-
+    val placesNames = places.project('goldenId, 'venName, 'venueTypes).rename('goldenId -> 'goldenIdForName)
     val similarities =
         vectorCalcs
                 .map(('size, 'dotProduct, 'ratingSum, 'rating2Sum, 'ratingNormSq, 'rating2NormSq, 'numRaters, 'numRaters2) ->
@@ -110,11 +112,15 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                 val regCorr = regularizedCorrelation(size, dotProduct, ratingSum, rating2Sum, ratingNormSq, rating2NormSq, priorCount, priorCorrelation)
                 val cosSim = cosineSimilarity(dotProduct, math.sqrt(ratingNormSq), math.sqrt(rating2NormSq))
                 val jaccard = jaccardSimilarity(size, numRaters, numRaters2)
+                //can also calculate correlation, 'regularizedCorrelation, 'cosineSimilarity
 
                 (corr, regCorr, cosSim, jaccard)
         }
-                //can also calculate correlation, 'regularizedCorrelation, 'cosineSimilarity
-                .project('goldenId, 'goldenId2, 'jaccardSimilarity)
+                // join venue name and type back in
+                .joinWithLarger('goldenId -> 'goldenIdForName, placesNames)
+                .discard('goldenIdForName)
+                .joinWithLarger('goldenId2 -> 'goldenIdForName, placesNames.rename(('venName, 'venueTypes) ->('venName2, 'venueTypes2)))
+                .project(('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity))
                 .write(
             SequenceFile(competitiveAnalysisOutput, Fields.ALL))
 

@@ -1,10 +1,10 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{Job, SequenceFile, Args}
+import com.twitter.scalding.{Tsv, Job, SequenceFile, Args}
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{WideRowScheme, CassandraSource}
 import com.sonar.dossier.dao.cassandra.{CassandraObjectMapper, CompetitiveVenueColumn, JSONSerializer, CompetitiveVenueColumnSerializer}
-import com.sonar.dossier.dto.CompetitiveVenue
+import com.sonar.dossier.dto.{CompetitiveAnalysisType, CompetitiveVenue}
 import com.sonar.dossier.dao.cassandra.CompetitiveVenueColumn
 import com.sonar.scalding.cassandra.WideRowScheme
 import com.sonar.scalding.cassandra.CassandraSource
@@ -15,22 +15,23 @@ import org.apache.cassandra.utils.ByteBufferUtil
 import com.fasterxml.jackson.databind.{DeserializationConfig, SerializationConfig, PropertyNamingStrategy, ObjectMapper}
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 
-class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
+class SeqToCassandraCompetitivePlacesAnalysis(args: Args) extends Job(args) {
+    val analysisType = CompetitiveAnalysisType.competitor
 
     //184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
-    val sequenceInputCompetitiveAnalysis = args.getOrElse("sequenceInputCompetitiveAnalysis", "s3n://scrawler/competitiveAnalysisOutput")
+    val sequenceInputCompetitiveAnalysis = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
 
-    val seqCompetitiveAnalysis = SequenceFile(sequenceInputCompetitiveAnalysis, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6) ->('venName, 'venuetype, 'goldenId, 'venName2, 'venuetype2, 'goldenId2, 'jaccardSimilarity)) {
-        in: (String, String, String, String, String, String, Double) =>
-            val (venueFrom, venueTypeFrom, goldenIdFrom, venueNameTo, venueTypeTo, goldenIdTo, similarityIndex) = in
-            (venueFrom, venueTypeFrom, goldenIdFrom, venueNameTo, venueTypeTo, goldenIdTo, similarityIndex)
-    }.map(('venName, 'venuetype, 'goldenId, 'venName2, 'venuetype2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, String, String, String, String, String, Double) =>
-            val (venueFrom, venueTypeFrom, goldenIdFrom, venueNameTo, venueTypeTo, goldenIdTo, similarityIndex) = in
+    val seqCompetitiveAnalysis = SequenceFile(
+        sequenceInputCompetitiveAnalysis,
+        ('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity)
+    )
+            .read
+            .mapTo(('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, List[String], String, String, List[String], String, Double) =>
+            val (_, _, goldenIdFrom, venueNameTo, venueTypesTo, goldenIdTo, similarityIndex) = in
 
-            val analysisType = com.sonar.dossier.dto.CompetitiveAnalysisType.competitor
 
             val targetVenueGoldenId = goldenIdFrom
 
@@ -40,7 +41,7 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
                 analysisType = analysisType,
                 venueId = goldenIdTo,
                 venueName = venueNameTo,
-                venueType = venueTypeTo,
+                venueType = venueTypesTo.mkString(","),
                 correlation = similarityIndex
             )
             val columnB = CompetitiveVenueColumnSerializer toByteBuffer (column)
@@ -49,7 +50,7 @@ class SeqToCassandraCompetitivePlacesAnalaysis(args: Args) extends Job(args) {
             (targetVenueGoldenId + "_" + analysisType.name, columnB, dtoB)
 
 
-    }.project('rowKey, 'columnName, 'columnValue)
+    }
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
