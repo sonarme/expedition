@@ -38,9 +38,8 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
     val placesData = args("placesData")
     val placeClassification = args("placeClassification")
 
-    val checkins = checkinSource(args, true)
-    val checkinsWithExtra = correlationCheckinsFromCassandra(checkins)
-    val allCheckins = checkinsWithExtra.project('keyid, 'venId)
+    val (checkins, _) = checkinSource(args, true, false)
+    val allCheckins = checkins.project('keyid, 'venId)
     val places = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).read
     val placesVenueGoldenId =
         places

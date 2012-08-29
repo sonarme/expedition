@@ -33,7 +33,6 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     val textOutputStatic = args("textOutputStatic")
     val textOutputTime = args("textOutputTime")
     val timeSeriesOnly = args.getOrElse("timeSeriesOnly", "false").toBoolean
-    val placeClassification = args("placeClassification")
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -54,13 +53,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val checkins = checkinSource(args, false)
+    val (newCheckins, checkinsWithGoldenId) = checkinSource(args, false, true)
 
     //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
-    val newCheckins = correlationCheckinsFromCassandra(checkins)
     //    val newcheckins = correlationCheckins(TextLine(newcheckininput))
-    val places = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).read
-    val checkinsWithGoldenId = withGoldenIdFromPlaces(places, newCheckins)
 
     val checkinsWithGoldenIdAndLoc = checkinsWithGoldenId
             .map(('lat, 'lng) -> 'loc) {

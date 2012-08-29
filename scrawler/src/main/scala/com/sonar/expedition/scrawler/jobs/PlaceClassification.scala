@@ -11,7 +11,7 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
     val placesData = args("placesData")
     val output = args("placeClassification")
 
-    val checkinsInputPipe = checkinSource(args, true)
+    val (checkinsInputPipe, _) = checkinSource(args, true, false)
 
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
     // grouping venue types together

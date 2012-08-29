@@ -14,16 +14,14 @@ import com.twitter.scalding.TextLine
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
+class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
 
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
-    val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
-    val newcheckininput = args("newCheckinInput")
     val sequenceOutputIncome = args("sequenceOutputIncome")
     val textOutputIncome = args("textOutputIncome")
 
@@ -46,9 +44,8 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with DTOProf
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
-    val newcheckins = correlationCheckins(TextLine(newcheckininput))
-    val checkinsWithGolden = withGoldenId(checkins, newcheckins)
+    val (checkins, checkinsWithGoldenId) = checkinSource(args, false, true)
+    val checkinsWithGolden = checkinsWithGoldenId
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
             val (lat, lng) = fields
