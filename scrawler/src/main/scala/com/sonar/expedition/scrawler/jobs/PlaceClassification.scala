@@ -1,19 +1,8 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.sonar.expedition.scrawler.pipes.{LocationBehaviourAnalysePipe, PlacesCorrelation}
 import cascading.tuple.Fields
-import com.twitter.scalding._
-import com.twitter.scalding.SequenceFile
-import java.text.SimpleDateFormat
-import ch.hsr.geohash.GeoHash
-import com.sonar.expedition.scrawler.util.CommonFunctions._
-import com.twitter.scalding.SequenceFile
-import scala.Some
-import com.twitter.scalding.TextLine
-import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}
-import java.nio.ByteBuffer
-import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
-import com.sonar.expedition.scrawler.util.CommonFunctions
+import com.twitter.scalding.{Tsv, Job, Args}
+import com.sonar.expedition.scrawler.pipes.PlacesCorrelation
 
 class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation with CheckinSource {
 
@@ -24,7 +13,14 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
     val checkinsInputPipe = checkinSource(args, withVenuesOnly = true)
 
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
-
+    val similarity = placesVenueGoldenId.groupBy('goldenId) {
+        _.toList[(String, String)](('venName, 'venueType) -> 'venueDataList)
+    }.map('venueDataList ->('venName, 'venueTypes)) {
+        groupData: List[(String, String)] =>
+            val venName = groupData.head._1
+            val venueTypes = groupData.map(_._2)
+            (venName, venueTypes)
+    }.discard('venueDataList)
             .write(Tsv(output, Fields.ALL))
 
 

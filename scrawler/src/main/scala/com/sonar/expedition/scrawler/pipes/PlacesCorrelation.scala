@@ -5,11 +5,11 @@ import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine, StemAndMe
 import cascading.pipe.joiner.{RightJoin, Joiner, LeftJoin}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.dto.{ServiceType, Priorities}
-import PlacesCorrelation._
 
 import cascading.tuple.Fields
 
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
+    val PlaceCorrelationSectorSize = 30
 
     def getVenueType(venue1: String, venue2: String): String = if (venue2 != null || venue2 != "") venue2 else venue1
 
@@ -138,6 +138,3 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
 }
 
-object PlacesCorrelation {
-    val PlaceCorrelationSectorSize = 30
-}
