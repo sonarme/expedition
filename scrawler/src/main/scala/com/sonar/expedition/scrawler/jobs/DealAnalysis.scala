@@ -31,7 +31,7 @@ import cascading.pipe.Pipe
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
-    val checkins: Pipe = checkinSource(args, withVenuesOnly = true)
+    val checkins: Pipe = checkinSource(args, true)
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON)).map(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
         in: (String, String) =>
@@ -45,12 +45,16 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
     val newCheckins = correlationCheckinsFromCassandra(checkins)
     val dealVenues = correlatedPlaces(newCheckins)
-            .joinWithTiny('geosector -> 'merchantGeosector, deals).groupBy('geosector) {
-        _.sortWithTake(('stemmedVenName -> 'stemmedMerchantName) -> 'singleVenue, 1) {
-            (a: (String, String), b: (String, String)) => Levenshtein.compareInt(a._1, a._2) < Levenshtein.compareInt(b._1, b._2)
-        }.head('goldenId, 'merchantName, 'dealId)
+            .joinWithTiny('geosector -> 'merchantGeosector, deals)
+            .flatMap(('stemmedVenName -> 'stemmedMerchantName) -> 'negLevenshtein) {
+        in: (String, String) =>
+            val (stemmedVenName, stemmedMerchantName) = in
+            val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
+            if (levenshtein > 4) None else Some(-levenshtein)
+    }.groupBy('geosector) {
+        _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
     }
-    dealVenues.write(SequenceFile(dealsOutput, ('goldenId, 'merchantName, 'dealId)))
+    dealVenues.write(Tsv(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
 }
 
 object DealAnalysis {
