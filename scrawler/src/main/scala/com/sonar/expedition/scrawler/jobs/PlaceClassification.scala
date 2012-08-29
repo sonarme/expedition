@@ -15,8 +15,6 @@ import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
 import com.sonar.expedition.scrawler.util.CommonFunctions
 
-import com.sonar.expedition.scrawler.pipes.JobImplicits._
-
 class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation with CheckinSource {
 
     val bayestrainingmodel = args("bayestrainingmodelforlocationtype")

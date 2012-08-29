@@ -6,7 +6,7 @@ import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import scala.Array
 import com.sonar.expedition.scrawler.dto.PlacesClassifiersDTO
 import com.sonar.expedition.scrawler.dto.PlacesDTO
-import JobImplicits._
+
 
 trait DTOPlacesInfoPipe extends ScaldingImplicits {
 
@@ -27,8 +27,9 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                 val (data) = fields._1
                 val placesJson = parseJson(Option(data))
                 val geometryType = getGeometryType(placesJson)
-                val geometryLongitude = getGeometryCoordinates(placesJson).head
-                val geometryLatitude = getGeometryCoordinates(placesJson).last
+                val coordinates = getGeometryCoordinates(placesJson)
+                val geometryLongitude = coordinates.head
+                val geometryLatitude = coordinates.last
                 val placeType = getType(placesJson)
                 val id = getId(placesJson)
                 val propertiesProvince = getPropertiesProvince(placesJson)

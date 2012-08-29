@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.pipes
 import com.twitter.scalding.{Args, TextLine, RichPipe, Job}
 import util.matching.Regex
 import JobCodeReader._
-import JobImplicits._
+
 
 trait JobCodeReader extends ScaldingImplicits {
     def readJobTypes(incoming: RichPipe): RichPipe = {

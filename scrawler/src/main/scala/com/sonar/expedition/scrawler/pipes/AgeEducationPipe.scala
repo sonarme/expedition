@@ -4,7 +4,7 @@ import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import util.matching.Regex
 import com.sonar.expedition.scrawler.pipes.AgeEducationPipe._
-import JobImplicits._
+
 
 trait AgeEducationPipe extends ScaldingImplicits {
 

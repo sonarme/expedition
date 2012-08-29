@@ -12,7 +12,6 @@ import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.sonar.expedition.scrawler.util.CommonFunctions
 import com.sonar.expedition.scrawler.pipes.{ScaldingImplicits, CheckinGrouperFunction}
-import com.sonar.expedition.scrawler.pipes.JobImplicits._
 import java.util.Date
 
 trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {

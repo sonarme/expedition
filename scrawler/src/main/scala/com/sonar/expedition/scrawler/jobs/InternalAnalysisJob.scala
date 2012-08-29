@@ -4,7 +4,7 @@ import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import ch.hsr.geohash.GeoHash
 import com.sonar.expedition.scrawler.pipes.{ScaldingImplicits, JobImplicits}
-import JobImplicits._
+
 
 trait InternalAnalysisJob extends ScaldingImplicits {
 

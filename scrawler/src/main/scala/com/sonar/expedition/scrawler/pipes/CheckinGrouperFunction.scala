@@ -7,7 +7,7 @@ import java.security.MessageDigest
 import ch.hsr.geohash.{GeoHash, WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.util.{Date, TimeZone, Calendar}
-import JobImplicits._
+
 
 trait CheckinGrouperFunction extends ScaldingImplicits {
 
