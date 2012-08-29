@@ -1,8 +1,9 @@
 package com.sonar.expedition.scrawler.jobs
 
 import cascading.tuple.Fields
-import com.twitter.scalding.{Tsv, Job, Args}
+import com.twitter.scalding.{SequenceFile, Tsv, Job, Args}
 import com.sonar.expedition.scrawler.pipes.PlacesCorrelation
+import com.sonar.expedition.scrawler.util.CommonFunctions
 
 class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation with CheckinSource {
 
@@ -14,14 +15,16 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
 
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
     val similarity = placesVenueGoldenId.groupBy('goldenId) {
-        _.toList[(String, String)](('venName, 'venueType) -> 'venueDataList)
-    }.map('venueDataList ->('venName, 'venueTypes)) {
-        groupData: List[(String, String)] =>
-            val venName = groupData.head._1
-            val venueTypes = groupData.map(_._2)
-            (venName, venueTypes)
+        _.toList[(Double, Double, String, String)](('lat, 'lng, 'venName, 'venueType) -> 'venueDataList)
+    }.map('venueDataList ->('lat, 'lng, 'venName, 'venueTypes)) {
+        groupData: List[(Double, Double, String, String)] =>
+            val (lat, lng, venName, _) = groupData.head
+            val venueTypes = groupData.flatMap {
+                case (_, _, _, venType) => if (CommonFunctions.isNullOrEmpty(venType)) None else Some(venType)
+            }
+            (lat, lng, venName, venueTypes)
     }.discard('venueDataList)
-            .write(Tsv(output, Fields.ALL))
+            .write(SequenceFile(output, Fields.ALL))
 
 
 }
