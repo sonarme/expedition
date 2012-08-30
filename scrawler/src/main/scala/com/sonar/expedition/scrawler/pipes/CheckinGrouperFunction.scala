@@ -84,20 +84,22 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
 
     def checkinsWithMessage(input: RichPipe): RichPipe = {
         val data = input
-                .flatMapTo('line ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg)) {
+                .flatMapTo('line ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg, 'dayOfYear, 'dayOfWeek, 'hour, 'keyid)) {
             line: String => {
                 line match {
-                    case CheckinExtractLineWithVenueId(golden, id, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
+                    case CheckinExtractLineWithVenueId(golden, id, serviceType, serviceProfileId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         val goldenId = golden + ":" + id
                         val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
-                        Some((serviceType + ":" + serviceCheckinId, goldenId, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
+                        val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinDate, serviceType, serviceProfileId)
+                        Some((serviceType + ":" + serviceCheckinId, goldenId, serviceType, hashed(serviceProfileId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
                     }
 
-                    case CheckinExtractLineProdData(rowkey, serviceType, serviceId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
+                    case CheckinExtractLineProdData(rowkey, serviceType, serviceProfileId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
-                        Some((serviceType + ":" + serviceCheckinId, rowkey, serviceType, hashed(serviceId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg))
+                        val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinDate, serviceType, serviceProfileId)
+                        Some((serviceType + ":" + serviceCheckinId, rowkey, serviceType, hashed(serviceProfileId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
 
                     }
                     case _ => {
@@ -112,21 +114,14 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
         data
     }
 
-    def correlationCheckinsFromCassandra(input: RichPipe): RichPipe = {
-        input.map(('chknTime, 'serType, 'serProfileID) ->('dayOfYear, 'dayOfWeek, 'hour, 'keyid)) {
-            fields: (Date, String, String) => {
-                val (checkinTime, serviceType, serviceProfileId) = fields
-                val richDate = RichDate(checkinTime)
-                val timeFilter = richDate.toCalendar
-                val dayOfYear = new Integer(timeFilter.get(Calendar.DAY_OF_YEAR))
-                val dayOfWeek = new Integer(timeFilter.get(Calendar.DAY_OF_WEEK))
-                val hourOfDay = new Integer(timeFilter.get(Calendar.HOUR_OF_DAY))
-                //val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
-                val goldenId = serviceType + ":" + serviceProfileId
-                (dayOfYear, dayOfWeek, hourOfDay, goldenId)
-            }
-
-        }
+    def deriveCheckinFields(checkinTime: Date, serviceType: String, serviceProfileId: String) = {
+        val timeFilter = RichDate(checkinTime).toCalendar
+        val dayOfYear = timeFilter.get(Calendar.DAY_OF_YEAR)
+        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
+        val hourOfDay = timeFilter.get(Calendar.HOUR_OF_DAY)
+        //val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+        val goldenId = serviceType + ":" + serviceProfileId
+        (dayOfYear, dayOfWeek, hourOfDay, goldenId)
     }
 
     def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {

@@ -29,9 +29,9 @@ import cascading.pipe.Pipe
 import com.fasterxml.jackson.core.`type`.TypeReference
 
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
+    val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
-    val checkins: Pipe = checkinSource(args, true)
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON)).map(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
         in: (String, String) =>
@@ -47,14 +47,17 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
     }.discard('locationJSON)
 
-    val newCheckins = correlationCheckinsFromCassandra(checkins)
-    val dealVenues = correlatedPlaces(newCheckins)
+    val dealVenues = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
+        in: (Double, Double, String) =>
+            val (lat, lng, venName) = in
+            (GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize), StemAndMetaphoneEmployer.removeStopWords(venName))
+    }
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
             .flatMap(('stemmedVenName -> 'stemmedMerchantName) -> 'negLevenshtein) {
         in: (String, String) =>
             val (stemmedVenName, stemmedMerchantName) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            if (levenshtein > 2) None else Some(-levenshtein)
+            if (levenshtein > 4) None else Some(-levenshtein)
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
     }

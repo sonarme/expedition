@@ -13,8 +13,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
     def getVenueType(venue1: String, venue2: String): String = if (venue2 != null || venue2 != "") venue2 else venue1
 
-    def placeClassification(checkins: RichPipe, bayestrainingmodel: String, placesData: String) = {
-        val newCheckins = correlationCheckinsFromCassandra(checkins)
+    def placeClassification(newCheckins: RichPipe, bayestrainingmodel: String, placesData: String) = {
         val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
         //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
 
@@ -101,27 +100,6 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
         }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueLat, 'venueLng)
 
-
-    def withGoldenId(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
-        val checkinsWithVenueId = addVenueIdToCheckins(oldCheckins, newCheckins)
-        val venueWithGoldenId = correlatedPlaces(checkinsWithVenueId)
-        venueWithGoldenId.project('venueId, 'goldenId).joinWithSmaller('venueId -> 'venId, checkinsWithVenueId)
-                .filter('venueId) {
-            fields: (String) =>
-                val venId = fields
-                (!CommonFunctions.isNullOrEmpty(venId))
-        }
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-    }
-
-    def withGoldenId(newCheckins: RichPipe): RichPipe = {
-        val withVenue = newCheckins.filter('venId) {
-            venId: String => !CommonFunctions.isNullOrEmpty(venId)
-        }
-        val venueWithGoldenId = correlatedPlaces(withVenue)
-        venueWithGoldenId.project('venueId, 'goldenId).joinWithLarger('venueId -> 'venId, withVenue)
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-    }
 
 }
 

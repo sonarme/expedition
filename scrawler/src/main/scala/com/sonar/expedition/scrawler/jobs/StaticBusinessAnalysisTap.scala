@@ -53,12 +53,12 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val checkins = checkinSource(args, false)
+    val (newCheckins, checkinsWithGoldenId) = checkinSource(args, false, true)
 
     //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
-    val newCheckins = correlationCheckinsFromCassandra(checkins)
     //    val newcheckins = correlationCheckins(TextLine(newcheckininput))
-    val checkinsWithGoldenIdAndLoc = withGoldenId(newCheckins)
+
+    val checkinsWithGoldenIdAndLoc = checkinsWithGoldenId
             .map(('lat, 'lng) -> 'loc) {
         fields: (String, String) =>
             val (lat, lng) = fields

@@ -12,16 +12,14 @@ import cascading.tuple.Fields
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class StaticBusinessAnalysisCount(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation {
+class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation {
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
 
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
-    val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayestrainingmodel = args("bayestrainingmodelforsalary")
-    val newcheckininput = args("newCheckinInput")
 
     val checkinOut = args("checkinOut")
     val correlationCheckinOut = args("correlationCheckinOut")
@@ -47,15 +45,14 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with DTOProfileI
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
+    val (checkins, checkinsWithGoldenId) = checkinSource(args, false, true)
 
     checkins
             .groupAll {
         _.size
     }
             .write(TextLine(checkinOut))
-    val newcheckins = correlationCheckins(TextLine(newcheckininput))
-    val checkinsWithGolden = withGoldenId(checkins, newcheckins)
+    val checkinsWithGolden = checkinsWithGoldenId
 
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -86,7 +83,7 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with DTOProfileI
             .write(TextLine(combinedOut))
 
 
-    val chkindata = groupCheckins(TextLine(checkininput))
+    val chkindata = groupCheckins(checkins)
     val friendData = TextLine(friendinput).read.project('line)
     val profilesAndCheckins = combined.project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val employerGroupedServiceProfiles = total.project(('key, 'worked))
@@ -94,7 +91,7 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with DTOProfileI
     val friendsForCoworker = groupFriends(friendData)
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
     val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
-    val homeCheckins = groupHomeCheckins(TextLine(checkininput).read)
+    val homeCheckins = groupHomeCheckins(checkins)
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
