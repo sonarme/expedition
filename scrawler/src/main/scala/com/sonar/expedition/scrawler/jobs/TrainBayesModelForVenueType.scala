@@ -13,7 +13,7 @@ com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --
  */
 class TrainBayesModelForVenueType(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with BayesModelPipe {
 
-    val trainingmodel = args("bayestrainingmodelforvenuetype")
+    val trainingmodel = args("bayesmodelforvenuetype")
     val placesData = args("placesData")
 
     val placesPipe = getLocationInfo(TextLine(placesData).read)
