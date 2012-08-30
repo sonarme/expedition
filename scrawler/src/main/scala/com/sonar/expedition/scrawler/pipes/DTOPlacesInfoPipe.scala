@@ -24,7 +24,7 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
         val placesData = places.map(('line, 'offset) ->('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
                 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)) {
             fields: (String, String) =>
-                val (data) = fields._1
+                val (data, linenum) = fields
                 val placesJson = parseJson(Option(data))
                 val geometryType = getGeometryType(placesJson)
                 val coordinates = getGeometryCoordinates(placesJson)
@@ -45,7 +45,6 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                 val propertiesAddress = getPropertiesAddress(placesJson)
                 val propertiesOwner = getPropertiesOwner(placesJson)
                 val propertiesPostcode = getPropertiesPostcode(placesJson)
-                val linenum = fields._2
                 (geometryType, geometryLatitude, geometryLongitude, placeType, id, propertiesProvince, propertiesCity, propertiesName, propertiesTags, propertiesCountry,
                         classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, linenum)
         }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,

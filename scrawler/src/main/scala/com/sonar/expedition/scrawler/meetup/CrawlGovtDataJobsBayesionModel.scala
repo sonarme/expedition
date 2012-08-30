@@ -10,8 +10,7 @@ class CrawlGovtDataJobsBayesionModel(args: Args) extends Job(args) with BayesMod
 
     val trainingmodel = args.getOrElse("bayestrainingmodelforsalary", "/tmp/bayestrainingmodelforsalary")
     val jobsdata = "/tmp/datajobs"
-    val jobsPipe = (TextLine(jobsdata).read)
-            .project('line, 'offset)
+    val jobsPipe = TextLine(jobsdata).read
             .filter('line) {
         line: String => (line.trim != "" || line.contains("about"))
     }
