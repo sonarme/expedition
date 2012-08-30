@@ -20,10 +20,9 @@ class TrainBayesModelForVenueType(args: Args) extends Job(args) with LocationBeh
             .flatMapTo(('propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'linenum) ->('key, 'token, 'doc)) {
         fields: (String, String, String, String, String, String) =>
             val (propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, docid) = fields
-
-            List(propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory) map {
-                key => (classifiersCategory.toLowerCase, key, docid)
-            }
+            val key = classifiersCategory.toLowerCase
+            val tokens = List(propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory)
+            for ((token, idx) <- tokens.zipWithIndex) yield (key, token, docid + "_" + idx)
 
     }.project(('key, 'token, 'doc))
 
