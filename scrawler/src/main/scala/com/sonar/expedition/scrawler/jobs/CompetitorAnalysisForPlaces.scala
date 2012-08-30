@@ -32,8 +32,6 @@ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinD
 
 class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinSource {
 
-    val bayesmodel = args("bayesmodelforvenuetype")
-
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
     val placesData = args("placesData")
     val placeClassification = args("placeClassification")
@@ -120,8 +118,8 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                 .discard('goldenIdForName)
                 .joinWithLarger('goldenId2 -> 'goldenIdForName, placesNames.rename(('venName, 'venueTypes) ->('venName2, 'venueTypes2)))
                 .project(('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity))
-                .write(
-            SequenceFile(competitiveAnalysisOutput, Fields.ALL))
+                .write(SequenceFile(competitiveAnalysisOutput, Fields.ALL))
+                .write(Tsv(competitiveAnalysisOutput + "_tsv", Fields.ALL))
 
 
     def correlation(size: Double, dotProduct: Double, ratingSum: Double,

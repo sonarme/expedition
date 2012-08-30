@@ -63,10 +63,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
 
     val joinedProfiles = profiles.rename('key -> 'rowkey)
 
-    val seqModel = SequenceFile(bayesmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
-        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
-
-    }
+    val seqModel = SequenceFile(bayesmodel, ('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)).read
 
     val jobtypes = joinedProfiles.rename('worktitle -> 'data)
             .filter('data) {
