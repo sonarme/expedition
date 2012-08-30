@@ -90,7 +90,7 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     val serviceIds = total.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val friendsForCoworker = groupFriends(friendData)
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
-    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
     val homeCheckins = groupHomeCheckins(checkins)
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)

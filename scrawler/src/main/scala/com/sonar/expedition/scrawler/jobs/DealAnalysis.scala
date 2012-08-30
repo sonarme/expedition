@@ -57,7 +57,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, String) =>
             val (stemmedVenName, stemmedMerchantName) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            if (levenshtein > 4) None else Some(-levenshtein)
+            if (levenshtein > 40) None else Some(-levenshtein)
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
     }

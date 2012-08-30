@@ -114,7 +114,7 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
 
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
-    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
 
 
     val filteredProfilesWithScore = stemmingAndScore(filteredProfiles, findcityfromchkins, placesPipe, numberOfFriends)
