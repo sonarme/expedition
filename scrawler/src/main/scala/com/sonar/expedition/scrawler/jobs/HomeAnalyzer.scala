@@ -9,6 +9,7 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import cascading.tuple.Fields
 import com.twitter.scalding.TextLine
 
+// JUST FOR TESTING
 class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with CheckinInfoPipe {
 
     val inputData = args("serviceProfileData")

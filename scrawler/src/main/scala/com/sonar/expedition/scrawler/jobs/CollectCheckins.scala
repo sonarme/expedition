@@ -5,6 +5,7 @@ import com.sonar.expedition.scrawler.pipes.{CheckinTimeFilter, CheckinInfoPipe}
 import com.twitter.scalding.{Job, GroupBuilder, TextLine, Args}
 import util.matching.Regex
 
+// JUST FOR TESTING
 class CollectCheckins(args: Args) extends Job(args) with CheckinInfoPipe {
     val chkininputData = TextLine(args("input"))
     val output = TextLine(args("output"))

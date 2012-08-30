@@ -8,6 +8,7 @@ import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.sonar.expedition.scrawler.jobs
 import com.sonar.expedition.scrawler.jobs.CoworkerFinder._
 
+// NOT USED
 class CoworkerFinder(args: Args) extends Job(args) {
 
     val out = "/tmp/coworkerGroups.txt"

@@ -7,6 +7,7 @@ import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
 import EmployerCheckinMatch._
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
+// JUST FOR TESTING
 class EmployerFinder(args: Args) extends Job(args) {
 
     val serviceProfileInput = args("employerGroupedServiceProfiles")

@@ -21,6 +21,7 @@ output : the file to which the non visited profile links will be written to
 */
 
 
+// JUST FOR TESTING
 class InternalAnalysis(args: Args) extends Job(args) with DTOProfileInfoPipe {
 
     val inputData = args("serviceProfileData")

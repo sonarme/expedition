@@ -19,6 +19,7 @@ input : the  file path from which the already parsed profile links are taken
 output : the file to which the non visited profile links will be written to
 
  */
+// NOT USED
 /*
 class DataCollect(args: Args) extends Job(args) {
 

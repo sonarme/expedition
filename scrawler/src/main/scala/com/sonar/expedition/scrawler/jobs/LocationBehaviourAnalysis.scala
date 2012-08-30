@@ -34,6 +34,7 @@ import java.text.DecimalFormat
  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"
  --timedifference "24" --geohashsectorsize "20"
 */
+// not finished, find type of places that people come from and go to
 class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with CheckinGrouperFunction {
 
     val chkindata = TextLine(args("checkindata"))

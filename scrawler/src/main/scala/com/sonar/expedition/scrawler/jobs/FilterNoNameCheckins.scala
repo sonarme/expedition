@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding.{Job, TextLine, Args}
 import com.sonar.expedition.scrawler.pipes.CheckinGrouperFunction
 
+// JUST FOR TESTING
 class FilterNoNameCheckins(args: Args) extends Job(args) with CheckinGrouperFunction {
 
     val checkinData = args("checkinData")

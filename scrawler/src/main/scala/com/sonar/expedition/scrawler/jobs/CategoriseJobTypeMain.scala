@@ -9,6 +9,7 @@ import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 /*  com.sonar.expedition.scrawler.jobs.CategoriseJobTypeMain --hdfs --occupationCodetsv "/tmp/occupationCodetsv.txt" --JobClassifiedOutput "/tmp/JobClassifiedOutput" --serviceProfileData "/tmp/serviceProfileData.txt"
 
 */
+// JUST FOR TESTING
 class CategoriseJobTypeMain(args: Args) extends Job(args) with DTOProfileInfoPipe {
 
     val output3 = TextLine(args("JobClassifiedOutput"))

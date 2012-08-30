@@ -9,6 +9,7 @@ import util.matching.Regex
 
 //TODO add service type to each friend serviceid when exporting
 
+// JUST FOR TESTING
 class FriendGrouper(args: Args) extends Job(args) {
     val inputData = args("friendData")
     val out = args("userGroupedFriendsOutput")
