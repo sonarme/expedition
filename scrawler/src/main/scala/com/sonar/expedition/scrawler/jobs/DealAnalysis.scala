@@ -34,6 +34,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val dealsOutput = args("dealsOutput")
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
+            // match multiple locations
             .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
         in: (String, String) =>
             val (merchantName, locationJSON) = in
@@ -42,9 +43,9 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
+            val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             dealLocations map {
                 dealLocation =>
-                    val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
                     val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
                     (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
             }
