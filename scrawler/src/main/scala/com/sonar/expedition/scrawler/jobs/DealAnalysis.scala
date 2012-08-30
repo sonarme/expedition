@@ -33,18 +33,22 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
 
-    val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON)).map(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
+    val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
+            // match multiple locations
+            .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
         in: (String, String) =>
             val (merchantName, locationJSON) = in
             val dealLocations = try {
                 DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, new TypeReference[util.List[DealLocation]] {})
             } catch {
-                case e => throw new RuntimeException("JSON:" + locationJSON, e)
+                case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
-            val dealLocation = dealLocations.head
             val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
-            val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
-            (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
+            dealLocations map {
+                dealLocation =>
+                    val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
+                    (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
+            }
     }.discard('locationJSON)
 
     val dealVenues = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
@@ -60,8 +64,10 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             if (levenshtein > (scala.math.min(stemmedVenName.length, stemmedMerchantName.length) * .33)) None else Some(-levenshtein)
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
-    }
-    dealVenues.write(Tsv(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
+    }.unique('goldenId, 'venName, 'merchantName, 'dealId) // unique here, because we used multiple dealLocations
+    dealVenues
+            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId)))
+            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId)))
 }
 
 object DealAnalysis {
