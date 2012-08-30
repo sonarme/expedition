@@ -7,7 +7,7 @@ import com.sonar.expedition.scrawler.util.CommonFunctions
 
 class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation with CheckinSource {
 
-    val bayestrainingmodel = args("bayestrainingmodelforvenuetype")
+    val bayestrainingmodel = args("bayesmodelforvenuetype")
     val placesData = args("placesData")
     val output = args("placeClassification")
 

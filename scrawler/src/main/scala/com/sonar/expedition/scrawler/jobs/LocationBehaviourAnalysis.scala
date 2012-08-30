@@ -38,7 +38,7 @@ class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehav
 
     val chkindata = TextLine(args("checkindata"))
     val chkindataoutput = TextLine(args("output"))
-    val bayestrainingmodel = args("bayestrainingmodelforvenuetype")
+    val bayestrainingmodel = args("bayesmodelforvenuetype")
     val training = args("training")
     val trainingclassified = args("trainingclassified")
     val trainingclassifiedfinal = args("trainingclassifiedfinal")
