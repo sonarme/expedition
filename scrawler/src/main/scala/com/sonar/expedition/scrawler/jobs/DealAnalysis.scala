@@ -42,7 +42,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
-            dealLocations.headOption map {
+            dealLocations map {
                 dealLocation =>
                     val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
                     val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
@@ -63,10 +63,10 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             if (levenshtein > 4) None else Some(-levenshtein)
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
-    }
+    }.unique('goldenId, 'venName, 'merchantName, 'dealId) // unique here, because we used multiple dealLocations
     dealVenues
-            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
-            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
+            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId)))
+            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId)))
 }
 
 object DealAnalysis {
