@@ -33,18 +33,21 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
 
-    val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON)).map(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
+    val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
+            .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
         in: (String, String) =>
             val (merchantName, locationJSON) = in
             val dealLocations = try {
                 DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, new TypeReference[util.List[DealLocation]] {})
             } catch {
-                case e => throw new RuntimeException("JSON:" + locationJSON, e)
+                case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
-            val dealLocation = dealLocations.head
-            val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
-            val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
-            (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
+            dealLocations.headOption map {
+                dealLocation =>
+                    val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
+                    val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
+                    (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
+            }
     }.discard('locationJSON)
 
     val dealVenues = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
