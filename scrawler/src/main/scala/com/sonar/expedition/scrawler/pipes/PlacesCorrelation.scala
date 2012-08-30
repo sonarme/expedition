@@ -39,7 +39,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
             in: (String, String) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
                 // TODO: allow multiple venue types
-                if (venTypeFromPlacesData == null || venTypeFromPlacesData == "") venTypeFromModel else venTypeFromPlacesData
+                if (venTypeFromPlacesData == null || venTypeFromPlacesData == "") venTypeFromModel else venTypeFromPlacesData.split(",").head
 
         }.project('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueType, 'venueLat, 'venueLng)
     }
