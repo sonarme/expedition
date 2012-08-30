@@ -34,7 +34,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     val textOutputTime = args("textOutputTime")
     val timeSeriesOnly = args.getOrElse("timeSeriesOnly", "false").toBoolean
 
-    val data = TextLine(input).flatMapTo(('line) ->('id, 'serviceType, 'jsondata)) {
+    val data = TextLine(input).read.flatMapTo('line ->('id, 'serviceType, 'jsondata)) {
         line: String =>
             line match {
                 case ServiceProfileExtractLine(userProfileId, serviceType, json) => Some((userProfileId, serviceType, json))
@@ -42,7 +42,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
             }
     }
 
-    val twdata = TextLine(twinput).flatMapTo(('line) ->('id, 'serviceType, 'jsondata)) {
+    val twdata = TextLine(twinput).read.flatMapTo('line ->('id, 'serviceType, 'jsondata)) {
         line: String =>
             line match {
                 case ServiceProfileExtractLine(userProfileId, serviceType, json) => Some((userProfileId, serviceType, json))
@@ -61,7 +61,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
         fields: (String, String) =>
             val (lat, lng) = fields
             lat + ":" + lng
-    }
+    }.write(Tsv("testout", Fields.ALL))
 
     val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String =>
