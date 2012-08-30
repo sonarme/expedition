@@ -12,7 +12,7 @@ import com.twitter.scalding.TextLine
 
 
 /*
-com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindata "/tmp/checkinDatatest.txt" --output "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodelforvenuetype "/tmp/bayestrainingmodelforvenuetype" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"  --timedifference "24" --geohashsectorsize "20"
+com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindata "/tmp/checkinDatatest.txt" --output "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayesmodelforvenuetype "/tmp/bayesmodelforvenuetype" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"  --timedifference "24" --geohashsectorsize "20"
 */
 trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe {
 
@@ -216,8 +216,8 @@ trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe
         }
     }
 
-    def classifyTFIDF(bayestrainingmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
-        val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+    def classifyTFIDF(bayesmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
+        val seqModel = SequenceFile(bayesmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
             fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
         }
         val chkinpipe4 = chkinpipefileterdtime.project('venNameTO).rename('venNameTO -> 'data)
@@ -233,13 +233,13 @@ trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe
     }
 
 
-    def classifyPlaceType(bayestrainingmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
-        val seqModel = SequenceFile(bayestrainingmodel, ('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)).read
+    def classifyPlaceType(bayesmodel: String, chkinpipefileterdtime: RichPipe): RichPipe = {
+        val seqModel = SequenceFile(bayesmodel, ('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)).read
         val chkinpipe4 = chkinpipefileterdtime.project('venName).rename('venName -> 'data)
         val trainedto = calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)) //project('data, 'key, 'weight)
         val classifiedplaces = chkinpipefileterdtime
                     .joinWithSmaller('venName -> 'data, trainedto)
-                    .project(('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'key, 'venueLat, 'venueLng))
+                    .project(('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'key, 'venueLat, 'venueLng))
                     .rename('key -> 'venTypeFromModel)
         classifiedplaces
     }

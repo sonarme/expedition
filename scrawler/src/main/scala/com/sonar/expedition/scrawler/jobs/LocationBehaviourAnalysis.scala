@@ -16,20 +16,20 @@ import java.text.DecimalFormat
 
 /*
  BEFORE RUNING THIS MAKE SURE TO build the bayes model by running this
- com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforvenuetype "/tmp/bayestrainingmodelforvenuetype"
+ com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayesmodelforvenuetype "/tmp/bayesmodelforvenuetype"
 
 
  com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --timedifference "6" --checkindata "/tmp/checkin_nomsg.txt" --
 
 
 
-  "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayestrainingmodel "/tmp/bayestrainingmodel" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis""
+  "/tmp/output.txt" --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox" --bayesmodel "/tmp/bayesmodel" --training "/tmp/training" --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"  --placesData "/tmp/places_dump_US.geojson.txt --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis""
 
  // need to integrate the data from cloudmade and cross join with the output of dataanalyser to get the male and user profile info
 
  com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindata "/tmp/checkinDatatest.txt" --output "/tmp/output.txt"
  --chkinop "/tmp/chkinop" --chkinoptimebox "/tmp/chkinoptimebox"
- --bayestrainingmodelforvenuetype "/tmp/bayestrainingmodelforvenuetype" --training "/tmp/training"
+ --bayesmodelforvenuetype "/tmp/bayesmodelforvenuetype" --training "/tmp/training"
  --trainingclassified "/tmp/trainingclassified" --trainingclassifiedfinal "/tmp/trainingclassifiedfinal"
  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"
  --timedifference "24" --geohashsectorsize "20"
@@ -38,7 +38,7 @@ class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehav
 
     val chkindata = TextLine(args("checkindata"))
     val chkindataoutput = TextLine(args("output"))
-    val bayestrainingmodel = args("bayestrainingmodelforvenuetype")
+    val bayesmodel = args("bayesmodelforvenuetype")
     val training = args("training")
     val trainingclassified = args("trainingclassified")
     val trainingclassifiedfinal = args("trainingclassifiedfinal")
@@ -63,7 +63,7 @@ class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehav
             .write(chkindataoutput)
 
     // do also for ghash2 and output none for no matching and do classify later
-    /*val classificationByBayesModel = classifyTFIDF(bayestrainingmodel, chkinpipefileterdtime)
+    /*val classificationByBayesModel = classifyTFIDF(bayesmodel, chkinpipefileterdtime)
           .write(TextLine(locationBehaviourAnalysis))
 */
 

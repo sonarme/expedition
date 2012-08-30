@@ -8,12 +8,12 @@ import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.TextLine
 
 /*
-com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayestrainingmodelforvenuetype "/tmp/bayestrainingmodelforvenuetype"
+com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayesmodelforvenuetype "/tmp/bayesmodelforvenuetype"
 
  */
 class TrainBayesModelForVenueType(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with BayesModelPipe {
 
-    val trainingmodel = args("bayestrainingmodelforvenuetype")
+    val trainingmodel = args("bayesmodelforvenuetype")
     val placesData = args("placesData")
 
     val placesPipe = getLocationInfo(TextLine(placesData).read)

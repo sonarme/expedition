@@ -19,7 +19,7 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
-    val bayestrainingmodel = args("bayestrainingmodelforsalary")
+    val bayesmodel = args("bayesmodelforsalary")
 
     val checkinOut = args("checkinOut")
     val correlationCheckinOut = args("correlationCheckinOut")
