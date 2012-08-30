@@ -54,7 +54,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val dealVenues = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
         in: (Double, Double, String) =>
             val (lat, lng, venName) = in
-            (GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize), StemAndMetaphoneEmployer.removeStopWords(venName))
+            (GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize).longValue(), StemAndMetaphoneEmployer.removeStopWords(venName))
     }
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
             .flatMap(('stemmedVenName -> 'stemmedMerchantName) -> 'negLevenshtein) {
