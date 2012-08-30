@@ -14,22 +14,23 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
     val (checkinsInputPipe, _) = checkinSource(args, true, false)
 
     val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
-    // grouping venue types together
-    val placeClassificationPipe = placesVenueGoldenId.groupBy('goldenId) {
-        _.toList[(List[(String, String)], Double, Double, String, String)](('correlatedVenueIds, 'venueLat, 'venueLng, 'venName, 'venueType) -> 'venueDataList)
-    }.flatMap('venueDataList ->('venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)) {
-        groupData: List[(List[String], Double, Double, String, String)] =>
-            val (correlatedVenueIds, lat, lng, venName, _) = groupData.head
-            val venueTypes = groupData.flatMap {
-                case (_, _, _, _, venType) => if (CommonFunctions.isNullOrEmpty(venType)) None else Some(venType)
-            }.distinct
-            correlatedVenueIds map {
-                correlatedVenueId => (correlatedVenueId, lat, lng, venName, venueTypes)
-            }
-    }
-            .write(SequenceFile(output, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)))
-            .write(Tsv(output + "_tsv", ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)))
+            .write(SequenceFile(output, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueType)))
+            .write(Tsv(output + "_tsv", ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueType)))
 
 
 }
 
+/*
+ .groupBy('goldenId) {
+         _.toList[(String, Double, Double, String, String)](('correlatedVenueIds, 'venueLat, 'venueLng, 'venName, 'venueType) -> 'venueDataList)
+     }.flatMap('venueDataList ->('venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)) {
+         groupData: List[(List[String], Double, Double, String, String)] =>
+             val (correlatedVenueIds, lat, lng, venName, _) = groupData.head
+             val venueTypes = groupData.flatMap {
+                 case (_, _, _, _, venType) => if (CommonFunctions.isNullOrEmpty(venType)) None else Some(venType)
+             }.distinct
+             correlatedVenueIds map {
+                 correlatedVenueId => (correlatedVenueId, lat, lng, venName, venueTypes)
+             }
+     }
+}*/

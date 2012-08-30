@@ -44,18 +44,11 @@ object CommonFunctions {
         }
     }
 
-    def hashed(str: String): String = {
-        if (str == "")
-            ""
-        else
-            md5SumString(str.getBytes("UTF-8"))
-    }
+    def hashed(str: String) = if (str == "") "" else md5SumString(str.getBytes("UTF-8"))
 
     def isNumeric(input: String): Boolean = !isNullOrEmpty(input) && input.forall(_.isDigit)
 
-    def isNullOrEmpty(str: String): Boolean = {
-        str == null || str.equals("") || str.equals("null")
-    }
+    def isNullOrEmpty(str: String) = str == null || str == "" || str == "null"
 
     final val venueGoldenIdPriorities = List(ServiceType.foursquare, ServiceType.twitter, ServiceType.facebook).reverse.zipWithIndex.toMap
 
