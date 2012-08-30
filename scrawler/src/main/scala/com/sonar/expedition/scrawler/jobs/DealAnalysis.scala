@@ -39,7 +39,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, String) =>
             val (merchantName, locationJSON) = in
             val dealLocations = try {
-                DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, new TypeReference[util.List[DealLocation]] {})
+                DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, DealLocationsTypeReference)
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
@@ -73,6 +73,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 object DealAnalysis {
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}
 }
 
 case class DealLocation(
