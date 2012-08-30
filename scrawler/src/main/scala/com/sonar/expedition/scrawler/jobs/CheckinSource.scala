@@ -69,9 +69,10 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                         if (venuesOnly && CommonFunctions.isNullOrEmpty(venId))
                             None
                         else {
-                            val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinTime, serviceType, serviceProfileId)
+                            val hashedServiceProfileId = hashed(serviceProfileId)
 
-                            Some((rowKeyDes, keyId, serviceType, serviceProfileId, serCheckinID,
+                            val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinTime, serviceType, hashedServiceProfileId)
+                            Some((rowKeyDes, keyId, serviceType, hashedServiceProfileId, serCheckinID,
                                     venName, venAddress, serviceType + ":" + venId, checkinTime, ghash, lat, lng, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
                         }
                     }

@@ -33,7 +33,6 @@ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinD
 class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinSource {
 
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
-    val placesData = args("placesData")
     val placeClassification = args("placeClassification")
 
     val (checkins, _) = checkinSource(args, true, false)

@@ -91,15 +91,17 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         val goldenId = golden + ":" + id
                         val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
-                        val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinDate, serviceType, serviceProfileId)
-                        Some((serviceType + ":" + serviceCheckinId, goldenId, serviceType, hashed(serviceProfileId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
+                        val hashedServiceProfileId = hashed(serviceProfileId)
+                        val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinDate, serviceType, hashedServiceProfileId)
+                        Some((serviceType + ":" + serviceCheckinId, goldenId, serviceType, hashedServiceProfileId, serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
                     }
 
                     case CheckinExtractLineProdData(rowkey, serviceType, serviceProfileId, serviceCheckinId, venueName, venueAddress, checkinTime, geoHash, lat, lng, venueId, msg) => {
                         val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
                         val gHashAsLong = Option(geoHash).map(GeoHash.fromGeohashString(_).longValue()).getOrElse(0L)
-                        val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinDate, serviceType, serviceProfileId)
-                        Some((serviceType + ":" + serviceCheckinId, rowkey, serviceType, hashed(serviceProfileId), serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
+                        val hashedServiceProfileId = hashed(serviceProfileId)
+                        val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinDate, serviceType, hashedServiceProfileId)
+                        Some((serviceType + ":" + serviceCheckinId, rowkey, serviceType, hashedServiceProfileId, serviceCheckinId, venueName, venueAddress, serviceType + ":" + venueId, checkinDate, gHashAsLong, lat.toDouble, lng.toDouble, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
 
                     }
                     case _ => {
