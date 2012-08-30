@@ -29,7 +29,7 @@ class SeqToCassandraCompetitivePlacesAnalysis(args: Args) extends Job(args) {
     )
             .read
             .mapTo(('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, List[String], String, String, List[String], String, Double) =>
+        in: (String, String, String, String, String, String, Double) =>
             val (_, _, goldenIdFrom, venueNameTo, venueTypesTo, goldenIdTo, similarityIndex) = in
 
 
