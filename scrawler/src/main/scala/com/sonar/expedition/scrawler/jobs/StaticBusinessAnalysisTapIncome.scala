@@ -21,7 +21,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
-    val bayestrainingmodel = args("bayestrainingmodelforsalary")
+    val bayesmodel = args("bayesmodelforsalary")
     val sequenceOutputIncome = args("sequenceOutputIncome")
     val textOutputIncome = args("textOutputIncome")
 
@@ -63,7 +63,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
 
     val joinedProfiles = profiles.rename('key -> 'rowkey)
 
-    val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
+    val seqModel = SequenceFile(bayesmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
         fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
 
     }

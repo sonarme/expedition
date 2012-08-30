@@ -7,13 +7,13 @@ import com.sonar.expedition.scrawler.util.CommonFunctions
 
 class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation with CheckinSource {
 
-    val bayestrainingmodel = args("bayesmodelforvenuetype")
+    val bayesmodel = args("bayesmodelforvenuetype")
     val placesData = args("placesData")
     val output = args("placeClassification")
 
     val (checkinsInputPipe, _) = checkinSource(args, true, false)
 
-    val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayestrainingmodel, placesData)
+    val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayesmodel, placesData)
             .write(SequenceFile(output, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueType)))
             .write(Tsv(output + "_tsv", ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueType)))
 

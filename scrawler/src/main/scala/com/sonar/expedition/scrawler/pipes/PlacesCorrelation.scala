@@ -11,10 +11,10 @@ import cascading.tuple.Fields
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
     val PlaceCorrelationSectorSize = 30
 
-    def placeClassification(newCheckins: RichPipe, bayestrainingmodel: String, placesData: String) = {
+    def placeClassification(newCheckins: RichPipe, bayesmodel: String, placesData: String) = {
         val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
 
-        val placesClassified = classifyPlaceType(bayestrainingmodel, placesVenueGoldenIdValues)
+        val placesClassified = classifyPlaceType(bayesmodel, placesVenueGoldenIdValues)
 
         val placesPipe = getLocationInfo(TextLine(placesData).read)
                 .project('propertiesName, 'classifiersCategory)

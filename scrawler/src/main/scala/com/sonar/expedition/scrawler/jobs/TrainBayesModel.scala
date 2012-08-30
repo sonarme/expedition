@@ -14,7 +14,7 @@ import com.twitter.scalding.TextLine
 
 /*
 run as
-com.sonar.expedition.scrawler.jobs.TrainBayesModel --hdfs --jobtraininginput "/tmp/occupationCodetsv.txt" --bayestrainingmodel "/tmp/bayestrainingmodel"
+com.sonar.expedition.scrawler.jobs.TrainBayesModel --hdfs --jobtraininginput "/tmp/occupationCodetsv.txt" --bayesmodel "/tmp/bayesmodel"
 and run TrainBayesModel
  after running bayes run DataAnalyser for the actual classification.
 
@@ -23,7 +23,7 @@ add contents to the file
 class TrainBayesModel(args: Args) extends Job(args) with BayesModelPipe {
 
     val input = args("jobtraininginput")
-    val trainingmodel = args("bayestrainingmodel")
+    val trainingmodel = args("bayesmodel")
 
     val reading = TextLine(input).read.project(('offset, 'line))
             .flatMapTo(('line, 'offset) ->('matrixocccode, 'matrixocctitle, 'cpscode, 'cpsocctitle, 'offset1)) {
