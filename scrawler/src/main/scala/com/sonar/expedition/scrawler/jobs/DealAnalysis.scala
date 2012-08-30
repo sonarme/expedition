@@ -61,7 +61,9 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
     }
-    dealVenues.write(Tsv(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
+    dealVenues
+            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
+            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
 }
 
 object DealAnalysis {
