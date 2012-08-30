@@ -8,7 +8,6 @@ import java.util
 import com.sonar.expedition.scrawler.util.{Levenshtein, EmployerCheckinMatch, StemAndMetaphoneEmployer, LocationScorer}
 import scala.Some
 import scala.Some
-import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 import scala.Some
 import com.sonar.dossier.service.PrecomputationSettings
 import ch.hsr.geohash.GeoHash

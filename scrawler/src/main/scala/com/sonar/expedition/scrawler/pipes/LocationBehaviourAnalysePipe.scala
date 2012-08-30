@@ -239,7 +239,7 @@ trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe
         val trainedto = calcProb(seqModel, chkinpipe4).project(('data, 'key, 'weight)) //project('data, 'key, 'weight)
         val classifiedplaces = chkinpipefileterdtime
                     .joinWithSmaller('venName -> 'data, trainedto)
-                    .project(('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'key, 'venueLat, 'venueLng))
+                    .project('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'key, 'venueLat, 'venueLng)
                     .rename('key -> 'venTypeFromModel)
         classifiedplaces
     }

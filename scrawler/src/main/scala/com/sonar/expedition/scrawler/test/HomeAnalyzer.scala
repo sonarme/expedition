@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.util._

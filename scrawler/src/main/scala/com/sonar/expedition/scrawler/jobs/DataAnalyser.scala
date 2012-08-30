@@ -37,7 +37,7 @@ import com.twitter.scalding.TextLine
 
         com.sonar.expedition.scrawler.jobs.DataAnalyser --hdfs --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt" --checkinData "/tmp/checkinDatatest.txt" --placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe" --bayesmodel "/tmp/bayesmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"  --outputjobtypes "/tmp/outputjobtypes"  --jobtype "4"  --profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt" --trainedseqmodel  "/tmp/trainedseqmodel" --debug1 "/tmp/debug1" --debug2 "/tmp/debug2"  --debug3 "/tmp/debug3" --debug4 "/tmp/debug4" --debug5 "/tmp/debug5" --debug6 "/tmp/debug6"  --debug7 "/tmp/debug7" --debug8 "/tmp/debug8" --debug9 "/tmp/debug9" --geoHash "/tmp/geoHash" --geohashsectorsize "1000" --groupcountry "/tmp/groupcountry" --groupworktitle "/tmp/groupworktitle"  --groupcity "/tmp/groupcity"
  */
-class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendInfoPipe with CheckinGrouperFunction with CheckinInfoPipe with APICalls with CoworkerFinderFunction with FriendGrouperFunction with DTOPlacesInfoPipe with GenderInfoReadPipe with CertainityScorePipe with JobTypeToRun with InternalAnalysisJob {
+class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendInfoPipe with CheckinGrouperFunction with CheckinInfoPipe with APICalls with CoworkerFinderFunction with FriendGrouperFunction with DTOPlacesInfoPipe with GenderInfoReadPipe with CertainityScorePipe with InternalAnalysisJob with BayesModelPipe {
 
     val inputData = args("serviceProfileData")
     val finp = args("friendData")
@@ -137,9 +137,50 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
     returnpipecountry.write(TextLine(groupcountry))
     returnpipecity.write(TextLine(groupcity))
 
-}
+
+    def jobTypeToRun(jobtypeToRun: String, filteredProfilesWithScore: RichPipe, seqModel: RichPipe, trainedseqmodel: String): RichPipe = {
+
+        jobtypeToRun.toInt match {
+            case 2 =>
+                val jobtypes = filteredProfilesWithScore.project('worktitle).rename('worktitle -> 'data)
+
+                val trained = calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('data, 'jobtypeclassified, 'weight1)).write(TextLine(trainedseqmodel)) //project('data, 'key, 'weight)
+
+                filteredProfilesWithScore.joinWithSmaller('worktitle -> 'data, trained)
+                        .project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight1))
+
+            case 3 =>
+                filteredProfilesWithScore.mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle) ->('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle)) {
+                    fields: (String, String, String, String, String, String, String) =>
+                        val (key, uname, fbid, lnid, stemmedWorked, city, worktitle) = fields
+                        val (gender, probability) = GenderFromNameProbability.gender(uname)
+                        (key, uname, gender, probability, fbid, lnid, stemmedWorked, city, worktitle)
+                }
+                        .project(('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle))
 
 
-object DataAnalyser {
+            case 4 =>
+                val jobtypes = filteredProfilesWithScore.project('worktitle).rename('worktitle -> 'data)
+
+
+
+                val trained = calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('data, 'key, 'weight) ->('data, 'jobtypeclassified, 'weight1)).write(TextLine(trainedseqmodel)) //project('data, 'key, 'weight)
+
+                filteredProfilesWithScore.joinWithSmaller('worktitle -> 'data, trained)
+                        .project(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight1))
+                        .mapTo(('key, 'uname, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight1) ->('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight)) {
+                    fields: (String, String, String, String, String, String, String, String, String, String) =>
+                        val (key, uname, fbid, lnid, stemmedWorked, city, worktitle, data, key1, weight1) = fields
+                        val (gender, probability) = GenderFromNameProbability.gender(uname)
+                        (key, uname, gender, probability, fbid, lnid, stemmedWorked, city, worktitle, data, key1, weight1)
+                }
+                        .project(('key, 'uname, 'gender, 'genderprob, 'fbid, 'lnid, 'stemmedWorked, 'city, 'worktitle, 'data, 'jobtypeclassified, 'weight))
+
+
+            case _ => filteredProfilesWithScore
+
+        }
+
+    }
 
 }
