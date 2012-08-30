@@ -61,7 +61,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
         fields: (String, String) =>
             val (lat, lng) = fields
             lat + ":" + lng
-    }.write(Tsv("testout", Fields.ALL))
+    }
 
     val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String =>
