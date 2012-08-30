@@ -21,7 +21,7 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
     }
 
     def placesPipe(places: RichPipe): RichPipe = {
-        val placesData = places.map(('line, 'offset) ->('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+        val placesData = places.mapTo(('line, 'offset) ->('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
                 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)) {
             fields: (String, String) =>
                 val (data, linenum) = fields
@@ -47,8 +47,7 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                 val propertiesPostcode = getPropertiesPostcode(placesJson)
                 (geometryType, geometryLatitude, geometryLongitude, placeType, id, propertiesProvince, propertiesCity, propertiesName, propertiesTags, propertiesCountry,
                         classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, linenum)
-        }.project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-            'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)
+        }
         /* only NY: .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
             fields: (String, String, String) =>
                 val (state, lat, lng) = fields

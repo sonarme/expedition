@@ -28,6 +28,7 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
             }
     }
             .write(SequenceFile(output, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)))
+            .write(Tsv(output + "_tsv", ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)))
 
 
 }

@@ -11,32 +11,24 @@ import cascading.tuple.Fields
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
     val PlaceCorrelationSectorSize = 30
 
-    def getVenueType(venue1: String, venue2: String): String = if (venue2 != null || venue2 != "") venue2 else venue1
-
     def placeClassification(newCheckins: RichPipe, bayestrainingmodel: String, placesData: String) = {
         val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
-        //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-
-        // module : start of determining places type from place name
 
         val placesClassified = classifyPlaceType(bayestrainingmodel, placesVenueGoldenIdValues)
-                //.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName,'venTypeFromModel, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
-                .map('venTypeFromModel -> 'venTypeFromPlacesData) {
-            venTypeFromModel: String => ""
-        }
-
 
         val placesPipe = getLocationInfo(TextLine(placesData).read)
                 .project(('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory))
-
+                .map('propertiesName -> 'stemmedVenNameFromPlaces) {
+            venName: String => StemAndMetaphoneEmployer.removeStopWords(venName)
+        }
 
         placesClassified
-                .leftJoinWithSmaller('venName -> 'propertiesName, placesPipe)
+                .leftJoinWithSmaller('stemmedVenName -> 'stemmedVenNameFromPlaces, placesPipe)
                 .map(('venTypeFromModel, 'classifiersCategory) -> 'venueType) {
 
             in: (String, String) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
-                getVenueType(venTypeFromModel, venTypeFromPlacesData)
+                if (venTypeFromPlacesData == null || venTypeFromPlacesData == "") venTypeFromModel else venTypeFromPlacesData
 
         }.project('correlatedVenueIds, 'venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueType, 'venueLat, 'venueLng)
     }
