@@ -52,7 +52,11 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
     }
 
     def correlatedPlaces(checkins: RichPipe): RichPipe =
-        checkins.unique('venId, 'serType, 'venName, 'lat, 'lng).flatMap(('lat, 'lng, 'venName) ->('geosector, 'stemmedVenName)) {
+        checkins.groupBy('venId) {
+            // dedupe
+            _.head('serType, 'venName, 'lat, 'lng)
+
+        }.flatMap(('lat, 'lng, 'venName) ->('geosector, 'stemmedVenName)) {
             // add geosector and stemmed venue name
             fields: (Double, Double, String) =>
                 val (lat, lng, venName) = fields
@@ -62,10 +66,6 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     val geosector = GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize).longValue()
                     Some((geosector, stemmedVenName))
                 }
-
-        }.groupBy('serType, 'venId) {
-            // dedupe
-            _.head('venName, 'stemmedVenName, 'geosector, 'lat, 'lng)
 
         }.groupBy('stemmedVenName, 'geosector) {
             // correlate
