@@ -61,6 +61,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, String) =>
             val (stemmedVenName, stemmedMerchantName) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
+            //todo: use a lower geohash bit-depth and then compare the distance between lat/lng so that we filter out any venue candidates that aren't within a couple hundred meters
             if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) / 3.0) None else Some(-levenshtein)
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
