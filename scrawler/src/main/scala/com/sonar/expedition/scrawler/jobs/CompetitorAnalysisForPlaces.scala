@@ -120,8 +120,8 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                 .discard('goldenIdForName)
                 .joinWithLarger('goldenId2 -> 'goldenIdForName, placesNames.rename(('venName, 'venueTypes) ->('venName2, 'venueTypes2)))
                 .project(('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity))
-                .write(
-            SequenceFile(competitiveAnalysisOutput, Fields.ALL))
+                .write(SequenceFile(competitiveAnalysisOutput, Fields.ALL))
+                .write(Tsv(competitiveAnalysisOutput + "_tsv", Fields.ALL))
 
 
     def correlation(size: Double, dotProduct: Double, ratingSum: Double,
