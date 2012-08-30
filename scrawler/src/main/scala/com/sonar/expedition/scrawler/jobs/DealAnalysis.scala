@@ -39,7 +39,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, String) =>
             val (merchantName, locationJSON) = in
             val dealLocations = try {
-                DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, new TypeReference[util.List[DealLocation]] {})
+                DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, DealLocationsTypeReference)
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
@@ -61,18 +61,19 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, String) =>
             val (stemmedVenName, stemmedMerchantName) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            if (levenshtein > (scala.math.min(stemmedVenName.length, stemmedMerchantName.length) * .33)) None else Some(-levenshtein)
+            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) / 3.0) None else Some(-levenshtein)
     }.groupBy('geosector) {
         _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
-    }.unique('goldenId, 'venName, 'merchantName, 'dealId) // unique here, because we used multiple dealLocations
+    } // TODO: need to dedupe venues here
     dealVenues
-            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId)))
-            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId)))
+            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
+            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
 }
 
 object DealAnalysis {
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}
 }
 
 case class DealLocation(
