@@ -59,19 +59,19 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             (dealMatchGeosector(lat, lng), StemAndMetaphoneEmployer.removeStopWords(venName))
     }
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
-            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'stemmedMerchantName, 'merchantLat, 'merchantLng) ->('negLevenshtein, 'distance)) {
+            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'stemmedMerchantName, 'merchantLat, 'merchantLng) ->('levenshtein, 'distance)) {
         in: (String, Double, Double, String, Double, Double) =>
             val (stemmedVenName, venueLat, venueLng, stemmedMerchantName, merchantLat, merchantLng) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
             //todo: use a lower geohash bit-depth and then compare the distance between lat/lng so that we filter out any venue candidates that aren't within a couple hundred meters
             lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
-            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) / 4.0 || distance > 100) None else Some((-levenshtein, distance))
+            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) / 3.0 || distance > 250) None else Some((levenshtein, distance))
     }.groupBy('dealId) {
-        _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'negLevenshtein)
+        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)
     } // TODO: need to dedupe venues here
     dealVenues
-            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
-            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
+            .write(SequenceFile(dealsOutput, ('dealId, 'goldenId, 'venName, 'merchantName, 'levenshtein)))
+            .write(Tsv(dealsOutput + "_tsv", ('dealId, 'goldenId, 'venName, 'merchantName, 'levenshtein)))
 }
 
 object DealAnalysis {
