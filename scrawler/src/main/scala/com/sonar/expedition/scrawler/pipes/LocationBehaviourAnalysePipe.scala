@@ -16,14 +16,6 @@ com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysis --hdfs --checkindat
 */
 trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe {
 
-    def getLocationInfo(placesData: RichPipe): RichPipe = {
-
-        val parsedPlaces = placesPipe(placesData).project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum))
-
-        parsedPlaces
-    }
-
     def deltatime(chkintime1: String, chkintime2: String, timediff: String, prodtest: Int): Boolean = {
         val timeFilter1 = Calendar.getInstance()
         val checkinDate1 = CheckinTimeFilter.parseDateTime(chkintime1)
@@ -57,7 +49,7 @@ trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe
     }
 
     def getLocationInfo(placesData: String, geoHashSectorSize: String): RichPipe = {
-        val returnpipe = getLocationInfo(TextLine(placesData).read)
+        val returnpipe = placesPipe(TextLine(placesData).read)
                 .project(('propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'geometryLatitude, 'geometryLongitude))
                 .flatMapTo(('propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'geometryLatitude, 'geometryLongitude) ->
                 ('propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'geohash)) {

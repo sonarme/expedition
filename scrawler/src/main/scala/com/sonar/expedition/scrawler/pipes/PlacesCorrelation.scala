@@ -16,14 +16,14 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
         val placesClassified = classifyPlaceType(bayesmodel, placesVenueGoldenIdValues)
 
-        val placesPipe = getLocationInfo(TextLine(placesData).read)
+        val geoPlaces = placesPipe(TextLine(placesData).read)
                 .project('geometryLatitude, 'geometryLongitude, 'propertiesName, 'classifiersCategory)
                 .map('propertiesName -> 'stemmedVenNameFromPlaces) {
             venName: String => StemAndMetaphoneEmployer.removeStopWords(venName)
         }
 
         placesClassified
-                .leftJoinWithSmaller('stemmedVenName -> 'stemmedVenNameFromPlaces, placesPipe)
+                .leftJoinWithSmaller('stemmedVenName -> 'stemmedVenNameFromPlaces, geoPlaces)
                 .flatMap(('venueLat, 'venueLng, 'geometryLatitude, 'geometryLongitude) -> 'distance) {
             in: (java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double) =>
                 val (lat, lng, geometryLatitude, geometryLongitude) = in
