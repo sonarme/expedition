@@ -38,7 +38,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val dealsOutput = args("dealsOutput")
     val dealMatchGeosectorSize = args.getOrElse("geosectorSize", "10").toInt
     val distanceArg = args.getOrElse("distance", "200").toInt
-    val levenshteinFactor = args.getOrElse("levenshteinFactor", "0.4").toDouble
+    val levenshteinFactor = args.getOrElse("levenshteinFactor", "0.33").toDouble
 
     def dealMatchGeosector(lat: Double, lng: Double) = GeoHash.withBitPrecision(lat, lng, dealMatchGeosectorSize).longValue()
 
