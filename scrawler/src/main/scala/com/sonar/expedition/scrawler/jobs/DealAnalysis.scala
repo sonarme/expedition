@@ -67,7 +67,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
             //todo: use a lower geohash bit-depth and then compare the distance between lat/lng so that we filter out any venue candidates that aren't within a couple hundred meters
             lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
-            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distance) None else Some((levenshtein, distance, 'score))
+            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distance) None else Some((levenshtein, distance, levenshtein * distance))
     }.groupBy('dealId) {
         _.sortedTake[Int]('score -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein, 'score)
     } // TODO: need to dedupe venues here
