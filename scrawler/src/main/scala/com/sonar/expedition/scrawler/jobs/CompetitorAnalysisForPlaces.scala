@@ -37,7 +37,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
 
     val (checkins, _) = checkinSource(args, true, false)
     val allCheckins = checkins.project('keyid, 'venId)
-    val places = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).read
+    val places = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).read
     val placesVenueGoldenId =
         places
                 .unique('goldenId, 'venueId)

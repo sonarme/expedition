@@ -9,7 +9,7 @@ class CountDealAnalysisCheckins(args: Args) extends Job(args) with CheckinSource
     val dealAnalysisInput = args("dealAnalysisInput")
     val dealsCheckinCount = args("dealsCheckinCount")
     val (_, venueIdCheckins) = checkinSource(args, true, true)
-    SequenceFile(dealAnalysisInput, ('dealId, 'goldenId, 'venName, 'merchantName, 'levenshtein)).read
+    SequenceFile(dealAnalysisInput, DealAnalysis.DealsOutputTuple).read
             .rename('goldenId -> 'dealGoldenId)
             .joinWithLarger('dealGoldenId -> 'goldenId, venueIdCheckins.project('goldenId))
             .groupBy('dealId, 'goldenId, 'venName, 'merchantName) {

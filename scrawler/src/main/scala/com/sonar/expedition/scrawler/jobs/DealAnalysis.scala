@@ -55,7 +55,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             }
     }.discard('locationJSON)
 
-    val dealVenues = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
+    val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
         in: (Double, Double, String) =>
             val (lat, lng, venName) = in
             (dealMatchGeosector(lat, lng), StemAndMetaphoneEmployer.removeStopWords(venName))
@@ -69,14 +69,15 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
             if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distance) None else Some((levenshtein, distance, levenshtein * distance))
     }.groupBy('dealId) {
-        _.sortedTake[Int]('score -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein, 'score)
+        _.max('levenshtein -> 'maxLevenshtein).min('distance -> 'maxDistance).sortedTake[Int]('score -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein, 'score)
     } // TODO: need to dedupe venues here
     dealVenues
-            .write(SequenceFile(dealsOutput, ('dealId, 'goldenId, 'venName, 'merchantName, 'distance, 'levenshtein, 'score)))
-            .write(Tsv(dealsOutput + "_tsv", ('dealId, 'goldenId, 'venName, 'merchantName, 'distance, 'levenshtein, 'score)))
+            .write(SequenceFile(dealsOutput, DealsOutputTuple))
+            .write(Tsv(dealsOutput + "_tsv", DealsOutputTuple))
 }
 
 object DealAnalysis {
+    val DealsOutputTuple = ('dealId, 'goldenId, 'venName, 'merchantName, 'distance, 'levenshtein, 'score)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}

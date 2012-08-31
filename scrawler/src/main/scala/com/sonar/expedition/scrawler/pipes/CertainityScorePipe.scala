@@ -14,7 +14,7 @@ trait CertainityScorePipe extends ScaldingImplicits {
                 .map('mtphnWorked -> 'worked) {
             fields: (String) =>
                 var (mtphnWorked) = fields
-                if (mtphnWorked == null || mtphnWorked == "") {
+                if (mtphnWorked == null || mtphnWorked.isEmpty) {
                     mtphnWorked = " "
                 }
                 mtphnWorked

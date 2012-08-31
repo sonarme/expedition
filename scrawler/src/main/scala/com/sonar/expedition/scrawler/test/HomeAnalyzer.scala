@@ -37,7 +37,7 @@ class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with Ch
             .map('worked -> 'work) {
         fields: (String) =>
             var (worked) = fields
-            if (worked == null || worked == "") {
+            if (worked == null || worked.isEmpty) {
                 worked = " "
             }
             worked
