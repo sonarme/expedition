@@ -52,23 +52,28 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                         'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg, 'dayOfYear, 'dayOfWeek, 'hour, 'keyid)) {
                     in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                             ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
+                        val (serviceCheckinIdBuffer, userProfileIdBuffer, serTypeBuffer, serProfileIDBuffer, serCheckinIDBuffer,
+                        venNameBuffer, venAddressBuffer, venIdBuffer, chknTimeBuffer,
+                        ghashBuffer, latBuffer, lngBuffer, msgBuffer) = in
                         val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
-                        val keyId = Option(in._2).map(StringSerializer.get().fromByteBuffer).getOrElse("missingKeyId")
-                        val serviceType = Option(in._3).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val serviceProfileId = Option(in._4).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val serCheckinID = Option(in._5).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val venName = Option(in._6).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val venAddress = Option(in._7).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val venId = Option(in._8).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val checkinTime = Option(in._9).map(DateSerializer.get().fromByteBuffer).getOrElse(DefaultNoDate)
-                        val ghash = Option(in._10).map(LongSerializer.get().fromByteBuffer).orNull
-                        val lat: Double = Option(in._11).map(DoubleSerializer.get().fromByteBuffer).orNull
-                        val lng: Double = Option(in._12).map(DoubleSerializer.get().fromByteBuffer).orNull
-                        val msg = Option(in._13).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val keyId = Option(userProfileIdBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse("missingKeyId")
+                        val serviceType = Option(serTypeBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val serviceProfileId = Option(serProfileIDBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val serCheckinID = Option(serCheckinIDBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val venName = Option(venNameBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val venAddress = Option(venAddressBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val venId = Option(venIdBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val checkinTime = Option(chknTimeBuffer).map(DateSerializer.get().fromByteBuffer).getOrElse(DefaultNoDate)
+                        val ghash = Option(ghashBuffer).map(LongSerializer.get().fromByteBuffer).orNull
+                        val latOption = Option(latBuffer).map(DoubleSerializer.get().fromByteBuffer)
+                        val lngOption = Option(lngBuffer).map(DoubleSerializer.get().fromByteBuffer)
+                        val msg = Option(msgBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
                         // only checkins with venues
-                        if (venuesOnly && CommonFunctions.isNullOrEmpty(venId))
+                        if (latOption.isEmpty || lngOption.isEmpty || venuesOnly && CommonFunctions.isNullOrEmpty(venId))
                             None
                         else {
+                            val Some(lat) = latOption
+                            val Some(lng) = lngOption
                             val hashedServiceProfileId = hashed(serviceProfileId)
 
                             val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinTime, serviceType, hashedServiceProfileId)
