@@ -22,6 +22,8 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
     // TODO: bad practice to use default values
     val DefaultNoDate = new Date(0L)
     val NoneValue = "none"
+    val CheckinTuple = ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
+            'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg, 'dayOfYear, 'dayOfWeek, 'hour, 'keyid)
 
     def checkinSource(args: Args, venuesOnly: Boolean, withVenueGoldenId: Boolean) = {
         val rpcHostArg = args.optional("rpcHost")
@@ -48,8 +50,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                             "longitude", "message"))
                 ).flatMapTo(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
                         'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-                        'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) ->('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
-                        'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg, 'dayOfYear, 'dayOfWeek, 'hour, 'keyid)) {
+                        'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) -> CheckinTuple) {
                     in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                             ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
                         val (serviceCheckinIdBuffer, userProfileIdBuffer, serTypeBuffer, serProfileIDBuffer, serCheckinIDBuffer,

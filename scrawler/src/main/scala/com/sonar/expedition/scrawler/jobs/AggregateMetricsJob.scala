@@ -4,10 +4,10 @@ import com.twitter.scalding.{Tsv, SequenceFile, Args, Job}
 import cascading.tuple.Fields
 
 class AggregateMetricsJob(args: Args) extends Job(args) {
-    val sequenceOutputStatic = args("sequenceOutputStatic")
+    val staticAnalysisOutput = args("staticAnalysisOutput")
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")
-    val metrics = SequenceFile(sequenceOutputStatic, ('rowKey, 'columnName, 'columnValue)).read
+    val metrics = SequenceFile(staticAnalysisOutput, ('rowKey, 'columnName, 'columnValue)).read
             .mapTo(('rowKey, 'columnName, 'columnValue) ->('venueId, 'metric, 'value)) {
         in: (String, String, Double) =>
             val (rowKey, columnName, columnValue) = in
