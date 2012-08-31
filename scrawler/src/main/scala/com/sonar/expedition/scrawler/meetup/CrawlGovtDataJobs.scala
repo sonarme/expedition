@@ -8,6 +8,7 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.twitter.scalding.Job
 
+// USE http://www.bls.gov/ooh/ooh-site-map.htm in a file
 class CrawlGovtDataJobs(args: Args) extends Job(args) {
 
     val input = args.getOrElse("input", "/tmp/govtdata")

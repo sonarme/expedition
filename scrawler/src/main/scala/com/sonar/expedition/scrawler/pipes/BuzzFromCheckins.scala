@@ -10,43 +10,22 @@ import com.sonar.dossier.dto.ServiceType
 trait BuzzFromCheckins extends ScaldingImplicits {
 
 
-    def getShingles(checkinsWithMessage: RichPipe): RichPipe = {
-        val messagePipe = checkinsWithMessage
+    def getShingles(checkinsWithMessage: RichPipe) =
+        checkinsWithMessage
+                .flatMapTo('msg -> 'singleShingle) {
+            message: String =>
+                if (CommonFunctions.isNullOrEmpty(message))
+                    List.empty[String]
+                else ShingleTokenizer.shingleize(StemAndMetaphoneEmployer.removeStopWords(message), 3)
+        }
 
-        val shinglePipe = messagePipe
-                .filter('msg) {
-            fields: (String) =>
-                val message = fields
-                (!CommonFunctions.isNullOrEmpty(message))
-        }
-                .map('msg -> 'message) {
-            fields: (String) =>
-                val message = fields
-                val msg = StemAndMetaphoneEmployer.removeStopWords(message)
-                msg
-        }
-                .flatMap(('venName, 'message) -> 'singleShingle) {
-            fields: (String, String) =>
-                val (venueName, message) = fields
-                val messageShingles = ShingleTokenizer.shingleize(message, 3)
-                (messageShingles)
-        }
-                .project('singleShingle)
-        shinglePipe
-    }
 
     def findBuzz(shingles: RichPipe, checkinsWithNoMessages: RichPipe): RichPipe = {
         val buzz = checkinsWithNoMessages
-                .map('venName -> 'stemmedVenName) {
-            fields: (String) =>
-                val (venName) = fields
-                val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
-                (stemmedVenName)
-        }
-                .filter('stemmedVenName) {
-            fields: (String) =>
-                val venName = fields
-                (!CommonFunctions.isNullOrEmpty(venName))
+                .flatMap('venName -> 'stemmedVenName) {
+            venName: String =>
+                if (CommonFunctions.isNullOrEmpty(venName)) None
+                else Some(StemAndMetaphoneEmployer.removeStopWords(venName))
         }
                 .joinWithLarger('stemmedVenName -> 'singleShingle, shingles)
                 //                .unique(('stemmedVenName, 'goldenId))

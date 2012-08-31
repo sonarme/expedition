@@ -8,7 +8,6 @@ import java.util
 import com.sonar.expedition.scrawler.util.{Levenshtein, EmployerCheckinMatch, StemAndMetaphoneEmployer, LocationScorer}
 import scala.Some
 import scala.Some
-import com.sonar.expedition.scrawler.objs.serializable.LuceneIndex
 import scala.Some
 import com.sonar.dossier.service.PrecomputationSettings
 import ch.hsr.geohash.GeoHash
@@ -34,6 +33,7 @@ import java.text.DecimalFormat
  --placesData "/tmp/places_dump_US.geojson.txt" --locationBehaviourAnalysis "/tmp/locationBehaviourAnalysis"
  --timedifference "24" --geohashsectorsize "20"
 */
+// not finished, find type of places that people come from and go to
 class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with CheckinGrouperFunction {
 
     val chkindata = TextLine(args("checkindata"))

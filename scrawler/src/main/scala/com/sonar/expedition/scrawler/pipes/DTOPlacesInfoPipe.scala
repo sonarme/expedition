@@ -11,18 +11,15 @@ import com.sonar.expedition.scrawler.dto.PlacesDTO
 trait DTOPlacesInfoPipe extends ScaldingImplicits {
 
 
-    def getPlacesInfo(placesData: RichPipe): RichPipe = {
+    def getPlacesInfo(placesData: RichPipe) =
+        placesPipe(placesData)
+                .project('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+            'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode)
 
-
-        val parsedPlaces = placesPipe(placesData).project(('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
-
-        parsedPlaces
-    }
-
-    def placesPipe(places: RichPipe): RichPipe = {
-        val placesData = places.mapTo(('line, 'offset) ->('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
-                'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)) {
+    def placesPipe(places: RichPipe) =
+        places.mapTo(('line, 'offset) ->
+                ('geometryType, 'geometryLatitude, 'geometryLongitude, 'type, 'id, 'propertiesProvince, 'propertiesCity, 'propertiesName, 'propertiesTags, 'propertiesCountry,
+                        'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)) {
             fields: (String, String) =>
                 val (data, linenum) = fields
                 val placesJson = parseJson(Option(data))
@@ -49,14 +46,7 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                 (geometryType, geometryLatitude, geometryLongitude, placeType, id, propertiesProvince, propertiesCity, propertiesName, propertiesTags, propertiesCountry,
                         classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, linenum)
         }
-        /* only NY: .filter(('propertiesProvince, 'geometryLatitude, 'geometryLongitude)) {
-            fields: (String, String, String) =>
-                val (state, lat, lng) = fields
-                state == "NY" && lat.toDouble > 40.7 && lat.toDouble < 40.9 && lng.toDouble > -74 && lng.toDouble < -73.8
-        }*/
 
-        placesData
-    }
 
     def parseJson(jsonStringOption: Option[String]): Option[PlacesDTO] = {
         jsonStringOption map {

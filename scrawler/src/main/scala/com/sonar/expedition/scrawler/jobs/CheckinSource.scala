@@ -80,7 +80,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
         }
 
         if (withVenueGoldenId) {
-            val places = SequenceFile(placeClassification.get, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).read
+            val places = SequenceFile(placeClassification.get, PlaceClassification.PlaceClassificationOutputTuple).read
             val checkinsWithGoldenId = withGoldenIdFromPlaces(places, checkins)
             (checkins, checkinsWithGoldenId)
         }
@@ -92,6 +92,6 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
             venId: String => !CommonFunctions.isNullOrEmpty(venId)
         }
         places.project('venueId, 'goldenId).joinWithLarger('venueId -> 'venId, checkinsWithVenue)
-                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId)
+                .project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lat, 'lng, 'dayOfYear, 'dayOfWeek, 'hour, 'goldenId, 'venueId, 'msg)
     }
 }

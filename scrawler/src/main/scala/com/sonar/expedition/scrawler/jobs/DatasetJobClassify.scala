@@ -12,6 +12,7 @@ import java.io.{InputStreamReader, BufferedReader}
 import DatasetJobClassify._
 import scala.collection.JavaConversions._
 
+// not finished, crawling gov data for job classification
 class DatasetJobClassify(args: Args) extends Job(args) {
 
     val jobpipe = TextLine("/tmp/links").read.project('line)

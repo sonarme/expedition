@@ -1,12 +1,17 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.test
 
 import util.matching.Regex
 import EmployerFinder._
-import com.twitter.scalding.{Job, TextLine, RichPipe, Args}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.util.EmployerCheckinMatch
 import EmployerCheckinMatch._
+import scala.Some
+import scala.Some
+import scala.Some
+import com.twitter.scalding.TextLine
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
+// JUST FOR TESTING
 class EmployerFinder(args: Args) extends Job(args) {
 
     val serviceProfileInput = args("employerGroupedServiceProfiles")

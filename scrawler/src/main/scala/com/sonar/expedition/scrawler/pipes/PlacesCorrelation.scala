@@ -16,22 +16,30 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
 
         val placesClassified = classifyPlaceType(bayesmodel, placesVenueGoldenIdValues)
 
-        val placesPipe = getLocationInfo(TextLine(placesData).read)
-                .project('propertiesName, 'classifiersCategory)
+        val geoPlaces = placesPipe(TextLine(placesData).read)
+                .project('geometryLatitude, 'geometryLongitude, 'propertiesName, 'classifiersCategory)
                 .map('propertiesName -> 'stemmedVenNameFromPlaces) {
             venName: String => StemAndMetaphoneEmployer.removeStopWords(venName)
-        }.unique('stemmedVenNameFromPlaces, 'classifiersCategory).groupBy('stemmedVenNameFromPlaces) {
-            _.toList[String]('classifiersCategory -> 'classifiersCategories)
         }
 
         placesClassified
-                .leftJoinWithSmaller('stemmedVenName -> 'stemmedVenNameFromPlaces, placesPipe)
-                .map(('venTypeFromModel, 'classifiersCategories) -> 'venueType) {
+                .leftJoinWithSmaller('stemmedVenName -> 'stemmedVenNameFromPlaces, geoPlaces)
+                .flatMap(('venueLat, 'venueLng, 'geometryLatitude, 'geometryLongitude) -> 'distance) {
+            in: (java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double) =>
+                val (lat, lng, geometryLatitude, geometryLongitude) = in
+                if (lat == null || lng == null || geometryLatitude == null || geometryLongitude == null) Some(-1)
+                else {
+                    val distance = Haversine.haversine(lat, lng, geometryLatitude, geometryLongitude)
+                    if (distance > 1000) None else Some(distance)
+                }
+        }.groupBy('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venTypeFromModel, 'classifiersCategory, 'venueLat, 'venueLng) {
+            _.min('distance)
+        }.discard('distance).map(('venTypeFromModel, 'classifiersCategory) -> 'venueType) {
 
-            in: (String, List[String]) =>
+            in: (String, String) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
                 // TODO: allow multiple venue types
-                if (venTypeFromPlacesData == null || venTypeFromPlacesData == "") venTypeFromModel else venTypeFromPlacesData.mkString(",")
+                if (CommonFunctions.isNullOrEmpty(venTypeFromPlacesData)) venTypeFromModel else venTypeFromPlacesData.split(",").head
 
         }.project('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueType, 'venueLat, 'venueLng)
     }

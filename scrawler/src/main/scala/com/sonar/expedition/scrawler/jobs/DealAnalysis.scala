@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding._
 import com.fasterxml.jackson.databind.{DeserializationFeature, DeserializationConfig, ObjectMapper}
 import java.util
-import com.sonar.expedition.scrawler.util.{Levenshtein, CommonFunctions, StemAndMetaphoneEmployer}
+import com.sonar.expedition.scrawler.util._
 import ch.hsr.geohash.GeoHash
 import DealAnalysis._
 import reflect.BeanProperty
@@ -27,15 +27,29 @@ import util.Date
 import java.text.SimpleDateFormat
 import cascading.pipe.Pipe
 import com.fasterxml.jackson.core.`type`.TypeReference
+import com.sonar.expedition.scrawler.jobs.DealLocation
+import com.twitter.scalding.SequenceFile
+import scala.Some
+import com.twitter.scalding.Tsv
 
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
+    val dealMatchGeosectorSize = args.getOrElse("geosectorSize", "10").toInt
+    val distanceArg = args.getOrElse("distance", "200").toInt
+    val levenshteinFactor = args.getOrElse("levenshteinFactor", "0.33").toDouble
+
+    def dealMatchGeosector(lat: Double, lng: Double) = GeoHash.withBitPrecision(lat, lng, dealMatchGeosectorSize).longValue()
+
+    def distanceCalc(in: (Double, Double, Double, Double)) = {
+        val (levenshtein, maxLevenshtein, distance, maxDistance) = in
+        (levenshtein / maxLevenshtein) * (distance / maxDistance)
+    }
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
-            .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'lat, 'lng, 'merchantGeosector)) {
+            .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantGeosector)) {
         in: (String, String) =>
             val (merchantName, locationJSON) = in
             val dealLocations = try {
@@ -46,32 +60,38 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             dealLocations map {
                 dealLocation =>
-                    val geohash = GeoHash.withBitPrecision(dealLocation.latitude, dealLocation.longitude, PlaceCorrelationSectorSize)
-                    (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, geohash.longValue())
+                    (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude))
             }
     }.discard('locationJSON)
 
-    val dealVenues = SequenceFile(placeClassification, ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueTypes)).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
+    val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
         in: (Double, Double, String) =>
             val (lat, lng, venName) = in
-            (GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize).longValue(), StemAndMetaphoneEmployer.removeStopWords(venName))
+            (dealMatchGeosector(lat, lng), StemAndMetaphoneEmployer.removeStopWords(venName))
     }
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
-            .flatMap(('stemmedVenName -> 'stemmedMerchantName) -> 'negLevenshtein) {
-        in: (String, String) =>
-            val (stemmedVenName, stemmedMerchantName) = in
+            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'stemmedMerchantName, 'merchantLat, 'merchantLng) ->('levenshtein, 'distance)) {
+        in: (String, Double, Double, String, Double, Double) =>
+            val (stemmedVenName, venueLat, venueLng, stemmedMerchantName, merchantLat, merchantLng) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            //todo: use a lower geohash bit-depth and then compare the distance between lat/lng so that we filter out any venue candidates that aren't within a couple hundred meters
-            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) / 3.0) None else Some(-levenshtein)
-    }.groupBy('geosector) {
-        _.sortedTake[Int](('negLevenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)
+            lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
+            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distanceArg) None else Some((levenshtein, distance))
+    }.groupBy('dealId) {
+        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)
+        /* _.max('levenshtein -> 'maxLevenshtein)
+            .max('distance -> 'maxDistance)
+            .sortWithTake[(Double,Double,Double,Double)](('levenshtein, 'maxLevenshtein,'distance, 'maxDistance)  -> 'topVenueMatch, 1) {
+        (in1: (Double,Double,Double,Double), in2:  (Double,Double,Double,Double)) =>
+           distanceCalc(in1) < distanceCalc(in2)
+    }.head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)*/
     } // TODO: need to dedupe venues here
     dealVenues
-            .write(SequenceFile(dealsOutput, ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
-            .write(Tsv(dealsOutput + "_tsv", ('goldenId, 'venName, 'merchantName, 'dealId, 'negLevenshtein)))
+            .write(SequenceFile(dealsOutput, DealsOutputTuple))
+            .write(Tsv(dealsOutput + "_tsv", DealsOutputTuple))
 }
 
 object DealAnalysis {
+    val DealsOutputTuple = ('dealId, 'goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}

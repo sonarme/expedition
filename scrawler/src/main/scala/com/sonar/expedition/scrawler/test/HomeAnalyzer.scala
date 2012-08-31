@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.util._
@@ -9,6 +9,7 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import cascading.tuple.Fields
 import com.twitter.scalding.TextLine
 
+// JUST FOR TESTING
 class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with CheckinInfoPipe {
 
     val inputData = args("serviceProfileData")
@@ -36,7 +37,7 @@ class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with Ch
             .map('worked -> 'work) {
         fields: (String) =>
             var (worked) = fields
-            if (worked == null || worked == "") {
+            if (worked == null || worked.isEmpty) {
                 worked = " "
             }
             worked
