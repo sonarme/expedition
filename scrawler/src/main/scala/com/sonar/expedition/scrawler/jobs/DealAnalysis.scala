@@ -32,9 +32,11 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
-    val DealMatchGeosectorSize = 20
+    val dealMatchGeosectorSize = args.getOrElse("geosectorSize", "10").toInt
+    val distance = args.getOrElse("distance", "300").toInt
+    val levenshteinFactor = args.getOrElse("levenshteinFactor", "0.4").toDouble
 
-    def dealMatchGeosector(lat: Double, lng: Double) = GeoHash.withBitPrecision(lat, lng, DealMatchGeosectorSize).longValue()
+    def dealMatchGeosector(lat: Double, lng: Double) = GeoHash.withBitPrecision(lat, lng, dealMatchGeosectorSize).longValue()
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
@@ -65,7 +67,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
             //todo: use a lower geohash bit-depth and then compare the distance between lat/lng so that we filter out any venue candidates that aren't within a couple hundred meters
             lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
-            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) / 3.0 || distance > 250) None else Some((levenshtein, distance))
+            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distance) None else Some((levenshtein, distance))
     }.groupBy('dealId) {
         _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)
     } // TODO: need to dedupe venues here
