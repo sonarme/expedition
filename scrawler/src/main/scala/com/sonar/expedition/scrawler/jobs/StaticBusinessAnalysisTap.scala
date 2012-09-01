@@ -28,10 +28,8 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     val friendinput = args("friendInput")
     val bayesmodel = args("bayesmodelforsalary")
     //    val newcheckininput = args("newCheckinInput")
-    val sequenceOutputStatic = args("sequenceOutputStatic")
-    val sequenceOutputTime = args("sequenceOutputTime")
-    val textOutputStatic = args("textOutputStatic")
-    val textOutputTime = args("textOutputTime")
+    val sequenceOutputStatic = args("staticOutput")
+    val sequenceOutputTime = args("timeOutput")
     val timeSeriesOnly = args.getOrElse("timeSeriesOnly", "false").toBoolean
 
     val data = TextLine(input).read.flatMapTo('line ->('id, 'serviceType, 'jsondata)) {
@@ -332,8 +330,8 @@ in: (String, String, Int) =>
         val staticOutput =
             (totalCheckins ++ totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 
-        val staticSequence = staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
-        val staticText = staticOutput.write(TextLine(textOutputStatic))
+        staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
+                .write(Tsv(sequenceOutputStatic + "_tsv", Fields.ALL))
     }
 
     val byTime = timeSeries(combined)
@@ -349,8 +347,8 @@ in: (String, String, Int) =>
 
     }
 
-    val timeSequence = byTime.write(SequenceFile(sequenceOutputTime, Fields.ALL))
-    val timeText = byTime.write(TextLine(textOutputTime))
+    byTime.write(SequenceFile(sequenceOutputTime, Fields.ALL))
+            .write(Tsv(sequenceOutputTime + "_tsv", Fields.ALL))
 
 
 }
