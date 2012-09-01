@@ -51,7 +51,7 @@ class RealSocialGraphTest(args: Args) extends DTOProfileInfoPipe with CheckinGro
 
     val friends = groupFriends(TextLine(friendsInput).read)
     val serviceIds = joinedProfiles.rename('key -> 'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
-    val chkindata = unfilteredCheckins(TextLine(checkinsInput).read)
+    val chkindata = null //TODO: unfilteredCheckins(TextLine(checkinsInput).read)
 
     val findFriendsAtTheSameVenue = friendsNearbyByFriends(friends, chkindata, serviceIds)
             .write(TextLine(matchedFriends))

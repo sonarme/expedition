@@ -48,15 +48,17 @@ class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehav
     val prodtest = args.getOrElse("prodtest", "0").toInt
     val placesData = args("placesData")
 
-    val chkinpipe = unfilteredCheckinsLatLon(chkindata).filter('venName) {
+    val chkinpipe = null
+    /* TODO: unfilteredCheckinsLatLon(chkindata).filter('venName) {
         fields: (String) =>
             val (venname) = fields
             (venname != None || venname != null || venname.trim != "")
-    }.project(Fields.ALL)
+    }.project(Fields.ALL)*/
     //'keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime,'ghash, 'latitude, 'longitude, 'dayOfYear, 'hour
 
-    val chkinpipe1 = chkinpipe.project(('keyid, 'venName, 'chknTime, 'lat, 'lng)).rename(('lat, 'lng) ->('latitude, 'longitude))
-    val chkinpipe2 = chkinpipe.project(('venName, 'keyid, 'chknTime, 'lat, 'lng)).rename(('venName, 'keyid, 'chknTime, 'lat, 'lng) ->('venName1, 'keyid1, 'chknTime1, 'latitude1, 'longitude1))
+    val chkinpipe1 = null
+    //TODO: chkinpipe.project(('keyid, 'venName, 'chknTime, 'lat, 'lng)).rename(('lat, 'lng) ->('latitude, 'longitude))
+    val chkinpipe2 = null //TODO: chkinpipe.project(('venName, 'keyid, 'chknTime, 'lat, 'lng)).rename(('venName, 'keyid, 'chknTime, 'lat, 'lng) ->('venName1, 'keyid1, 'chknTime1, 'latitude1, 'longitude1))
 
     var chkinpipefileterdtime = filterTime(chkinpipe1, chkinpipe2, timedifference, geohashsectorsize, prodtest)
             .project(Fields.ALL)

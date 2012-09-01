@@ -32,7 +32,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
         val placeClassification = args.optional("placeClassification")
         val checkins: RichPipe = checkinsInputArg match {
             case Some(checkinsInput) =>
-                checkinsWithMessage(TextLine(checkinsInput))
+                SequenceFile(checkinsInput, CheckinTuple).read
 
             case None =>
                 CassandraSource(
