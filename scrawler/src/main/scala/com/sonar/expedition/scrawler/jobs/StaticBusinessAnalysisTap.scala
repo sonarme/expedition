@@ -214,7 +214,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
         }
 
-        val loyalty = findLoyalty(combined)
+        val loyalty = findLoyalty(checkinsWithGoldenId.rename('goldenId -> 'venueKey))
 
         val loyaltyCount = loyalty
                 .mapTo(('venueKey, 'loyalty, 'customers) ->('rowKey, 'columnName, 'columnValue)) {
