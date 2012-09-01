@@ -205,6 +205,14 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
         val totalStatic = (totalAge ++ totalDegree ++ totalGender).project('rowKey, 'columnName, 'columnValue)
 
+        val totalCheckins = checkinsWithGoldenId.groupBy('goldenId) {
+            _.size
+        }.mapTo(('goldenId, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+            in: (String, Int) =>
+                val (venueKey, size) = in
+                (venueKey + "_numCheckins", "count", size.toDouble)
+
+        }
 
         val loyalty = findLoyalty(combined)
 
@@ -322,7 +330,7 @@ in: (String, String, Int) =>
    .project(('rowKey, 'columnName, 'columnValue))   */
 
         val staticOutput =
-            (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
+            (totalCheckins ++ totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 
         val staticSequence = staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
         val staticText = staticOutput.write(TextLine(textOutputStatic))
