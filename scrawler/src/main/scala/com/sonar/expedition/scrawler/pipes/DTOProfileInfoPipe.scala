@@ -43,41 +43,45 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
                 else {
                     val jsondata = ByteBufferUtil.getArray(jsondataBuffer)
                     val rowkey = StringSerializer.get().fromByteBuffer(userProfileIdBuffer)
-                    val serviceType = ServiceType.valueOf(StringSerializer.get().fromByteBuffer(columnNameBuffer).split(':').last)
-                    try {
-                        Option(ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](jsondata, classOf[ServiceProfileDTO])) map {
-                            parsed =>
+                    val serviceTypeString = StringSerializer.get().fromByteBuffer(columnNameBuffer).split(':').last
+                    if (serviceTypeString == "link") None
+                    else {
+                        val serviceType = ServiceType.valueOf(serviceTypeString)
+                        try {
+                            Option(ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](jsondata, classOf[ServiceProfileDTO])) map {
+                                parsed =>
 
-                                val priority = if (serviceType == ServiceType.linkedin) 0 else 1
-                                val work = parsed.work.headOption
-                                val education = parsed.education.headOption
-                                val profileData = new ProfileData(
-                                    key = rowkey,
-                                    name = Option(parsed.fullName).getOrElse(""),
-                                    workcomp = work.map(_.companyName).getOrElse(""), // TODO, don't use empty string
-                                    worktitle = work.map(_.title).getOrElse(""),
-                                    educationschool = education.map(_.schoolName).getOrElse(""),
-                                    eduyear = education.map(_.getYear()).getOrElse(""),
-                                    edudegree = education.map(_.getDegree()).getOrElse(""),
-                                    workdesc = work.map(_.getSummary()).getOrElse(""),
-                                    ccity = Option(parsed.getLocation()).getOrElse("") // TODO, don't use empty string
-                                )
-                                profileData.twid = ??(parsed.aliases.twitter).map(hashed).getOrElse("")
-                                profileData.fbid = ??(parsed.aliases.facebook).map(hashed).getOrElse("")
+                                    val priority = if (serviceType == ServiceType.linkedin) 0 else 1
+                                    val work = parsed.work.headOption
+                                    val education = parsed.education.headOption
+                                    val profileData = new ProfileData(
+                                        key = rowkey,
+                                        name = Option(parsed.fullName).getOrElse(""),
+                                        workcomp = work.map(_.companyName).getOrElse(""), // TODO, don't use empty string
+                                        worktitle = work.map(_.title).getOrElse(""),
+                                        educationschool = education.map(_.schoolName).getOrElse(""),
+                                        eduyear = education.map(_.getYear()).getOrElse(""),
+                                        edudegree = education.map(_.getDegree()).getOrElse(""),
+                                        workdesc = work.map(_.getSummary()).getOrElse(""),
+                                        ccity = Option(parsed.getLocation()).getOrElse("") // TODO, don't use empty string
+                                    )
+                                    profileData.twid = ??(parsed.aliases.twitter).map(hashed).getOrElse("")
+                                    profileData.fbid = ??(parsed.aliases.facebook).map(hashed).getOrElse("")
 
-                                serviceType match {
-                                    case ServiceType.linkedin => profileData.lnid = Option(hashed(parsed.userId)).getOrElse("")
-                                    case ServiceType.facebook => profileData.fbid = Option(hashed(parsed.userId)).getOrElse("")
-                                    case ServiceType.twitter => profileData.twid = Option(hashed(parsed.userId)).getOrElse("")
-                                    case ServiceType.foursquare => profileData.fsid = Option(hashed(parsed.userId)).getOrElse("")
-                                }
+                                    serviceType match {
+                                        case ServiceType.linkedin => profileData.lnid = Option(hashed(parsed.userId)).getOrElse("")
+                                        case ServiceType.facebook => profileData.fbid = Option(hashed(parsed.userId)).getOrElse("")
+                                        case ServiceType.twitter => profileData.twid = Option(hashed(parsed.userId)).getOrElse("")
+                                        case ServiceType.foursquare => profileData.fsid = Option(hashed(parsed.userId)).getOrElse("")
+                                    }
 
 
-                                (rowkey, priority, profileData)
+                                    (rowkey, priority, profileData)
+                            }
                         }
-                    }
-                    catch {
-                        case e => None
+                        catch {
+                            case e => None
+                        }
                     }
                 }
 
