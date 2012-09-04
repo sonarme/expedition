@@ -84,7 +84,7 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
 
         }
 
-        val combinedProfiles = dtoProfiles.project('id, 'priority, 'profile)
+        val combinedProfiles = dtoProfiles
 
                 .groupBy('id) {
             _.sortBy('priority)

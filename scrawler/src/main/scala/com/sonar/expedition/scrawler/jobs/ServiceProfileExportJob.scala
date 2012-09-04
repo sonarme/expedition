@@ -26,4 +26,5 @@ class ServiceProfileExportJob(args: Args) extends Job(args) with DTOProfileInfoP
             nameField = ('columnNameBuffer, 'jsondataBuffer))
     ).read
     getDTOProfileInfoInTuples(profiles).write(SequenceFile(output, ProfileTuple))
+            .limit(180000).write(SequenceFile(output + "_small", ProfileTuple))
 }
