@@ -1,14 +1,18 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.test
 
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.objs.FriendObjects
 
-import com.twitter.scalding.{Job, TextLine, RichPipe, Args}
+import com.twitter.scalding._
 import FriendGrouper._
 import util.matching.Regex
+import scala.Some
+import scala.Some
+import com.twitter.scalding.TextLine
 
 //TODO add service type to each friend serviceid when exporting
 
+// JUST FOR TESTING
 class FriendGrouper(args: Args) extends Job(args) {
     val inputData = args("friendData")
     val out = args("userGroupedFriendsOutput")

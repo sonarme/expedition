@@ -560,7 +560,7 @@
                         <version>0.2.7-RC5</version>
                         <configuration>
                             <s3Bucket>scrawler</s3Bucket>
-                            <s3Key>${project.build.finalName}-${maven.build.timestamp}.jar</s3Key>
+                            <s3Key>${project.build.finalName}.jar</s3Key>
                             <verbose>true</verbose>
                         </configuration>
                         <executions>

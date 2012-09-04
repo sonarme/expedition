@@ -8,10 +8,9 @@ import com.twitter.scalding.Job
 
 class CrawlGovtDataJobsBayesionModel(args: Args) extends Job(args) with BayesModelPipe {
 
-    val trainingmodel = args.getOrElse("bayestrainingmodelforsalary", "/tmp/bayestrainingmodelforsalary")
+    val trainingmodel = args.getOrElse("bayesmodelforsalary", "/tmp/bayesmodelforsalary")
     val jobsdata = "/tmp/datajobs"
-    val jobsPipe = (TextLine(jobsdata).read)
-            .project('line, 'offset)
+    val jobsPipe = TextLine(jobsdata).read
             .filter('line) {
         line: String => (line.trim != "" || line.contains("about"))
     }

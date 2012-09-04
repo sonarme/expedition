@@ -23,7 +23,7 @@ object EmployerCheckinMatch extends Serializable {
     }
 
     def checkMetaphoneJobType(job: String): String = {
-        if (job == "") job
+        if (job.isEmpty) job
         else {
             val job_type1 = StemAndMetaphoneEmployer.getStemmedMetaphone(job)
             val job_type2 = StemAndMetaphoneEmployer.getStemmedAlternateMetaphone(job)

@@ -10,131 +10,50 @@ import com.sonar.dossier.dto.ServiceType
 trait BuzzFromCheckins extends ScaldingImplicits {
 
 
-    def getShingles(checkinsWithMessage: RichPipe): RichPipe = {
-        val messagePipe = checkinsWithMessage
+    def getShingles(checkinsWithMessage: RichPipe) =
+        checkinsWithMessage
+                .flatMapTo('msg -> 'singleShingle) {
+            message: String =>
+                if (CommonFunctions.isNullOrEmpty(message))
+                    List.empty[String]
+                else ShingleTokenizer.shingleize(StemAndMetaphoneEmployer.removeStopWords(message), 3)
+        }
 
-        val shinglePipe = messagePipe
-                .filter('msg) {
-            fields: (String) =>
-                val message = fields
-                (!CommonFunctions.isNullOrEmpty(message))
-        }
-                .map('msg -> 'message) {
-            fields: (String) =>
-                val message = fields
-                val msg = StemAndMetaphoneEmployer.removeStopWords(message)
-                msg
-        }
-                .flatMap(('venName, 'message) -> 'singleShingle) {
-            fields: (String, String) =>
-                val (venueName, message) = fields
-                val messageShingles = ShingleTokenizer.shingleize(message, 3)
-                (messageShingles)
-        }
-                .project('singleShingle)
-        shinglePipe
-    }
 
-    def findBuzz(shingles: RichPipe, checkinsWithNoMessages: RichPipe): RichPipe = {
-        val buzz = checkinsWithNoMessages
-                .map('venName -> 'stemmedVenName) {
-            fields: (String) =>
-                val (venName) = fields
-                val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
-                (stemmedVenName)
-        }
-                .filter('stemmedVenName) {
-            fields: (String) =>
-                val venName = fields
-                (!CommonFunctions.isNullOrEmpty(venName))
-        }
-                .joinWithLarger('stemmedVenName -> 'singleShingle, shingles)
-                //                .unique(('stemmedVenName, 'goldenId))
-                .groupBy('stemmedVenName, 'goldenId) {
+    def findBuzz(shingles: RichPipe, checkinsWithNoMessages: RichPipe) =
+        checkinsWithNoMessages
+                .flatMap('venName -> 'stemmedVenName) {
+            venName: String =>
+                if (CommonFunctions.isNullOrEmpty(venName)) None
+                else Some(StemAndMetaphoneEmployer.removeStopWords(venName))
+        }.joinWithLarger('stemmedVenName -> 'singleShingle, shingles).groupBy('stemmedVenName, 'goldenId) {
             _.size('shinglesPerVenue)
-        }
-                .groupBy('stemmedVenName) {
-            _
-                    .sum('shinglesPerVenue -> 'buzzCount)
-                    .toList[String]('goldenId -> 'goldenIdList)
-            //                    .sortWithTake('goldenId -> 'goldenIdList, 100000) {
-            //                (venueId1: (String), venueId2: (String)) => venueId1 > venueId2
-            //            }
-        }
-                .groupAll {
-            _
-                    .sortBy('buzzCount)
-        }
-                .project('stemmedVenName, 'buzzCount, 'goldenIdList)
-        buzz
-    }
+        }.groupBy('stemmedVenName) {
+            _.sum('shinglesPerVenue -> 'buzzCount).toList[String]('goldenId -> 'goldenIdList)
+        }.project('stemmedVenName, 'buzzCount, 'goldenIdList)
 
-    def findBuzzStats(buzz: RichPipe): RichPipe = {
-        val buzzStats = buzz
-                //                .filter('buzzCount) {
-                //            fields: (String) =>
-                //                val (size) = fields
-                //                (size.toInt > 1)
-                //        }
-                .groupAll {
-            _
-                    .average('buzzCount -> ('avg))
+
+    def findBuzzStats(buzz: RichPipe) =
+        buzz.groupAll {
+            _.average('buzzCount -> 'avg).min('buzzCount -> 'min).max('buzzCount -> 'max)
         }
-        buzzStats
-    }
 
-    def findMin(buzz: RichPipe): RichPipe = {
-        val min = buzz
-                .groupAll {
-            _
-                    .min('normalized -> 'min)
-        }.project('min)
-        min
-    }
+    def normalize(buzz: Double, avg: Double) = math.log(buzz / avg)
 
-    def findMax(buzz: RichPipe): RichPipe = {
-        val max = buzz
-                .groupAll {
-            _
-                    .max('normalized -> 'max)
-        }.project('max)
-        max
-    }
-
-    def normalizeBuzz(buzz: RichPipe, buzzStats: RichPipe): RichPipe = {
-        val normalizedBuzz = buzz
-                .crossWithTiny(buzzStats)
-                .map(('buzzCount, 'avg) -> ('normalized)) {
-            fields: (Double, String) =>
-                val (buzz, avg) = fields
-                val normalized = buzz / avg.toDouble
-                val log = scala.math.log(normalized)
-                log
-        }
-                .project('stemmedVenName, 'buzzCount, 'normalized, 'goldenIdList)
+    def calculateBuzzScore(normalizedBuzz: RichPipe, minMaxAvg: RichPipe) =
         normalizedBuzz
-
-    }
-
-    def calculateBuzzScore(normalizedBuzz: RichPipe, min: RichPipe, max: RichPipe): RichPipe = {
-        val buzzScore = normalizedBuzz
-                .crossWithTiny(min)
-                .crossWithTiny(max)
-                .map(('normalized, 'min, 'max) -> 'buzzScore) {
-            fields: (Double, Double, Double) =>
-                val (buzz, min, max) = fields
-                var score = 0.0
-                score = (buzz + (-min)) * (98 / (max + (-(min))))
-                (score + 1.0)
+                .crossWithTiny(minMaxAvg)
+                .flatMapTo(('goldenIdList, 'buzzCount, 'min, 'max, 'avg) ->('rowKey, 'columnName, 'columnValue)) {
+            fields: (List[String], Double, Double, Double, Double) =>
+                val (goldenIdList, buzzCount, min, max, avg) = fields
+                val normalized = normalize(buzzCount, avg)
+                val minNormalized = normalize(min, avg)
+                val maxNormalized = normalize(max, avg)
+                val buzzScore = (normalized - minNormalized) * (98 / (maxNormalized - minNormalized)) + 1.0
+                goldenIdList flatMap {
+                    goldenId => List((goldenId + "_normalizedBuzz", "buzzCount", buzzCount), (goldenId + "_normalizedBuzz", "buzzScore", buzzScore))
+                }
         }
-        buzzScore
-    }
-            .flatMap('goldenIdList -> 'golden) {
-        fields: (List[String]) =>
-            val (goldenIdList) = fields
-            goldenIdList
-    }
-            .project('stemmedVenName, 'buzzCount, 'buzzScore, 'golden)
 
 
 }

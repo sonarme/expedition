@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{Job, Tsv, TextLine, Args}
 
-//convert data to inout format required for tarining tha bayes model
+//convert data to input format required for training tha bayes model
 //com.sonar.expedition.scrawler.jobs.TestDatasetClassifyJob --local
 //then copy the file to occupations
 //cp /tmp/jobsdata5 /tmp/occupationCodetsv.txt and run the training model TrainBayesModel

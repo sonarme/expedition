@@ -28,30 +28,12 @@ class RealSocialGraphTest(args: Args) extends DTOProfileInfoPipe with CheckinGro
     val checkinsInput = args("checkinData")
     val matchedFriends = args("output")
 
-    val data = (TextLine(serviceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
 
-    val twitterdata = (TextLine(twitterServiceProfileInput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
-
-    val joinedProfiles = getTotalProfileTuples(data, twitterdata)
+    val joinedProfiles = getTotalProfileTuples(args)
 
     val friends = groupFriends(TextLine(friendsInput).read)
     val serviceIds = joinedProfiles.rename('key -> 'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
-    val chkindata = unfilteredCheckins(TextLine(checkinsInput).read)
+    val chkindata = null //TODO: unfilteredCheckins(TextLine(checkinsInput).read)
 
     val findFriendsAtTheSameVenue = friendsNearbyByFriends(friends, chkindata, serviceIds)
             .write(TextLine(matchedFriends))

@@ -15,36 +15,15 @@ import com.twitter.scalding.TextLine
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
 class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
-    val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
 
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
-    val bayestrainingmodel = args("bayestrainingmodelforsalary")
-    val sequenceOutputIncome = args("sequenceOutputIncome")
-    val textOutputIncome = args("textOutputIncome")
-
-    val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
-    val twdata = (TextLine(twinput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
+    val bayesmodel = args("bayesmodelforsalary")
+    val staticOutputFile = args("staticOutput")
 
 
-    val (checkins, checkinsWithGoldenId) = checkinSource(args, false, true)
+    val (_, checkinsWithGoldenId) = checkinSource(args, true, true)
     val checkinsWithGolden = checkinsWithGoldenId
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -53,7 +32,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
             (loc)
     }
 
-    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String => GenderFromNameProbability.gender(name)
     }
 
@@ -63,25 +42,33 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
 
     val joinedProfiles = profiles.rename('key -> 'rowkey)
 
-    val seqModel = SequenceFile(bayestrainingmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
-        fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
-
-    }
+    val seqModel = SequenceFile(bayesmodel, ('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)).read
 
     val jobtypes = joinedProfiles.rename('worktitle -> 'data)
             .filter('data) {
         data: String => !isNullOrEmpty(data)
     }
-    val trained = calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
-    val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
-            .rename('rowkey -> 'key)
+    val trained = calcProb(seqModel, jobtypes)
+            .project(('data, 'key, 'weight))
+            .rename(('key, 'weight) ->('income, 'weight1))
+
+    val profilesWithIncome = joinedProfiles
+            .joinWithSmaller('worktitle -> 'data, trained)
+            .project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
+            .discard('rowkey)
+            .flatMap(('fbid, 'lnid, 'fsid, 'twid) -> 'key) {
+        in: (String, String, String, String) =>
+            val (fbid, lnid, fsid, twid) = in
+            //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
+            List("facebook:" + fbid, "twitter:" + twid, "foursquare:" + fsid)
+    }
 
 
     val combined = combineCheckinsProfiles(checkinsWithGolden, profilesWithIncome)
 
 
     val byIncome = groupByIncome(combined)
-            .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+            .mapTo(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, String, Int) =>
             val (venueKey, income, frequency) = in
 
@@ -91,21 +78,19 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
 
             (targetVenueGoldenId, column, value)
     }
-            .project(('rowKey, 'columnName, 'columnValue))
 
-    val totalIncome = byIncome.groupBy('columnName) {
+    val totalIncome = byIncome
+            .groupBy('columnName) {
         _.sum('columnValue)
-    }
-            .map('columnName -> 'rowKey) {
+    }.map('columnName -> 'rowKey) {
         columnName: String => "totalAll_income"
-    }
-            .project(('rowKey, 'columnName, 'columnValue))
+    }.project(('rowKey, 'columnName, 'columnValue))
 
-    val staticOutput =
-        (byIncome ++ totalIncome)
+    val staticOutput = byIncome ++ totalIncome
 
-    val staticSequence = staticOutput.write(SequenceFile(sequenceOutputIncome, Fields.ALL))
-    val staticText = staticOutput.write(TextLine(textOutputIncome))
+    staticOutput
+            .write(SequenceFile(staticOutputFile, Fields.ALL))
+            .write(Tsv(staticOutputFile + "_tsv", Fields.ALL))
 
 
 }

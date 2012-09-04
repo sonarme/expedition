@@ -75,11 +75,11 @@
 //
 //        if (locationPath.matches( """/[\w\d\.]+""")) {
 //            var imageUrl = document.select("img[class*=scaledImageFitWidth img]").text()
-//            if (imageUrl == "") {
+//            if (imageUrl.isEmpty) {
 //                imageUrl = document.select("img").attr("src")
 //            }
 //            var name = document.select("a[itemprop=name]").text()
-//            if (name == "") {
+//            if (name.isEmpty) {
 //                name = document.select("img").attr("alt")
 //            }
 //            val likesElements = document.select("div[class*=uiCollapsedList uiCollapsedListHidden uiCollapsedListNoSeparate pagesListData]").select("a[href]").iterator()

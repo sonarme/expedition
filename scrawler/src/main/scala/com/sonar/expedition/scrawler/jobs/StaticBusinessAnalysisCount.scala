@@ -19,30 +19,12 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     val input = args("serviceProfileInput")
     val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
-    val bayestrainingmodel = args("bayestrainingmodelforsalary")
+    val bayesmodel = args("bayesmodelforsalary")
 
     val checkinOut = args("checkinOut")
     val correlationCheckinOut = args("correlationCheckinOut")
     val withHomeWorkOut = args("withHomeWorkOut")
     val combinedOut = args("combinedOut")
-
-    val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
-    val twdata = (TextLine(twinput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
 
 
     val (checkins, checkinsWithGoldenId) = checkinSource(args, false, true)
@@ -67,7 +49,7 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     }
             .write(TextLine(correlationCheckinOut))
 
-    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String => GenderFromNameProbability.gender(name)
     }
 
@@ -90,7 +72,7 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     val serviceIds = total.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val friendsForCoworker = groupFriends(friendData)
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
-    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins.++(coworkerCheckins))
+    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
     val homeCheckins = groupHomeCheckins(checkins)
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
