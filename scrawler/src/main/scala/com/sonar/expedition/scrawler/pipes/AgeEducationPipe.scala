@@ -12,8 +12,8 @@ trait AgeEducationPipe extends ScaldingImplicits {
         serviceProfileInput.map(('eyear, 'edegree, 'educ) ->('age, 'degree)) {
             fields: (String, String, String) =>
                 val (eyear, edegree, school) = fields
-                val age = getAge(eyear, parsedDegree, edegree)
                 val parsedDegree = parseDegree(edegree, school)
+                val age = getAge(eyear, parsedDegree, edegree)
                 (age, parsedDegree)
         }
 
