@@ -20,8 +20,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
     val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
     val bayesmodel = args("bayesmodelforsalary")
-    val sequenceOutputIncome = args("sequenceOutputIncome")
-    val textOutputIncome = args("textOutputIncome")
+    val staticOutputFile = args("staticOutput")
 
     val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
         line: String => {
@@ -42,7 +41,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
     }).project(('id, 'serviceType, 'jsondata))
 
 
-    val (checkins, checkinsWithGoldenId) = checkinSource(args, false, true)
+    val (_, checkinsWithGoldenId) = checkinSource(args, true, true)
     val checkinsWithGolden = checkinsWithGoldenId
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -108,8 +107,8 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
     val staticOutput = byIncome ++ totalIncome
 
     staticOutput
-            .write(SequenceFile(sequenceOutputIncome, Fields.ALL))
-            .write(TextLine(textOutputIncome))
+            .write(SequenceFile(staticOutputFile, Fields.ALL))
+            .write(Tsv(staticOutputFile + "_tsv", Fields.ALL))
 
 
 }

@@ -20,80 +20,44 @@ trait BuzzFromCheckins extends ScaldingImplicits {
         }
 
 
-    def findBuzz(shingles: RichPipe, checkinsWithNoMessages: RichPipe): RichPipe = {
-        val buzz = checkinsWithNoMessages
+    def findBuzz(shingles: RichPipe, checkinsWithNoMessages: RichPipe) =
+        checkinsWithNoMessages
                 .flatMap('venName -> 'stemmedVenName) {
             venName: String =>
                 if (CommonFunctions.isNullOrEmpty(venName)) None
                 else Some(StemAndMetaphoneEmployer.removeStopWords(venName))
-        }
-                .joinWithLarger('stemmedVenName -> 'singleShingle, shingles)
-                //                .unique(('stemmedVenName, 'goldenId))
-                .groupBy('stemmedVenName, 'goldenId) {
+        }.joinWithLarger('stemmedVenName -> 'singleShingle, shingles).groupBy('stemmedVenName, 'goldenId) {
             _.size('shinglesPerVenue)
-        }
-                .groupBy('stemmedVenName) {
-            _
-                    .sum('shinglesPerVenue -> 'buzzCount)
-                    .toList[String]('goldenId -> 'goldenIdList)
-            //                    .sortWithTake('goldenId -> 'goldenIdList, 100000) {
-            //                (venueId1: (String), venueId2: (String)) => venueId1 > venueId2
-            //            }
-        }
-                .groupAll {
-            _
-                    .sortBy('buzzCount)
-        }
-                .project('stemmedVenName, 'buzzCount, 'goldenIdList)
-        buzz
-    }
+        }.groupBy('stemmedVenName) {
+            _.sum('shinglesPerVenue -> 'buzzCount).toList[String]('goldenId -> 'goldenIdList)
+        }.groupAll {
+            _.sortBy('buzzCount)
+        }.project('stemmedVenName, 'buzzCount, 'goldenIdList)
 
-    def findBuzzStats(buzz: RichPipe): RichPipe = {
-        val buzzStats = buzz
-                //                .filter('buzzCount) {
-                //            fields: (String) =>
-                //                val (size) = fields
-                //                (size.toInt > 1)
-                //        }
-                .groupAll {
-            _
-                    .average('buzzCount -> ('avg))
-        }
-        buzzStats
-    }
 
-    def findMin(buzz: RichPipe): RichPipe = {
-        val min = buzz
-                .groupAll {
-            _
-                    .min('normalized -> 'min)
+    def findBuzzStats(buzz: RichPipe) =
+        buzz.groupAll {
+            _.average('buzzCount -> ('avg))
+        }
+
+    def findMin(buzz: RichPipe) =
+        buzz.groupAll {
+            _.min('normalized -> 'min)
         }.project('min)
-        min
-    }
 
-    def findMax(buzz: RichPipe): RichPipe = {
-        val max = buzz
-                .groupAll {
-            _
-                    .max('normalized -> 'max)
+    def findMax(buzz: RichPipe) =
+        buzz.groupAll {
+            _.max('normalized -> 'max)
         }.project('max)
-        max
-    }
 
-    def normalizeBuzz(buzz: RichPipe, buzzStats: RichPipe): RichPipe = {
-        val normalizedBuzz = buzz
-                .crossWithTiny(buzzStats)
+    def normalizeBuzz(buzz: RichPipe, buzzStats: RichPipe) =
+        buzz.crossWithTiny(buzzStats)
                 .map(('buzzCount, 'avg) -> ('normalized)) {
             fields: (Double, String) =>
                 val (buzz, avg) = fields
                 val normalized = buzz / avg.toDouble
-                val log = scala.math.log(normalized)
-                log
-        }
-                .project('stemmedVenName, 'buzzCount, 'normalized, 'goldenIdList)
-        normalizedBuzz
-
-    }
+                math.log(normalized)
+        }.project('stemmedVenName, 'buzzCount, 'normalized, 'goldenIdList)
 
     def calculateBuzzScore(normalizedBuzz: RichPipe, min: RichPipe, max: RichPipe): RichPipe = {
         val buzzScore = normalizedBuzz

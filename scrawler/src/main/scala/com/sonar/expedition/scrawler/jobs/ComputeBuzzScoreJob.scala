@@ -14,6 +14,7 @@ class ComputeBuzzScoreJob(args: Args) extends Job(args) with CheckinSource with 
     val normalizedBuzz = normalizeBuzz(buzz, buzzStats)
     val buzzMin = findMin(normalizedBuzz)
     val buzzMax = findMax(normalizedBuzz)
-    val buzzScore = calculateBuzzScore(normalizedBuzz, buzzMin, buzzMax).write(TextLine(output))
+    calculateBuzzScore(normalizedBuzz, buzzMin, buzzMax)
+            .write(TextLine(output))
 
 }
