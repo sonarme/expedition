@@ -43,12 +43,12 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
                 else {
                     val jsondata = ByteBufferUtil.getArray(jsondataBuffer)
                     val rowkey = StringSerializer.get().fromByteBuffer(userProfileIdBuffer)
-                    val serviceType = StringSerializer.get().fromByteBuffer(columnNameBuffer).split(':').last
+                    val serviceType = ServiceType.valueOf(StringSerializer.get().fromByteBuffer(columnNameBuffer).split(':').last)
                     try {
                         Option(ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](jsondata, classOf[ServiceProfileDTO])) map {
                             parsed =>
 
-                                val priority = if (serviceType == "ln") 0 else 1
+                                val priority = if (serviceType == ServiceType.linkedin) 0 else 1
                                 val work = parsed.work.headOption
                                 val education = parsed.education.headOption
                                 val profileData = new ProfileData(
@@ -66,10 +66,10 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
                                 profileData.fbid = ??(parsed.aliases.facebook).map(hashed).getOrElse("")
 
                                 serviceType match {
-                                    case "ln" => profileData.lnid = Option(hashed(parsed.userId)).getOrElse("")
-                                    case "fb" => profileData.fbid = Option(hashed(parsed.userId)).getOrElse("")
-                                    case "tw" => profileData.twid = Option(hashed(parsed.userId)).getOrElse("")
-                                    case "4s" => profileData.fsid = Option(hashed(parsed.userId)).getOrElse("")
+                                    case ServiceType.linkedin => profileData.lnid = Option(hashed(parsed.userId)).getOrElse("")
+                                    case ServiceType.facebook => profileData.fbid = Option(hashed(parsed.userId)).getOrElse("")
+                                    case ServiceType.twitter => profileData.twid = Option(hashed(parsed.userId)).getOrElse("")
+                                    case ServiceType.foursquare => profileData.fsid = Option(hashed(parsed.userId)).getOrElse("")
                                 }
 
 
