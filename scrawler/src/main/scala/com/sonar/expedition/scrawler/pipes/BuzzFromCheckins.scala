@@ -43,17 +43,17 @@ trait BuzzFromCheckins extends ScaldingImplicits {
     def calculateBuzzScore(normalizedBuzz: RichPipe, minMaxAvg: RichPipe) =
         normalizedBuzz
                 .crossWithTiny(minMaxAvg)
-                .flatMap(('goldenIdList, 'buzzCount, 'min, 'max, 'avg) ->('goldenId, 'buzzScore)) {
+                .flatMapTo(('goldenIdList, 'buzzCount, 'min, 'max, 'avg) ->('rowKey, 'columnName, 'columnValue)) {
             fields: (List[String], Double, Double, Double, Double) =>
-                val (goldenIdList, buzz, min, max, avg) = fields
-                val normalized = normalize(buzz, avg)
+                val (goldenIdList, buzzCount, min, max, avg) = fields
+                val normalized = normalize(buzzCount, avg)
                 val minNormalized = normalize(min, avg)
                 val maxNormalized = normalize(max, avg)
-                val score = (normalized - minNormalized) * (98 / (maxNormalized - minNormalized)) + 1.0
-                goldenIdList map {
-                    goldenId => (goldenId, score)
+                val buzzScore = (normalized - minNormalized) * (98 / (maxNormalized - minNormalized)) + 1.0
+                goldenIdList flatMap {
+                    goldenId => List((goldenId + "_normalizedBuzz", "buzzCount", buzzCount), (goldenId + "_normalizedBuzz", "buzzScore", buzzScore))
                 }
-        }.project('stemmedVenName, 'buzzCount, 'buzzScore, 'goldenId)
+        }
 
 
 }

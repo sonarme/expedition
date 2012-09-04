@@ -14,10 +14,6 @@ class ComputeBuzzScoreJob(args: Args) extends Job(args) with CheckinSource with 
     val buzzStats = findBuzzStats(buzz)
     val scores = calculateBuzzScore(buzz, buzzStats)
 
-    scores.flatMapTo(('buzzCount, 'buzzScore, 'goldenId) ->('rowKey, 'columnName, 'columnValue)) {
-        fields: (Double, Double, String) =>
-            val (buzzCount, buzzScore, goldenId) = fields
-            List((goldenId + "_normalizedBuzz", "buzzCount", buzzCount), (goldenId + "_normalizedBuzz", "buzzScore", buzzScore))
-    }.write(SequenceFile(output, Fields.ALL))
+    scores.write(SequenceFile(output, Fields.ALL))
             .write(Tsv(output + "_tsv", Fields.ALL))
 }
