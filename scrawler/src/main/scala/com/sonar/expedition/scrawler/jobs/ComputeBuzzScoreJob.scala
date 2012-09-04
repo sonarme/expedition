@@ -14,6 +14,6 @@ class ComputeBuzzScoreJob(args: Args) extends Job(args) with CheckinSource with 
     val buzzStats = findBuzzStats(buzz)
     val scores = calculateBuzzScore(buzz, buzzStats)
 
-    scores.write(SequenceFile(output, Fields.ALL))
-            .write(Tsv(output + "_tsv", Fields.ALL))
+    scores.write(SequenceFile(output, ('rowKey, 'columnName, 'columnValue)))
+            .write(Tsv(output + "_tsv", ('rowKey, 'columnName, 'columnValue)))
 }
