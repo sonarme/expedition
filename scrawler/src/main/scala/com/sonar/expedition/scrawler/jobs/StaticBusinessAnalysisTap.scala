@@ -22,29 +22,10 @@ import com.sonar.expedition.scrawler.util.CommonFunctions
 class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
 
-    val input = args("serviceProfileInput")
-    val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
     val bayesmodel = args("bayesmodelforsalary")
     val sequenceOutputStaticOption = args.optional("staticOutput")
     val sequenceOutputTimeOption = args.optional("timeOutput")
-
-    val data = TextLine(input).read.flatMapTo('line ->('id, 'serviceType, 'jsondata)) {
-        line: String =>
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => Some((userProfileId, serviceType, json))
-                case _ => None
-            }
-    }
-
-    val twdata = TextLine(twinput).read.flatMapTo('line ->('id, 'serviceType, 'jsondata)) {
-        line: String =>
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => Some((userProfileId, serviceType, json))
-                case _ => None
-            }
-    }
-
 
     val (newCheckins, checkinsWithGoldenId) = checkinSource(args, false, true)
 
@@ -55,7 +36,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
             lat + ":" + lng
     }
 
-    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String =>
             val (gender, prob) = GenderFromNameProbability.gender(name)
             (gender, prob)

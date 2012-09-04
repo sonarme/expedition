@@ -22,24 +22,6 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
     val bayesmodel = args("bayesmodelforsalary")
     val staticOutputFile = args("staticOutput")
 
-    val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
-    val twdata = (TextLine(twinput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
 
     val (_, checkinsWithGoldenId) = checkinSource(args, true, true)
     val checkinsWithGolden = checkinsWithGoldenId
@@ -50,7 +32,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
             (loc)
     }
 
-    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String => GenderFromNameProbability.gender(name)
     }
 

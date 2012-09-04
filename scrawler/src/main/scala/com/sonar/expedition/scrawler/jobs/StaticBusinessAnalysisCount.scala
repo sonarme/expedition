@@ -26,24 +26,6 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     val withHomeWorkOut = args("withHomeWorkOut")
     val combinedOut = args("combinedOut")
 
-    val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
-    val twdata = (TextLine(twinput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
 
     val (checkins, checkinsWithGoldenId) = checkinSource(args, false, true)
 
@@ -67,7 +49,7 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     }
             .write(TextLine(correlationCheckinOut))
 
-    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String => GenderFromNameProbability.gender(name)
     }
 

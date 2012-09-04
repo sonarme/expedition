@@ -16,16 +16,8 @@ class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with Ch
     val chkininputData = args("checkinData")
     val jobOutput = args("output")
 
-    val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
 
-    val joinedProfiles = getDTOProfileInfoInTuples(data)
+    val joinedProfiles = getTotalProfileTuples(args)
 
     val chkindata = groupHomeCheckins(TextLine(chkininputData).read)
 

@@ -57,20 +57,9 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
     val groupcountry = args("groupcountry")
     val groupcity = args("groupcity")
 
-
-    val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
-
     val levenshteiner = new Levenshtein()
 
-    val joinedProfiles = getDTOProfileInfoInTuples(data)
+    val joinedProfiles = getTotalProfileTuples(args)
 
 
     val filteredProfiles = joinedProfiles.project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle))
@@ -102,7 +91,7 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
 
     val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
-    val employerGroupedServiceProfiles = getDTOProfileInfoInTuples(data).project(('key, 'worked))
+    val employerGroupedServiceProfiles = joinedProfiles.project(('key, 'worked))
 
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
 
@@ -128,8 +117,8 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
 
     val jobRunPipeResults = jobTypeToRun(jobtypeTorun, filteredProfilesWithScore, seqModel, trainedseqmodel)
 
-    internalAnalysisGroupByServiceType(data).write(TextLine(serviceCount))
-    internalAnalysisUniqueProfiles(data).write(TextLine(profileCount))
+    internalAnalysisGroupByServiceType(joinedProfiles).write(TextLine(serviceCount))
+    internalAnalysisUniqueProfiles(joinedProfiles).write(TextLine(profileCount))
     internalAnalysisGroupByCity(joinedProfiles).write(TextLine(geoCount))
 
     val (returnpipecity, returnpipecountry, returnpipework) = internalAnalysisGroupByCityCountryWorktitle(filteredProfilesWithScore, placesPipe, jobRunPipeResults, geohashsectorsize) //'key, 'uname, 'fbid, 'lnid, 'city, 'worktitle, 'lat, 'long, 'stemmedWorked, 'certaintyScore, 'numberOfFriends
