@@ -16,8 +16,6 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
 
-    val input = args("serviceProfileInput")
-    val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
     val bayesmodel = args("bayesmodelforsalary")
 

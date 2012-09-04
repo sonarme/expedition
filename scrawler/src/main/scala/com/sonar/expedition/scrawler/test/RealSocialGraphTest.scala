@@ -23,7 +23,6 @@ com.sonar.expedition.scrawler.test.RealSocialGraphTest --local --serviceProfileD
 
 class RealSocialGraphTest(args: Args) extends DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with RealSocialGraph {
     val serviceProfileInput = args("serviceProfileData")
-    val twitterServiceProfileInput = args("twitterServiceProfileData")
     val friendsInput = args("friendData")
     val checkinsInput = args("checkinData")
     val matchedFriends = args("output")
