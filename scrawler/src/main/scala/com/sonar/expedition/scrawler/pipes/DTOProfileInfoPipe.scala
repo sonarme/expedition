@@ -36,7 +36,7 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
     def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
 
         val dtoProfiles = datahandle
-                .flatMap(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('id, 'priority, 'profile)) {
+                .flatMapTo(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('id, 'priority, 'profile)) {
             in: (ByteBuffer, ByteBuffer, ByteBuffer) =>
                 val (userProfileIdBuffer, columnNameBuffer, jsondataBuffer) = in
                 if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
