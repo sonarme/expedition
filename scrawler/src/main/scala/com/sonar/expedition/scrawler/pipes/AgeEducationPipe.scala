@@ -8,23 +8,14 @@ import com.sonar.expedition.scrawler.pipes.AgeEducationPipe._
 
 trait AgeEducationPipe extends ScaldingImplicits {
 
-    def ageEducationPipe(serviceProfileInput: RichPipe): RichPipe = {
-
-        // ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid (twalias if not total data), 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
-
-        val age = serviceProfileInput.map(('eyear, 'edegree, 'educ) ->('age, 'degree)) {
-            fields: (String, String, String) => {
+    def ageEducationPipe(serviceProfileInput: RichPipe) =
+        serviceProfileInput.map(('eyear, 'edegree, 'educ) ->('age, 'degree)) {
+            fields: (String, String, String) =>
                 val (eyear, edegree, school) = fields
-                val parsedDegree = parseDegree(edegree, school)
                 val age = getAge(eyear, parsedDegree, edegree)
+                val parsedDegree = parseDegree(edegree, school)
                 (age, parsedDegree)
-
-            }
         }
-
-        age
-
-    }
 
     def parseDegree(orig: String, school: String): String = {
 
@@ -58,7 +49,7 @@ trait AgeEducationPipe extends ScaldingImplicits {
         }
 
         val schoolList = school.replaceAll( """\p{P}""", "").toLowerCase.split("\\s+")
-        val isHigh = schoolList.foldLeft[Boolean](false)((a, b) => a || b.equals("high"))
+        val isHigh = schoolList.exists(_ == "high")
 
         if (isHigh)
             "H"
@@ -67,25 +58,14 @@ trait AgeEducationPipe extends ScaldingImplicits {
     }
 
     def getAge(eYear: String, parsedDegree: String, degree: String): Int = {
-        val agefunction = Map[String, Int](
-            "H" -> 18,
-            "A" -> 20,
-            "MBA" -> 28,
-            "D" -> 32,
-            "M" -> 24,
-            "J" -> 27,
-            "P" -> 37,
-            "B" -> 22,
-            "O" -> 22,
-            "NA" -> 22
-        )
 
-        if (isNumeric(degree) && !degree.equals(""))
+
+        if (isNumeric(degree) && degree != "")
             2012 - degree.toInt + 22
-        else if (!isNumeric(eYear) || eYear.equals(""))
+        else if (!isNumeric(eYear) || eYear == "")
             -1
         else
-            2012 - eYear.toInt + agefunction.get(parsedDegree).get
+            2012 - eYear.toInt + AgeFunction(parsedDegree)
 
     }
 
@@ -100,5 +80,16 @@ object AgeEducationPipe {
     val Doctor: Regex = """(doctor.*?|d.?.?.?.?|phd?|md|edd)""".r
     val JD: Regex = """j.?.?.?.?""".r
     val Postdoc: Regex = """post(d.*|g.*)?""".r
-
+    val AgeFunction = Map(
+        "H" -> 18,
+        "A" -> 20,
+        "MBA" -> 28,
+        "D" -> 32,
+        "M" -> 24,
+        "J" -> 27,
+        "P" -> 37,
+        "B" -> 22,
+        "O" -> 22,
+        "NA" -> 22
+    )
 }
