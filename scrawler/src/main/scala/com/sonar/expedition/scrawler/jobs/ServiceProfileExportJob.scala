@@ -1,16 +1,9 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{SequenceFile, Args, Job}
-import cascading.tuple.Fields
+import com.twitter.scalding.{Args, Job}
 import com.sonar.scalding.cassandra._
-import java.nio.ByteBuffer
-import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
-import com.sonar.expedition.scrawler.util.CommonFunctions
-import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.twitter.scalding.SequenceFile
-import scala.Some
 import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
-import scala.Some
 import com.sonar.scalding.cassandra.CassandraSource
 
 class ServiceProfileExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
