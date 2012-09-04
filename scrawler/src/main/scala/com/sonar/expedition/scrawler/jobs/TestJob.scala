@@ -7,6 +7,6 @@ class TestJob(args: Args) extends Job(args) {
     Tsv("test.tsv", ('a, 'bStr)).read.map('bStr -> 'b) {
         in: Double => in
     }.groupAll {
-        _.average('b -> 'avg).min('b -> 'min).max('b -> 'max)
+        _.sortBy('b)
     }.write(Tsv("test_out.tsv", Fields.ALL))
 }

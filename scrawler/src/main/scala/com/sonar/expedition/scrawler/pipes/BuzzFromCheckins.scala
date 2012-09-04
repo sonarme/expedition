@@ -30,8 +30,6 @@ trait BuzzFromCheckins extends ScaldingImplicits {
             _.size('shinglesPerVenue)
         }.groupBy('stemmedVenName) {
             _.sum('shinglesPerVenue -> 'buzzCount).toList[String]('goldenId -> 'goldenIdList)
-        }.groupAll {
-            _.sortBy('buzzCount)
         }.project('stemmedVenName, 'buzzCount, 'goldenIdList)
 
 
