@@ -5,6 +5,10 @@ import reflect.BeanProperty
 import org.jsoup.select.Elements
 import scala.collection.JavaConversions._
 
+/**
+ * extract content from a page (content)
+ * @param content
+ */
 class Extractor(@BeanProperty val content: String) {
 
     def doc = Jsoup.parse(content)
@@ -105,5 +109,23 @@ class YelpExtractor(content: String) extends Extractor(content) {
 }
 
 class CitySearchExtractor(content: String) extends Extractor(content) {
+    override def businessName() = extractById("coreInfo.name").getOrElse("")
 
+    override def latitude() = extractByAttributeValueAttribute("property", "place:location:latitude", "content").getOrElse("0.0").toDouble
+
+    override def longitude() = extractByAttributeValueAttribute("property", "place:location:longitude", "content").getOrElse("0.0").toDouble
+
+    override def address() = extractByAttributeValueAttribute("property", "og:street-address", "content").getOrElse("")
+
+    override def city() = extractByAttributeValueAttribute("property", "og:locality", "content").getOrElse("")
+
+    override def state() = extractByAttributeValueAttribute("property", "og:region", "content").getOrElse("")
+
+    override def zip() = extractByAttributeValueAttribute("property", "og:postal-code", "content").getOrElse("")
+
+    override def phone() = extractById("coreInfo.phone").getOrElse("")
+
+    override def rating() = extractByAttributeValue("class", "average").getOrElse("")
+
+    override def reviewCount() = extractByAttributeValue("class", "votes").getOrElse("0").toInt //this is really the ratings count
 }

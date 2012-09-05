@@ -148,7 +148,7 @@ class Crawler(args: Args) extends Job(args) {
         .write(linksOutput)
 
 
-    //Parse out the content and write to parsed.tsv  ...for yelp, only parse out links that start with /biz
+    //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
             .filter('url) { url: String => ParseFilterFactory.getParseFilter(domain).isIncluded(url)}
             .map('content -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews)) { content: String => {

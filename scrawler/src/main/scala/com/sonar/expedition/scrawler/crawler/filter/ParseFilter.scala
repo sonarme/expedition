@@ -14,5 +14,5 @@ case class YelpParseFilter() extends ParseFilter {
 }
 
 case class CitySearchParseFilter() extends ParseFilter {
-    override def isIncluded(url: String) = true
+    override def isIncluded(url: String) = if (url.contains(Sites.CitySearch + "/profile/")) true else false
 }
