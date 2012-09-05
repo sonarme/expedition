@@ -91,7 +91,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 }
 
 object DealAnalysis {
-    val DealsOutputTuple = ('dealId, 'goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)
+    val DealsOutputTuple = ('dealId, 'goldenId, 'venName, 'venueAddress, 'venuePhone, 'merchantName, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}
