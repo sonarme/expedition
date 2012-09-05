@@ -126,12 +126,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     .mapTo(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
                 in: (String, Gender, Int) =>
                     val (venueKey, impliedGender, frequency) = in
-
-                    val targetVenueGoldenId = venueKey + "_gender"
-                    val column = impliedGender
-                    val value = frequency.toDouble
-
-                    (targetVenueGoldenId, column, value)
+                    (venueKey + "_gender", impliedGender, frequency.toDouble)
 
             }
 

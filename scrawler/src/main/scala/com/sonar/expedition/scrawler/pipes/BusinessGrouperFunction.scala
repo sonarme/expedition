@@ -63,16 +63,13 @@ trait BusinessGrouperFunction extends ScaldingImplicits {
         }
     }
 
-    def groupByGender(combinedInput: RichPipe): RichPipe = {
+    def groupByGender(combinedInput: RichPipe) =
         combinedInput
                 .filter('impliedGender) {
-            gend: Gender => !(gend == Gender.unknown)
-        }
-                // .groupBy('impliedGender, 'venueKey, 'hourChunk) {
-                .groupBy('impliedGender, 'venueKey) {
+            gender: Gender => gender != Gender.unknown
+        }.groupBy('impliedGender, 'venueKey) {
             _.size
         }
-    }
 
     def groupByDegree(combinedInput: RichPipe): RichPipe = {
         combinedInput
