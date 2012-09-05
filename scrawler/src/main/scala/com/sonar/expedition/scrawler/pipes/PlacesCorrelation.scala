@@ -35,14 +35,12 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 }
         }.groupBy('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng) {
             _.min('distance).head('classifiersCategory, 'propertiesAddress, 'venuePhone)
-        }.discard('distance).map(('venTypeFromModel, 'venAddress, 'classifiersCategory, 'propertiesAddress) ->('venueType, 'venueAddress)) {
+        }.discard('distance).map(('venTypeFromModel, 'classifiersCategory) -> ('venueType)) {
 
-            in: (String, String, String, String) =>
-                val (venTypeFromModel, venAddress, venTypeFromPlacesData, propertiesAddress) = in
+            in: (String, String) =>
+                val (venTypeFromModel, venTypeFromPlacesData) = in
                 // TODO: allow multiple venue types
-                (if (CommonFunctions.isNullOrEmpty(venTypeFromPlacesData)) venTypeFromModel else venTypeFromPlacesData.split(",").head,
-                        if (CommonFunctions.isNullOrEmpty(venAddress)) propertiesAddress else venAddress)
-
+                if (CommonFunctions.isNullOrEmpty(venTypeFromPlacesData)) venTypeFromModel else venTypeFromPlacesData.split(",").head
 
         }
     }

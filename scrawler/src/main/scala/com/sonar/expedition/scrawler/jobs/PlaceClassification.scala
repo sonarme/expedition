@@ -20,7 +20,7 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
 }
 
 object PlaceClassification {
-    val PlaceClassificationOutputTuple = ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venueAddress, 'venuePhone, 'venueType)
+    val PlaceClassificationOutputTuple = ('goldenId, 'venueId, 'venueLat, 'venueLng, 'venName, 'venAddress, 'venuePhone, 'venueType)
 }
 
 /*
