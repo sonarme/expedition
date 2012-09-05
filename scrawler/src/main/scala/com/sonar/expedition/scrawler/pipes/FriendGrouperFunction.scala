@@ -10,15 +10,15 @@ trait FriendGrouperFunction extends ScaldingImplicits {
 
     def groupFriends(input: RichPipe) =
 
-        input.flatMapTo('line ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
+        input.flatMapTo('line ->('userProfileId, 'serviceType, 'serviceProfileId)) {
             line: String =>
                 line match {
                     // change when we use prod data
-                    case FriendProdExtractLine(id, serviceType, serviceId, friendName) => Some((id, serviceType, hashed(serviceId), friendName))
-                    case FriendExtractLine(id, other2, serviceId, serviceType, friendName, other) => Some((id, serviceType, hashed(serviceId), friendName))
+                    case FriendProdExtractLine(id, serviceType, serviceId, _) => Some((id, serviceType, hashed(serviceId)))
+                    case FriendExtractLine(id, other2, serviceId, serviceType, _, other) => Some((id, serviceType, hashed(serviceId)))
                     case _ => None
                 }
-        }.unique('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
+        }.unique('userProfileId, 'serviceType, 'serviceProfileId)
 
 
 }

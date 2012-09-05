@@ -9,7 +9,7 @@ trait FriendsAtSameVenue extends ScaldingImplicits {
     // TODO: this is a duplicate of friendsAtSameVenue in CheckinGrouperFunction, but there are slight differences, esp in the naming of tuples. CLEANUP!
     def friendsAtSameVenueDuplicate(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
+        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId)
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields

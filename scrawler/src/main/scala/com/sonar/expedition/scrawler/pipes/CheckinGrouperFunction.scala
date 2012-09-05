@@ -68,7 +68,7 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
 
     def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendsInput.project(('keyid, 'serviceProfileId, 'friendName))
+        val userIdGroupedFriends = friendsInput.project(('keyid, 'serviceProfileId))
                 .map(('keyid, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields

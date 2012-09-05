@@ -9,15 +9,15 @@ import com.twitter.scalding.{Args}
 
 trait FriendInfoPipe extends ScaldingImplicits {
     def friendsDataPipe(checkinInput: RichPipe): RichPipe = {
-        val friends = (checkinInput.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
+        val friends = (checkinInput.project('line).map(('line) ->('userProfileId, 'serviceType, 'serviceProfileId)) {
             line: String => {
                 line match {
-                    case DataExtractLineFriend(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
-                    case NullNameExtractLine(id, other2, serviceID, serviceType, friendName) => (id, serviceType, serviceID, friendName)
+                    case DataExtractLineFriend(id, other2, serviceID, serviceType, _) => (id, serviceType, serviceID)
+                    case NullNameExtractLine(id, other2, serviceID, serviceType, _) => (id, serviceType, serviceID)
                     case _ => ("None", "None", "None", "None")
                 }
             }
-        }).project(('userProfileId, 'serviceType, 'serviceProfileId, 'friendName))
+        }).project(('userProfileId, 'serviceType, 'serviceProfileId))
 
         //        Use the code below when md5 hashing is needed
 
