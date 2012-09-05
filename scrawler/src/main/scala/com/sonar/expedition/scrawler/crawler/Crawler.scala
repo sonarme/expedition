@@ -21,7 +21,6 @@ class Crawler(args: Args) extends Job(args) {
     val outputDir = args("output")
     val domain = args("domain")
 
-    //(url, lastFetched, lastUpdated, lastStatus, crawlDepth)
     val links = Tsv(outputDir+"/crawl_"+level+"/links.tsv", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
     val linksOutput = Tsv(outputDir+"/crawl_"+levelUp+"/links.tsv", ('url, 'timestamp, 'referer))
     val status = Tsv(outputDir+"/crawl_"+level+"/status.tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
@@ -121,10 +120,10 @@ class Crawler(args: Args) extends Job(args) {
                                     } else {
                                         ""
                                     }
-                                }).filter(_.indexOf(domain) > -1).mkString(",")
-                            } else ""
+                                }).filter(_.indexOf(domain) > -1)
+                            } else List.empty[String]
                         }
-                        case _ => ""
+                        case _ => List.empty[String]
                     }
                     (new DateTime().getMillis, status, content, links)
                 }
@@ -138,10 +137,8 @@ class Crawler(args: Args) extends Job(args) {
 
     //Write outgoing links from rawTuples to next links level
     val outgoingLinks = rawTuples
-            .project('links)
-            .flatMapTo('links -> 'link) { links : String => links.split(",")}
+            .flatMapTo('links -> 'link) { links : Iterable[String] => links.filter(link => link != null && link != "") }
             .unique('link)
-            .filter('link) {link: String => link != null && link != ""}
             .mapTo('link -> ('url, 'timestamp, 'referer)) { link: String => (link, new DateTime().getMillis, "referer")}
 
     outgoingLinks
