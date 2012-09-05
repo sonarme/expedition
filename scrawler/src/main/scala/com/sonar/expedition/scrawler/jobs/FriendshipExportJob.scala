@@ -17,7 +17,7 @@ class FriendshipExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe 
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
-        columnFamilyName = "ServiceProfile",
+        columnFamilyName = "Friendship",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
             nameField = ('columnNameBuffer, 'jsondataBuffer))
     ).mapTo(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('userProfileId, 'serviceType, 'serviceProfileId)) {
