@@ -20,7 +20,7 @@ class FriendshipExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe 
         columnFamilyName = "Friendship",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
             nameField = ('columnNameBuffer, 'jsondataBuffer))
-    ).limit(5).flatMapTo(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('userProfileId, 'serviceType, 'serviceProfileId)) {
+    ).flatMapTo(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('userProfileId, 'serviceType, 'serviceProfileId)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) =>
             val (userProfileIdBuffer, columnNameBuffer, jsondataBuffer) = in
             val userProfileId = StringSerializer.get().fromByteBuffer(userProfileIdBuffer)
