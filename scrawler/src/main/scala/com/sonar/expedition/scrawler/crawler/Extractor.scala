@@ -4,6 +4,8 @@ import org.jsoup.Jsoup
 import reflect.BeanProperty
 import org.jsoup.select.Elements
 import scala.collection.JavaConversions._
+import org.jsoup.nodes.Element
+import org.jsoup.parser.Tag
 
 /**
  * extract content from a page (content)
@@ -83,9 +85,7 @@ class YelpExtractor(content: String) extends Extractor(content) {
 
     override def category() = extractByAttributeValue("itemprop", "title").getOrElse("")
 
-    override def subcategory() = extractById("subcategory").getOrElse("")
-
-    override def rating() = extractByAttributeValueAttribute("itemprop", "ratingValue", "content").getOrElse("")
+    override def rating() = extractByAttributeValueAttribute("itemprop", "ratingValue", "content").getOrElse("")  //todo: need to normalize the rating value across the board. maybe a percentage?
 
     override def latitude() = extractByAttributeValueAttribute("property", "og:latitude", "content").getOrElse("0.0").toDouble
 
@@ -111,6 +111,10 @@ class YelpExtractor(content: String) extends Extractor(content) {
 class CitySearchExtractor(content: String) extends Extractor(content) {
     override def businessName() = extractById("coreInfo.name").getOrElse("")
 
+    override def category() = extractByDtAndValue("Categories:")
+
+    override def rating() = extractByAttributeValue("class", "average").getOrElse("")
+
     override def latitude() = extractByAttributeValueAttribute("property", "place:location:latitude", "content").getOrElse("0.0").toDouble
 
     override def longitude() = extractByAttributeValueAttribute("property", "place:location:longitude", "content").getOrElse("0.0").toDouble
@@ -125,7 +129,29 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
 
     override def phone() = extractById("coreInfo.phone").getOrElse("")
 
-    override def rating() = extractByAttributeValue("class", "average").getOrElse("")
+    override def priceRange() = extractByDtAndValue("Price:")
 
     override def reviewCount() = extractByAttributeValue("class", "votes").getOrElse("0").toInt //this is really the ratings count
+
+    //custom extraction for citysearch
+    def extractByDtAndValue(value: String) = {
+        doc.getElementsByClass("sideBySide") match {
+            case eles: Elements => {
+                val targetElement = eles.reduceLeft {
+                    (a, b) => {
+                        if (a.getElementsByTag("dt").head.text().equals(value))
+                            a
+                        else
+                            b
+                    }
+                }
+                //check if we found the correct element
+                if (targetElement.getElementsByTag("dt").head.text().equals(value)) {
+                    Jsoup.parse(targetElement.getElementsByTag("span").text()).text()
+                } else
+                    ""
+            }
+            case _ => ""
+        }
+    }
 }
