@@ -55,10 +55,6 @@ class YelpCrawl(args: Args) extends Job(args) {
 
 //    deals.write(output2)
 
-
-//AIzaSyBGMdzvyR3ukosXUsP1WP2Y0HyYdg0Et0I    cx=006791239123053240581:cimxfefdlpc
-//AIzaSyCdek83xZ0ygesQNDJ95Cd2fwb1X0I1I20    cx=013357335450719720838:tyjun3pvcxm
-
     val results = deals
         .map(('merchantName, 'address, 'city, 'state) -> 'json) {
         in: (String, String, String, String) =>
@@ -67,7 +63,7 @@ class YelpCrawl(args: Args) extends Job(args) {
             val query = (merchantName + " " + city + " " + state).toLowerCase.replace(" ", "+")
             println("getting: " + query)
             Thread.sleep(1000)
-            val res = client.getresponse("https://www.googleapis.com/customsearch/v1?key=AIzaSyBGMdzvyR3ukosXUsP1WP2Y0HyYdg0Et0I&cx=006791239123053240581:cimxfefdlpc&q=" + query)
+            val res = client.getresponse("https://www.googleapis.com/customsearch/v1?key=<key>&cx=<cx>&q=" + query)
             res
         }
 
@@ -75,7 +71,7 @@ class YelpCrawl(args: Args) extends Job(args) {
         .write(output5)
 
 
-    val linksOut = results
+    val linksOut = output5
         .map('json -> 'link) {
         in: String =>
             val json = in
