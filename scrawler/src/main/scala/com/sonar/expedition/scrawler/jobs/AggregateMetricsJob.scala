@@ -17,14 +17,14 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
             (venueId, metricPrefix + "_" + columnName, columnValue)
     }
 
-    SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).joinWithLarger('goldenId -> 'venueId, metrics)
+    SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).leftJoinWithLarger('goldenId -> 'venueId, metrics)
             .groupBy(DealAnalysis.DealsOutputTuple) {
         _.pivot(('metric, 'value) -> AggregateMetricsJob.MetricsFields)
     }.write(Tsv(metricsOut, AggregateMetricsJob.OutputFormat))
 
 }
 
-object AggregateMetricsJob {
+object AggregateMetricsJob extends FieldConversions {
     val MetricsFields = new Fields("loyalty_customerCount_Passers-By", "loyalty_customerCount_Regulars", "loyalty_customerCount_Addicts", "loyalty_visitCount_Passers-By", "loyalty_visitCount_Regulars", "loyalty_visitCount_Addicts", "numCheckins_count", "reach_distance_meanDist", "reach_distance_stdevDist", "reach_distance_latitude", "reach_distance_longitude", "reach_originCount_numHome", "reach_originCount_numWork", "age_<18", "age_18-24", "age_25-45", "age_35-44", "age_45-54", "age_55-64", "age_65+", "gender_male", "gender_female", "education_College", "education_No College", "education_Grad School", "education_unknown", "income_$0-50k", "income_$50-100k", "income_$100-150k", "income_$150k+")
     val OutputFormat = (DealAnalysis.DealsOutputTuple: Fields).append(MetricsFields)
 }
