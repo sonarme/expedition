@@ -24,7 +24,7 @@ class FriendshipExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe 
         in: (ByteBuffer, ByteBuffer, ByteBuffer) =>
             val (userProfileIdBuffer, columnNameBuffer, jsondataBuffer) = in
             val userProfileId = StringSerializer.get().fromByteBuffer(userProfileIdBuffer)
-            StringSerializer.get().fromByteBuffer(columnNameBuffer).split(':') match {
+            StringSerializer.get().fromByteBuffer(columnNameBuffer).split(":", 3) match {
                 case Array(friendUserProfileId, serviceType, friendServiceProfileId) =>
                     Some(userProfileId, serviceType, hashed(friendServiceProfileId))
                 case _ => None
