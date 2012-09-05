@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.test
 
-import com.twitter.scalding.{TextLine, Args}
+import com.twitter.scalding.{SequenceFile, TextLine, Args}
 import com.sonar.expedition.scrawler.pipes._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
@@ -30,7 +30,7 @@ class RealSocialGraphTest(args: Args) extends DTOProfileInfoPipe with CheckinGro
 
     val joinedProfiles = getTotalProfileTuples(args)
 
-    val friends = groupFriends(TextLine(friendsInput).read)
+    val friends = SequenceFile(friendsInput, FriendTuple).read
     val serviceIds = joinedProfiles.rename('key -> 'friendkey).project(('friendkey, 'uname, 'fbid, 'lnid, 'twid, 'fsid))
     val chkindata = null //TODO: unfilteredCheckins(TextLine(checkinsInput).read)
 

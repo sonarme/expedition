@@ -37,7 +37,7 @@ import com.twitter.scalding.TextLine
 
         com.sonar.expedition.scrawler.jobs.DataAnalyser --hdfs --serviceProfileData "/tmp/serviceProfileData.txt" --friendData "/tmp/friendData.txt" --checkinData "/tmp/checkinDatatest.txt" --placesData "/tmp/places_dump_US.geojson.txt" --output "/tmp/dataAnalyseroutput.txt" --occupationCodetsv "/tmp/occupationCodetsv.txt" --occupationCodeTsvOutpipe "/tmp/occupationCodeTsvOutpipe" --genderdataOutpipe "/tmp/genderdataOutpipe" --bayesmodel "/tmp/bayesmodel" --outputclassify "/tmp/jobclassified" --genderoutput "/tmp/genderoutput"  --outputjobtypes "/tmp/outputjobtypes"  --jobtype "4"  --profileCount "/tmp/profileCount.txt" --serviceCount "/tmp/serviceCount.txt" --geoCount "/tmp/geoCount.txt" --trainedseqmodel  "/tmp/trainedseqmodel" --debug1 "/tmp/debug1" --debug2 "/tmp/debug2"  --debug3 "/tmp/debug3" --debug4 "/tmp/debug4" --debug5 "/tmp/debug5" --debug6 "/tmp/debug6"  --debug7 "/tmp/debug7" --debug8 "/tmp/debug8" --debug9 "/tmp/debug9" --geoHash "/tmp/geoHash" --geohashsectorsize "1000" --groupcountry "/tmp/groupcountry" --groupworktitle "/tmp/groupworktitle"  --groupcity "/tmp/groupcity"
  */
-class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendInfoPipe with CheckinGrouperFunction with CheckinInfoPipe with APICalls with CoworkerFinderFunction with FriendGrouperFunction with DTOPlacesInfoPipe with GenderInfoReadPipe with CertainityScorePipe with InternalAnalysisJob with BayesModelPipe {
+class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with CheckinInfoPipe with APICalls with CoworkerFinderFunction with FriendGrouperFunction with DTOPlacesInfoPipe with GenderInfoReadPipe with CertainityScorePipe with InternalAnalysisJob with BayesModelPipe {
 
     val inputData = args("serviceProfileData")
     val finp = args("friendData")
@@ -85,7 +85,7 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
             'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode))
 
 
-    val friendData = TextLine(finp).read.project('line)
+    val friendsForCoworker = SequenceFile(finp, FriendTuple).read
 
     val chkindata = groupCheckins(TextLine(chkininputData).read)
 
@@ -94,8 +94,6 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Fr
     val employerGroupedServiceProfiles = joinedProfiles.project(('key, 'worked))
 
     val serviceIds = joinedProfiles.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
-
-    val friendsForCoworker = groupFriends(friendData)
 
     val numberOfFriends = friendsForCoworker.groupBy('userProfileId) {
         _.size
