@@ -18,7 +18,7 @@ object GenderFromNameProbability {
     val splitName = """([a-zA-Z\d]+)\s*(.*)""".r
 
     @transient
-    def gender(name: String): (Gender, Double) = {
+    def gender(name: String) = {
 
         val firstName = name match {
             case splitName(first, second) => first
@@ -31,11 +31,11 @@ object GenderFromNameProbability {
         val prob = maleprob / (maleprob + femaleprob)
 
         if (maleprob > femaleprob) {
-            Gender.male -> prob
+            "male" -> prob
         } else if (maleprob < femaleprob) {
-            Gender.female -> (1 - prob)
+            "female" -> (1 - prob)
         } else {
-            Gender.unknown -> 0.0
+            "unknown" -> 0.0
         }
 
     }

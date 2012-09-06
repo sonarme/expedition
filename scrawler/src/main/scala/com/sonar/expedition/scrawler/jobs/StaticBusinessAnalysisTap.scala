@@ -121,7 +121,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
             val byGender = groupByGender(combined)
                     .mapTo(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-                in: (String, Gender, Int) =>
+                in: (String, String, Int) =>
                     val (venueKey, impliedGender, frequency) = in
                     (venueKey + "_gender", impliedGender, frequency.toDouble)
 

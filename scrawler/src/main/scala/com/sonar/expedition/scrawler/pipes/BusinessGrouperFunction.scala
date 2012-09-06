@@ -66,7 +66,7 @@ trait BusinessGrouperFunction extends ScaldingImplicits {
     def groupByGender(combinedInput: RichPipe) =
         combinedInput
                 .filter('impliedGender) {
-            gender: Gender => gender != Gender.unknown
+            gender: String => gender != "unknown"
         }.groupBy('impliedGender, 'venueKey) {
             _.size
         }
