@@ -21,7 +21,7 @@ class Extractor(@BeanProperty val content: String) {
 
     def subcategory(): String = ""
 
-    def rating(): String = ""
+    def rating(): String = "" //right now it is on a scale of 0 to 5 (Because we started with yelp first)
 
     def latitude(): Double = 0.0
 
@@ -43,24 +43,28 @@ class Extractor(@BeanProperty val content: String) {
 
     def reviews(): List[String] = List.empty[String]
 
+    def peopleCount(): Int = 0
+
+    def checkinCount(): Int = 0
+
 
     def extractById(id: String): Option[String] = {
         Option(doc.getElementById(id)) match {
-            case Some(ele) => Some(ele.text())
+            case Some(ele) => Some(Jsoup.parse(ele.text()).text())
             case None => None
         }
     }
 
     def extractByAttributeValue(key: String, value: String): Option[String] = {
         doc.getElementsByAttributeValue(key, value) match {
-            case eles: Elements if eles.size() > 0 => Some(eles.iterator().map(_.text()).mkString(", "))
+            case eles: Elements if eles.size() > 0 => Some(eles.iterator().map(e => Jsoup.parse(e.text()).text()).mkString(", "))
             case _ => None
         }
     }
 
     def extractListByAttributeValue(key: String, value: String): List[String] = {
         doc.getElementsByAttributeValue(key, value) match {
-            case eles: Elements if eles.size() > 0 => eles.iterator().map(_.text()).toList
+            case eles: Elements if eles.size() > 0 => eles.iterator().map(e => Jsoup.parse(e.text()).text()).toList
             case _ => List.empty[String]
         }
     }
@@ -148,7 +152,7 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
     //custom extraction for citysearch
     def extractByDtAndValue(value: String) = {
         doc.getElementsByClass("sideBySide") match {
-            case eles: Elements => {
+            case eles: Elements if (eles.size() > 0) => {
                 val targetElement = eles.reduceLeft {
                     (a, b) => {
                         if (a.getElementsByTag("dt").head.text().equals(value))
@@ -166,4 +170,35 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
             case _ => ""
         }
     }
+}
+
+class FoursquareExtractor(content: String) extends Extractor(content) {
+    override def businessName() = extractByAttributeValue("itemprop", "name").getOrElse("")
+
+    override def category() = extractByAttributeValue("class", "categories").getOrElse("")
+
+    override def rating() = extractByAttributeValue("itemprop", "ratingValue") match {
+        // scale of 0 to 10
+        case Some(rate) => (rate.toDouble / 2).toString
+        case None => ""
+    }
+
+    override def latitude() = extractByAttributeValueAttribute("property", "playfoursquare:location:latitude", "content").getOrElse("0.0").toDouble
+
+    override def longitude() = extractByAttributeValueAttribute("property", "playfoursquare:location:longitude", "content").getOrElse("0.0").toDouble
+
+    override def address() = extractByAttributeValue("itemprop", "streetAddress").getOrElse("")
+
+    override def city() = extractByAttributeValue("itemprop", "addressLocality").getOrElse("")
+
+    override def state() = extractByAttributeValue("itemprop", "addressRegion").getOrElse("")
+
+    override def zip() = extractByAttributeValue("itemprop", "postalCode").getOrElse("")
+
+    override def phone() = extractByAttributeValue("itemprop", "telephone").getOrElse("")
+
+    override def priceRange() = extractByAttributeValue("itemprop", "priceRange").getOrElse("").replace(" ", "") // "$ $" -> "$$"
+
+    override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").toInt
+
 }

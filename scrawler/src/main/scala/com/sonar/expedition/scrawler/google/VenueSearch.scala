@@ -45,7 +45,8 @@ class VenueSearch(args: Args) extends Job(args) {
         in: (String, String, String, String) =>
             val (merchantName, address, city, state) = in
             val client = new HttpClientRest
-            val query = (merchantName + " " + address.substring(0, address.indexOf(" ")) + " " + city + " " + state).toLowerCase.replace(" ", "+")
+            val addressStr = if(address.indexOf(" ") > -1) address.substring(0, address.indexOf(" ")) else address
+            val query = (merchantName + " " + addressStr + " " + city + " " + state).toLowerCase.replace(" ", "+")
             println("getting: " + query)
             Thread.sleep(1000)
             val res = client.getresponse("https://www.googleapis.com/customsearch/v1?key=" + key + "&cx=" + cx + "&q=" + query)
