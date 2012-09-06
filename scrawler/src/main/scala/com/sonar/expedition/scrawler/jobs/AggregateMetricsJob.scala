@@ -34,5 +34,3 @@ object AggregateMetricsJob extends FieldConversions {
     val YelpReviews =
         new Fields("dealId", "successfulDeal", "merchantName", "majorCategory", "minorCategory", "minPricepoint", "address", "city", "state", "zip", "lat", "lng", "yelpLink", "ybusinessName", "ycategory", "yrating", "ylatitude", "ylongitude", "yaddress", "ycity", "ystate", "yzip", "yphone", "ypriceRange", "yreviewCount", "yreviews")
 }
-
-// ((numCheckins_count,112.0), (loyalty_visitCount_Addicts,112.0), (loyalty_customerCount_Addicts,1.0), (reach_originCount_numWork,0.0), (reach_distance_latitude,40.813189281932864), (reach_distance_longitude,-73.94112270377491), (reach_distance_meanDist,12.2684546586255), (reach_distance_stdevDist,0.020099797206679218), (reach_originCount_numHome,112.0))
