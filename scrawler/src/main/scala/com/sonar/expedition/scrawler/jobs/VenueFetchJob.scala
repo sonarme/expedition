@@ -8,12 +8,14 @@ import com.sonar.expedition.scrawler.pipes.{CheckinGrouperFunction, PlacesCorrel
 import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
+import ch.hsr.geohash.util.VincentyGeodesy
+import ch.hsr.geohash.WGS84Point
 
 class VenueFetchJob(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val venueOutput = args("venueOutput")
-    val distanceArg = args.getOrElse("distance", "250").toInt
+    val distanceArg = args.getOrElse("distance", "100").toInt
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
@@ -39,7 +41,7 @@ class VenueFetchJob(args: Args) extends Job(args) with PlacesCorrelation with Ch
             .filter('venueLat, 'venueLng, 'merchantLat, 'merchantLng) {
         in: (Double, Double, Double, Double) =>
             val (venueLat, venueLng, merchantLat, merchantLng) = in
-            val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
+            val distance = VincentyGeodesy.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
             distance < distanceArg
     }.unique('venueId)
             .write(Tsv(venueOutput, Fields.ALL))
