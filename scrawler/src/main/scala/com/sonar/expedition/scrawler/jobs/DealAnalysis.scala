@@ -93,12 +93,14 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
            distanceCalc(in1) < distanceCalc(in2)
     }.head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)*/
     } // TODO: need to dedupe venues here
-    dealVenues
+    dealVenues.map(() -> 'enabled) {
+        u: Unit => true
+    }
             .write(Tsv(dealsOutput, DealsOutputTuple))
 }
 
 object DealAnalysis {
-    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venAddress, 'venuePhone, 'merchantName, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
+    val DealsOutputTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'venAddress, 'venuePhone, 'merchantName, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}
