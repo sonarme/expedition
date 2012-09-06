@@ -17,7 +17,7 @@ class VenueSearch(args: Args) extends Job(args) {
     var outputDir = args("output")
 
     //get from https://s3.amazonaws.com/scrawler/deals-sample-all.tsv
-    val dealsSample = Tsv("src/main/resources/datafiles/deals-sample-all.tsv", ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
+    val dealsSample = Tsv(outputDir + "/deals-sample-all.tsv", ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
 
     val dealsWithSearchJson = Tsv(outputDir + "/dealsWithSearchJson.tsv", ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'address, 'city, 'state, 'zip, 'lat, 'lng, 'json))
     val dealsWithFirstLinkFromJson = Tsv(outputDir + "/dealsWithFirstLinkFromJson.tsv")
@@ -45,7 +45,7 @@ class VenueSearch(args: Args) extends Job(args) {
         in: (String, String, String, String) =>
             val (merchantName, address, city, state) = in
             val client = new HttpClientRest
-            val query = (merchantName + " " + city + " " + state).toLowerCase.replace(" ", "+")
+            val query = (merchantName + " " + address.substring(0, address.indexOf(" ")) + " " + city + " " + state).toLowerCase.replace(" ", "+")
             println("getting: " + query)
             Thread.sleep(1000)
             val res = client.getresponse("https://www.googleapis.com/customsearch/v1?key=" + key + "&cx=" + cx + "&q=" + query)

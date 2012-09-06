@@ -85,7 +85,7 @@ class YelpExtractor(content: String) extends Extractor(content) {
 
     override def category() = extractByAttributeValue("itemprop", "title").getOrElse("")
 
-    override def rating() = extractByAttributeValueAttribute("itemprop", "ratingValue", "content").getOrElse("")  //todo: need to normalize the rating value across the board. maybe a percentage?
+    override def rating() = extractByAttributeValueAttribute("itemprop", "ratingValue", "content").getOrElse("") //todo: need to normalize the rating value across the board. maybe a percentage?
 
     override def latitude() = extractByAttributeValueAttribute("property", "og:latitude", "content").getOrElse("0.0").toDouble
 
@@ -113,7 +113,11 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
 
     override def category() = extractByDtAndValue("Categories:")
 
-    override def rating() = extractByAttributeValue("class", "average").getOrElse("")
+    override def rating() = extractByAttributeValue("class", "average") match {
+        case Some(rate) => (rate.toDouble / 20).toString
+        case None => ""
+    }
+
 
     override def latitude() = extractByAttributeValueAttribute("property", "place:location:latitude", "content").getOrElse("0.0").toDouble
 
@@ -131,7 +135,15 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
 
     override def priceRange() = extractByDtAndValue("Price:")
 
-    override def reviewCount() = extractByAttributeValue("class", "votes").getOrElse("0").toInt //this is really the ratings count
+    override def reviewCount() = Option(doc.getElementById("coreInfo.tabs.reviews")) match {
+        case Some(ele) => {
+            ele.getElementsByClass("itemCount").headOption match {
+                case Some(e) => e.text().stripPrefix("(").stripSuffix(")").toInt
+                case None => 0
+            }
+        }
+        case None => 0
+    }
 
     //custom extraction for citysearch
     def extractByDtAndValue(value: String) = {
