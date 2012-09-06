@@ -46,7 +46,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     }
 
     def extractFirstNumber(s: String) = s match {
-        case firstNumber(numStr) => Some(numStr.toInt)
+        case firstNumber(numStr) => Some(numStr)
         case _ => None
     }
 
