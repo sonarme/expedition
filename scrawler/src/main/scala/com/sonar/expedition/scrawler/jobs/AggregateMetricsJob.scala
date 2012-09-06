@@ -24,7 +24,7 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
             val Array(venueId, metricPrefix) = rowKey.split("_", 2)
             (venueId, metricPrefix + "_" + columnName, optionDouble(columnValue).getOrElse(0.0))
     }
-    SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).leftJoinWithLarger('goldenId -> 'venueId, metrics)
+    Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).leftJoinWithLarger('goldenId -> 'venueId, metrics)
             .groupBy(DealAnalysis.DealsOutputTuple) {
         _.pivot(('metric, 'value) -> AggregateMetricsJob.MetricsFields)
     }.leftJoinWithTiny('dealId -> 'yelpDealId, yelp.rename('dealId -> 'yelpDealId)).write(Csv(metricsOut, AggregateMetricsJob.OutputFormat))

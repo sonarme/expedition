@@ -25,6 +25,10 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
     val CheckinTuple = ('serviceCheckinId, 'userProfileId, 'serType, 'serProfileID, 'serCheckinID,
             'venName, 'venAddress, 'venId, 'chknTime, 'ghash, 'lat, 'lng, 'msg, 'dayOfYear, 'dayOfWeek, 'hour, 'keyid)
 
+    val dealMatchGeosectorSize = 10
+
+    def dealMatchGeosector(lat: Double, lng: Double) = GeoHash.withBitPrecision(lat, lng, dealMatchGeosectorSize).longValue()
+
     def checkinSource(args: Args, venuesOnly: Boolean, withVenueGoldenId: Boolean) = {
         val rpcHostArg = args.optional("rpcHost")
         val ppmap = args.getOrElse("ppmap", "")
