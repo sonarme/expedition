@@ -147,7 +147,7 @@ class Crawler(args: Args) extends Job(args) {
 
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
-            .filter('url) { url: String => ParseFilterFactory.getParseFilter(domain).isIncluded(url)}
+            .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(domain).isIncluded(url)}
             .map('content -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews)) { content: String => {
                     val extractor = ExtractorFactory.getExtractor(domain, content)
                     val business = extractor.businessName()
