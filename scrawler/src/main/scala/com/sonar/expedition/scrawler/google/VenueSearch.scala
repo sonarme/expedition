@@ -74,20 +74,6 @@ class VenueSearch(args: Args) extends Job(args) {
     linksOut
             .write(dealsWithFirstLinkFromJson)
 
-    /*
-    val searchResults = venues
-            .read
-            .map(('name, 'lat, 'lng) -> 'json) {
-        x: (String, Double, Double) => {
-            val (name, lat, lng) = x
-            val yelp = new Yelp("wfz3OQTn-yo1OxpmN5kMCg", "t_CFiPm2hb6n9V7X2K-A554FDGU", "p9c114Prgf2Cok0CR5tUrPJbyn8pY92Z", "E19PBImqwclXX8AMwfGQIPJwa_M")
-            yelp.search(name, lat, lng)
-        }
-    }
-
-    searchResults
-            .write(output)
-    */
 }
 
 object VenueSearch {
