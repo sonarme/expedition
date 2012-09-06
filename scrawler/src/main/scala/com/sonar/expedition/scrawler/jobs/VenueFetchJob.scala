@@ -42,6 +42,5 @@ class VenueFetchJob(args: Args) extends Job(args) with PlacesCorrelation with Ch
             val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
             distance < distanceArg
     }.unique('venueId)
-            .write(SequenceFile(venueOutput, Fields.ALL))
-            .write(Tsv(venueOutput + "_tsv", Fields.ALL))
+            .write(Tsv(venueOutput, Fields.ALL))
 }
