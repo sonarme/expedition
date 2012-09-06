@@ -50,6 +50,8 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         case _ => None
     }
 
+    def stripPhone(s: String) = if (s == null || s == "") None else Some(s.replaceAllLiterally("+1", "").replaceAllLiterally("-", "").replaceAllLiterally(" ", ""))
+
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
             .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)) {
@@ -73,15 +75,18 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             (dealMatchGeosector(lat, lng), StemAndMetaphoneEmployer.removeStopWords(venName))
     }
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
-            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'venAddress, 'stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantAddress) ->('levenshtein, 'distance)) {
-        in: (String, Double, Double, String, String, Double, Double, String) =>
-            val (stemmedVenName, venueLat, venueLng, venAddress, stemmedMerchantName, merchantLat, merchantLng, merchantAddress) = in
-            val houseNumber = extractFirstNumber(venAddress)
+            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'venAddress, 'venuePhone, 'stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone) ->('levenshtein, 'distance)) {
+        in: (String, Double, Double, String, String, String, Double, Double, String, String) =>
+            val (stemmedVenName, venueLat, venueLng, venAddress, venuePhone, stemmedMerchantName, merchantLat, merchantLng, merchantAddress, merchantPhone) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
             lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
             if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distanceArg) None
             else {
-                val score = if (houseNumber.isDefined && houseNumber == extractFirstNumber(merchantAddress)) -1 else levenshtein
+                val houseNumber = extractFirstNumber(venAddress)
+                val phone = stripPhone(venuePhone)
+                val score = if (houseNumber.isDefined && houseNumber == extractFirstNumber(merchantAddress)
+                        || phone.isDefined && phone == stripPhone(merchantPhone)) -1
+                else levenshtein
                 Some((score, distance))
             }
     }.groupBy('dealId) {
