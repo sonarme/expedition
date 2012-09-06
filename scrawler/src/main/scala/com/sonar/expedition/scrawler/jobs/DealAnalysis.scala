@@ -49,7 +49,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
-            .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantGeosector)) {
+            .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)) {
         in: (String, String) =>
             val (merchantName, locationJSON) = in
             val dealLocations = try {
@@ -60,7 +60,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             dealLocations map {
                 dealLocation =>
-                    (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude))
+                    (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude), dealLocation.address, dealLocation.phone)
             }
     }.discard('locationJSON)
 
@@ -77,7 +77,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
             if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distanceArg) None else Some((levenshtein, distance))
     }.groupBy('dealId) {
-        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)
+        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head('successfulDeal, 'goldenId, 'venName, 'venAddress, 'venuePhone, 'merchantName, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
         /* _.max('levenshtein -> 'maxLevenshtein)
             .max('distance -> 'maxDistance)
             .sortWithTake[(Double,Double,Double,Double)](('levenshtein, 'maxLevenshtein,'distance, 'maxDistance)  -> 'topVenueMatch, 1) {
@@ -91,7 +91,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 }
 
 object DealAnalysis {
-    val DealsOutputTuple = ('dealId, 'goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)
+    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venAddress, 'venuePhone, 'merchantName, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}

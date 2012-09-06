@@ -52,6 +52,7 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
                                 parsed =>
 
                                     val priority = if (serviceType == ServiceType.linkedin) 0 else 1
+                                    // TODO: fix nulls to be empty
                                     val work = parsed.work.headOption
                                     val education = parsed.education.headOption
                                     val profileData = new ProfileData(

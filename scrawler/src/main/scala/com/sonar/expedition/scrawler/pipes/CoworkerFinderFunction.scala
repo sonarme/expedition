@@ -230,7 +230,7 @@ trait CoworkerFinderFunction extends ScaldingImplicits {
 
         }.project(('emp, 'key))
 
-        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId, 'friendName)
+        val userIdGroupedFriends = friendsInput.project('userProfileId, 'serviceProfileId)
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields

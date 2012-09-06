@@ -17,7 +17,8 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         val placesClassified = classifyPlaceType(bayesmodel, placesVenueGoldenIdValues)
 
         val geoPlaces = placesPipe(TextLine(placesData).read)
-                .project('geometryLatitude, 'geometryLongitude, 'propertiesName, 'classifiersCategory)
+                .project('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesAddress, 'propertiesPhone, 'classifiersCategory)
+                .rename('propertiesPhone -> 'venuePhone)
                 .map('propertiesName -> 'stemmedVenNameFromPlaces) {
             venName: String => StemAndMetaphoneEmployer.removeStopWords(venName)
         }
@@ -32,16 +33,16 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     val distance = Haversine.haversine(lat, lng, geometryLatitude, geometryLongitude)
                     if (distance > 1000) None else Some(distance)
                 }
-        }.groupBy('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venTypeFromModel, 'classifiersCategory, 'venueLat, 'venueLng) {
-            _.min('distance)
-        }.discard('distance).map(('venTypeFromModel, 'classifiersCategory) -> 'venueType) {
+        }.groupBy('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng) {
+            _.min('distance).head('classifiersCategory, 'propertiesAddress, 'venuePhone)
+        }.discard('distance).map(('venTypeFromModel, 'classifiersCategory) -> ('venueType)) {
 
             in: (String, String) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
                 // TODO: allow multiple venue types
                 if (CommonFunctions.isNullOrEmpty(venTypeFromPlacesData)) venTypeFromModel else venTypeFromPlacesData.split(",").head
 
-        }.project('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venueType, 'venueLat, 'venueLng)
+        }
     }
 
     def addVenueIdToCheckins(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
@@ -60,7 +61,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
     }
 
     def correlatedPlaces(checkins: RichPipe): RichPipe =
-        checkins.groupBy('venId) {
+        checkins.groupBy('venId, 'venAddress) {
             // dedupe
             _.head('serType, 'venName, 'lat, 'lng)
 
@@ -75,7 +76,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     Some((geosector, stemmedVenName))
                 }
 
-        }.groupBy('stemmedVenName, 'geosector) {
+        }.groupBy('stemmedVenName, 'venAddress, 'geosector) {
             // correlate
             _.sortWithTake(('venId, 'serType, 'venName, 'lat, 'lng) -> 'groupData, 4) {
                 (in1: (String, String, String, Double, Double), in2: (String, String, String, Double, Double)) =>
@@ -97,7 +98,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     case (venueId, _, venName, lat, lng) => (goldenId, venueId, venName, lat, lng)
                 }
 
-        }.project('stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venName, 'venueLat, 'venueLng)
+        }.project('stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venAddress, 'venName, 'venueLat, 'venueLng)
 
 
 }

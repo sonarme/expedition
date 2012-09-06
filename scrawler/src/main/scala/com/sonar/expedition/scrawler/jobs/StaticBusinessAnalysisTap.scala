@@ -12,7 +12,6 @@ import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.CassandraSource
-import com.twitter.scalding.TextLine
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.sonar.expedition.scrawler.util.CommonFunctions
 
@@ -75,15 +74,13 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
         sequenceOutputStatic =>
             val chkindata = groupCheckins(newCheckins)
 
-            val friendData = TextLine(friendinput).read
+            val friendsForCoworker = SequenceFile(friendinput, FriendTuple).read
 
             val profilesAndCheckins = combined.project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
             val employerGroupedServiceProfiles = total.project('key, 'worked)
 
             val serviceIds = total.project('key, 'fbid, 'lnid).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
-
-            val friendsForCoworker = groupFriends(friendData)
 
             val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
@@ -124,14 +121,9 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
             val byGender = groupByGender(combined)
                     .mapTo(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-                in: (String, Gender, Int) =>
+                in: (String, String, Int) =>
                     val (venueKey, impliedGender, frequency) = in
-
-                    val targetVenueGoldenId = venueKey + "_gender"
-                    val column = impliedGender
-                    val value = frequency.toDouble
-
-                    (targetVenueGoldenId, column, value)
+                    (venueKey + "_gender", impliedGender, frequency.toDouble)
 
             }
 

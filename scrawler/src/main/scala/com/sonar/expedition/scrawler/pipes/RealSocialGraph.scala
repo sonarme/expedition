@@ -137,7 +137,7 @@ trait RealSocialGraph extends ScaldingImplicits {
 
     def mergeFriends(serviceInput: RichPipe, friendInput: RichPipe): RichPipe = {
 
-        val userIdGroupedFriends = friendInput.project('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)
+        val userIdGroupedFriends = friendInput.project('userProfileId, 'serviceType, 'serviceProfileId)
                 .map(('userProfileId, 'serviceProfileId) ->('uId, 'serviceId)) {
             fields: (String, String) =>
                 val (userIdString, serviceProfileId) = fields

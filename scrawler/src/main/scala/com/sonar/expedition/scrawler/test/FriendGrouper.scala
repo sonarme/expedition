@@ -16,14 +16,14 @@ import com.twitter.scalding.TextLine
 class FriendGrouper(args: Args) extends Job(args) {
     val inputData = args("friendData")
     val out = args("userGroupedFriendsOutput")
-    val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('userProfileId, 'serviceType, 'serviceProfileId, 'friendName)) {
+    val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('userProfileId, 'serviceType, 'serviceProfileId)) {
         line: String => {
             line match {
-                case DataExtractLine(id, other2, serviceId, serviceType, friendName, other) => Some((id, serviceType, serviceId, friendName))
+                case DataExtractLine(id, other2, serviceId, serviceType, _, other) => Some((id, serviceType, serviceId))
                 case _ => None
             }
         }
-    }).pack[FriendObjects](('serviceType, 'serviceProfileId, 'friendName) -> 'friend).groupBy('userProfileId) {
+    }).pack[FriendObjects](('serviceType, 'serviceProfileId) -> 'friend).groupBy('userProfileId) {
         group => group.toList[FriendObjects]('friend, 'friendData)
     }.map(Fields.ALL ->('ProfileId, 'friendProfileId)) {
         fields: (String, List[FriendObjects]) =>
