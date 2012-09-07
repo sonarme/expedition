@@ -117,7 +117,15 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     (targetVenueGoldenId, column, value)
 
             }
-
+            val ageMetrics = combined.groupBy('venueKey) {
+                _.sizeAveStdev('age ->('ageSize, 'ageAve, 'ageStdev))
+            }.flatMapTo(('venueKey, 'ageSize, 'ageAve, 'ageStdev) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Int, Double, Double) =>
+                    val (venueKey, ageSize, ageAve, ageStdev) = in
+                    List("ageSize" -> ageSize, "ageAve" -> ageAve, "ageStdev" -> ageStdev) map {
+                        case (metricName, metricValue) => (venueKey + "_" + metricName, "metric", metricValue)
+                    }
+            }
 
             val byGender = groupByGender(combined)
                     .mapTo(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
@@ -295,7 +303,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
        .project(('rowKey, 'columnName, 'columnValue))   */
 
             val staticOutput =
-                (totalCheckins ++ totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
+                (ageMetrics ++ totalCheckins ++ totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 
             staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
                     .write(Tsv(sequenceOutputStatic + "_tsv", Fields.ALL))
