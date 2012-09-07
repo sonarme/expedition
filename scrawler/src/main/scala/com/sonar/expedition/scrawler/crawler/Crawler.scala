@@ -42,7 +42,6 @@ class Crawler(args: Args) extends Job(args) {
     val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", ('url, 'timestamp, 'status, 'content, 'links)) //('url, 'timestamp, 'status, 'content, 'links)
 
     val venues = TextLine("/Users/rogchang/Desktop/venuessorted.txt")
-    val venuesOutput = Tsv("/Users/rogchang/Desktop/links.tsv")
 
     /*
     val foursquareVenues = venues
@@ -70,6 +69,7 @@ class Crawler(args: Args) extends Job(args) {
         twitterVenues
             .write(Tsv("/Users/rogchang/Desktop/twitterLinks.tsv"))
     */
+
 
     //Read from status.tsv and output the fetched urls
     //TODO: find a way to split in one step
@@ -119,7 +119,10 @@ class Crawler(args: Args) extends Job(args) {
                     method.setHeader("User-Agent", PublicProfileCrawlerUtils.USER_AGENT_LIST(Random.nextInt((PublicProfileCrawlerUtils.USER_AGENT_LIST.size) - 1)))
                     val (status, content) = try {
                         println("fetching: " + url)
-                        Thread.sleep(1000)
+                        val rnd = new Random()
+                        val range = 18000 to 34000
+                        Thread.sleep(range(rnd.nextInt(range length)))   //for twitter
+//                        Thread.sleep(10000)
                         val response = httpclient.execute(method)
                         val fetchedResult = EntityUtils.toString(response.getEntity)
                         ("fetched", fetchedResult)
@@ -212,8 +215,8 @@ class Crawler(args: Args) extends Job(args) {
             }
             .discard('content, 'links, 'status)
 
-//    parsedTuples
-//        .write(parsed)
+    parsedTuples
+        .write(parsed)
 
     parsedTuples
         .write(parsedSequence)
