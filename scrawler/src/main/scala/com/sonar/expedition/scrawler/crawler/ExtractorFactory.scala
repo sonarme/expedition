@@ -7,6 +7,7 @@ object ExtractorFactory {
             case d: String if d.indexOf(Sites.CitySearch) > -1 => new CitySearchExtractor(content)
             case d: String if d.indexOf(Sites.Foursquare) > -1 => new FoursquareExtractor(content)
             case d: String if d.indexOf(Sites.Facebook) > -1 => new FacebookExtractor(content)
+            case d: String if d.indexOf(Sites.Twitter) > -1 => new TwitterExtractor(content)
             case _ => new Extractor(content)
         }
     }

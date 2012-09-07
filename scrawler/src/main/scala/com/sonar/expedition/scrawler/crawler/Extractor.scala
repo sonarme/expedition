@@ -5,6 +5,7 @@ import reflect.BeanProperty
 import org.jsoup.select.Elements
 import scala.collection.JavaConversions._
 import com.sonar.expedition.scrawler.crawler.FacebookExtractor._
+import com.sonar.expedition.scrawler.crawler.TwitterExtractor._
 import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper, PropertyNamingStrategy}
 
 /**
@@ -113,7 +114,7 @@ class YelpExtractor(content: String) extends Extractor(content) {
 
     override def priceRange() = extractById("price_tip").getOrElse("")
 
-    override def reviewCount() = extractByAttributeValue("itemprop", "reviewCount").getOrElse("0").replace(",","").toInt
+    override def reviewCount() = extractByAttributeValue("itemprop", "reviewCount").getOrElse("0").replace(",", "").toInt
 
     override def reviews() = extractListByAttributeValue("itemprop", "description")
 }
@@ -148,7 +149,7 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
     override def reviewCount() = Option(doc.getElementById("coreInfo.tabs.reviews")) match {
         case Some(ele) => {
             ele.getElementsByClass("itemCount").headOption match {
-                case Some(e) => e.text().stripPrefix("(").stripSuffix(")").replace(",","").toInt
+                case Some(e) => e.text().stripPrefix("(").stripSuffix(")").replace(",", "").toInt
                 case None => 0
             }
         }
@@ -205,18 +206,18 @@ class FoursquareExtractor(content: String) extends Extractor(content) {
 
     override def priceRange() = extractByAttributeValue("itemprop", "priceRange").getOrElse("").replace(" ", "") // "$ $" -> "$$"
 
-    override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").replace(",","").toInt
+    override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").replace(",", "").toInt
 
     override def reviews() = extractListByAttributeValue("class", "tipText")
 
     override def peopleCount() = try {
-        doc.getElementsByClass("statsnot6digits").get(1).text().replace(",","").toInt
+        doc.getElementsByClass("statsnot6digits").get(1).text().replace(",", "").toInt
     } catch {
         case e: Exception => 0
     }
 
     override def checkinCount() = try {
-        doc.getElementsByClass("statsnot6digits").get(2).text().replace(",","").toInt
+        doc.getElementsByClass("statsnot6digits").get(2).text().replace(",", "").toInt
     } catch {
         case e: Exception => 0
     }
@@ -278,4 +279,45 @@ case class FacebookPlaceLocation(@BeanProperty street: String,
                                  @BeanProperty latitude: Double = 0.0,
                                  @BeanProperty longitude: Double = 0.0) {
     def this() = this(null)
+}
+
+class TwitterExtractor(content: String) extends Extractor(content) {
+
+    def twGeo = TwitterGeoObjectMapper.readValue(content, classOf[TwitterGeo])
+
+    override def businessName() = twGeo.name
+
+    override def latitude() = try { twGeo.geometry.coordinates(1) } catch { case e: Exception => 0.0}
+
+    override def longitude() = try { twGeo.geometry.coordinates(0) } catch { case e: Exception => 0.0}
+
+    override def address() = try { twGeo.attributes.streetAddress } catch { case e: Exception => ""}
+
+    override def zip() = try { twGeo.attributes.postalCode } catch { case e: Exception => ""}
+
+    override def phone() = try { twGeo.attributes.phone } catch { case e: Exception => ""}
+}
+
+case class TwitterGeo(@BeanProperty name: String,
+                      @BeanProperty attributes: GeoAttributes = null,
+                      @BeanProperty geometry: GeoGeometry = null) {
+    def this() = this(null)
+}
+
+case class GeoAttributes(@BeanProperty streetAddress: String,
+                         @BeanProperty postalCode: String = null,
+                         @BeanProperty region: String = null,
+                         @BeanProperty locality: String = null,
+                         @BeanProperty phone: String = null) {
+    def this() = this(null)
+}
+
+case class GeoGeometry(@BeanProperty coordinates: Array[Double]) {
+    def this() = this(null)
+}
+
+object TwitterExtractor {
+    val TwitterGeoObjectMapper = new ObjectMapper
+    TwitterGeoObjectMapper.disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
+    TwitterGeoObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
 }
