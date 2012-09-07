@@ -97,13 +97,9 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
             val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
                     .map('centroid -> 'workCentroid) {
                 centroid: String => centroid
-            }
-                    .discard(('key1, 'centroid))
-                    .joinWithSmaller('key -> 'key1, findhomefromchkins)
-                    .map('centroid -> 'homeCentroid) {
+            }.discard(('key1, 'centroid)).joinWithSmaller('key -> 'key1, findhomefromchkins).map('centroid -> 'homeCentroid) {
                 centroid: String => centroid
             }
-            //            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
 
             val byAge = groupByAge(combined)
                     .mapTo(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
@@ -150,23 +146,20 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
             val totalDegree = byDegree.groupBy('columnName) {
                 _.sum('columnValue)
-            }
-                    .map('columnName -> 'rowKey) {
-                columnName: String => "totalAll_education"
+            }.map(() -> 'rowKey) {
+                u: Unit => "totalAll_education"
             }
 
             val totalAge = byAge.groupBy('columnName) {
                 _.sum('columnValue)
-            }
-                    .map('columnName -> 'rowKey) {
-                columnName: String => "totalAll_age"
+            }.map(() -> 'rowKey) {
+                u: Unit => "totalAll_age"
             }
 
             val totalGender = byGender.groupBy('columnName) {
                 _.sum('columnValue)
-            }
-                    .map('columnName -> 'rowKey) {
-                columnName: String => "totalAll_gender"
+            }.map(() -> 'rowKey) {
+                u: Unit => "totalAll_gender"
             }
 
             /* val totalIncome = byIncome.groupBy('columnName) {
