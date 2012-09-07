@@ -12,61 +12,6 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 trait CheckinInfoPipe extends ScaldingImplicits {
 
-    def getCheckinsDataPipe(checkinInput: RichPipe): RichPipe = {
-
-        val chkindata = (checkinInput.project('line).flatMap(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
-            line: String => {
-                line match {
-                    case CheckinExtractLineWithMessages(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng))
-                    case _ => None
-                }
-            }
-        })
-                .project(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng))
-                .map(('lat, 'lng) -> 'loc) {
-            fields: (String, String) =>
-                val (lat, lng) = fields
-
-                (lat + ":" + lng)
-
-        }
-                .discard(('lat, 'lng))
-                .project(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location))
-                .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'location) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)) {
-            fields: (String, String, String, String, String, String, String, String, String) =>
-                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc) = fields
-                val hashedServiceID = serviceID
-                (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, loc)
-        }
-                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-
-        chkindata
-
-    }
-
-    def getCheckinsDataPipeCollectinLatLon(checkinInput: RichPipe): RichPipe = {
-
-        val chkindata = (checkinInput.project('line).flatMap(('line) ->('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng)) {
-            line: String => {
-                line match {
-                    case CheckinExtractLineWithMessages(id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng, tweet) => Some((id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lng))
-                    case _ => None
-                }
-            }
-        })
-                .project(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng))
-                .map(('userProfileID, 'serviceType, 'serviceProfileID, 'serviceCheckinID, 'venueName, 'venueAddress, 'checkinTime, 'geohash, 'lat, 'lng) ->('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln)) {
-            fields: (String, String, String, String, String, String, String, String, String, String) =>
-                val (id, serviceType, serviceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lon) = fields
-                //val hashedServiceID = hashed(serviceID)
-                val hashedServiceID = serviceID
-                (id, serviceType, hashedServiceID, serviceCheckinID, venueName, venueAddress, checkinTime, geoHash, lat, lon)
-        }
-                .project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'lt, 'ln))
-        chkindata
-
-    }
-
     def findCityofUserFromChkins(chkins: RichPipe): RichPipe = {
         val citypipe = chkins.groupBy(('key, 'uname, 'fbid, 'lnid, 'mtphnWorked, 'city, 'worktitle)) {
             _

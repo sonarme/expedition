@@ -16,33 +16,12 @@ import com.twitter.scalding.TextLine
 // STAG deploy: --rpcHost 10.4.103.222
 class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
-    val input = args("serviceProfileInput")
-    val twinput = args("twitterServiceProfileInput")
     val friendinput = args("friendInput")
     val bayesmodel = args("bayesmodelforsalary")
-    val sequenceOutputIncome = args("sequenceOutputIncome")
-    val textOutputIncome = args("textOutputIncome")
-
-    val data = (TextLine(input).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
-
-    val twdata = (TextLine(twinput).read.project('line).flatMap(('line) ->('id, 'serviceType, 'jsondata)) {
-        line: String => {
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => List((userProfileId, serviceType, json))
-                case _ => List.empty
-            }
-        }
-    }).project(('id, 'serviceType, 'jsondata))
+    val staticOutputFile = args("staticOutput")
 
 
-    val (checkins, checkinsWithGoldenId) = checkinSource(args, false, true)
+    val (_, checkinsWithGoldenId) = checkinSource(args, true, true)
     val checkinsWithGolden = checkinsWithGoldenId
             .map(('lat, 'lng) -> ('loc)) {
         fields: (String, String) =>
@@ -51,7 +30,7 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
             (loc)
     }
 
-    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String => GenderFromNameProbability.gender(name)
     }
 
@@ -108,8 +87,8 @@ class StaticBusinessAnalysisTapIncome(args: Args) extends Job(args) with Checkin
     val staticOutput = byIncome ++ totalIncome
 
     staticOutput
-            .write(SequenceFile(sequenceOutputIncome, Fields.ALL))
-            .write(TextLine(textOutputIncome))
+            .write(SequenceFile(staticOutputFile, Fields.ALL))
+            .write(Tsv(staticOutputFile + "_tsv", Fields.ALL))
 
 
 }

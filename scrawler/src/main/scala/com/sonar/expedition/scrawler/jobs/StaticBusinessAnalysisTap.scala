@@ -12,7 +12,6 @@ import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.CassandraSource
-import com.twitter.scalding.TextLine
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.sonar.expedition.scrawler.util.CommonFunctions
 
@@ -22,39 +21,12 @@ import com.sonar.expedition.scrawler.util.CommonFunctions
 class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
 
-    val input = args("serviceProfileInput")
-    val twinput = args("twitterServiceProfileInput")
-    //    val checkininput = args("checkinInput")
     val friendinput = args("friendInput")
     val bayesmodel = args("bayesmodelforsalary")
-    //    val newcheckininput = args("newCheckinInput")
-    val sequenceOutputStatic = args("sequenceOutputStatic")
-    val sequenceOutputTime = args("sequenceOutputTime")
-    val textOutputStatic = args("textOutputStatic")
-    val textOutputTime = args("textOutputTime")
-    val timeSeriesOnly = args.getOrElse("timeSeriesOnly", "false").toBoolean
-
-    val data = TextLine(input).read.flatMapTo('line ->('id, 'serviceType, 'jsondata)) {
-        line: String =>
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => Some((userProfileId, serviceType, json))
-                case _ => None
-            }
-    }
-
-    val twdata = TextLine(twinput).read.flatMapTo('line ->('id, 'serviceType, 'jsondata)) {
-        line: String =>
-            line match {
-                case ServiceProfileExtractLine(userProfileId, serviceType, json) => Some((userProfileId, serviceType, json))
-                case _ => None
-            }
-    }
-
+    val sequenceOutputStaticOption = args.optional("staticOutput")
+    val sequenceOutputTimeOption = args.optional("timeOutput")
 
     val (newCheckins, checkinsWithGoldenId) = checkinSource(args, false, true)
-
-    //    val checkins = unfilteredCheckinsLatLon(TextLine(checkininput))
-    //    val newcheckins = correlationCheckins(TextLine(newcheckininput))
 
     val checkinsWithGoldenIdAndLoc = checkinsWithGoldenId
             .map(('lat, 'lng) -> 'loc) {
@@ -63,7 +35,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
             lat + ":" + lng
     }
 
-    val total = getTotalProfileTuples(data, twdata).map('uname ->('impliedGender, 'impliedGenderProb)) {
+    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String =>
             val (gender, prob) = GenderFromNameProbability.gender(name)
             (gender, prob)
@@ -98,251 +70,254 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
     val combined = combineCheckinsProfiles(checkinsWithGoldenIdAndLoc, profiles)
 
-    if (!timeSeriesOnly) {
+    sequenceOutputStaticOption foreach {
+        sequenceOutputStatic =>
+            val chkindata = groupCheckins(newCheckins)
 
-        val chkindata = groupCheckins(newCheckins)
+            val friendsForCoworker = SequenceFile(friendinput, FriendTuple).read
+
+            val profilesAndCheckins = combined.project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+
+            val employerGroupedServiceProfiles = total.project('key, 'worked)
+
+            val serviceIds = total.project('key, 'fbid, 'lnid).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
 
-        val friendData = TextLine(friendinput).read
+            val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
-        val profilesAndCheckins = combined.project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+            val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
 
-        val employerGroupedServiceProfiles = total.project('key, 'worked)
+            val homeCheckins = groupHomeCheckins(newCheckins)
 
-        val serviceIds = total.project('key, 'fbid, 'lnid).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
+            val homeProfilesAndCheckins = profiles
+                    .joinWithLarger('key -> 'keyid, homeCheckins)
+                    .project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
-        val friendsForCoworker = groupFriends(friendData)
+            val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
 
-        val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
+            val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
+                    .map('centroid -> 'workCentroid) {
+                centroid: String => centroid
+            }.discard(('key1, 'centroid)).joinWithSmaller('key -> 'key1, findhomefromchkins).map('centroid -> 'homeCentroid) {
+                centroid: String => centroid
+            }
 
-        val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
+            val byAge = groupByAge(combined)
+                    .mapTo(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int) =>
+                    val (venueKey, ageBracket, frequency) = in
 
-        val homeCheckins = groupHomeCheckins(newCheckins)
+                    val targetVenueGoldenId = venueKey + "_age"
+                    val column = ageBracket
+                    val value = frequency.toDouble
 
-        val homeProfilesAndCheckins = profiles
-                .joinWithLarger('key -> 'keyid, homeCheckins)
-                .project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+                    (targetVenueGoldenId, column, value)
 
-        val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
+            }
+            val ageMetrics = combined.groupBy('venueKey) {
+                _.sizeAveStdev('age ->('ageSize, 'ageAve, 'ageStdev))
+            }.flatMapTo(('venueKey, 'ageSize, 'ageAve, 'ageStdev) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Int, Double, Double) =>
+                    val (venueKey, ageSize, ageAve, ageStdev) = in
+                    List("ageSize" -> ageSize, "ageAve" -> ageAve, "ageStdev" -> ageStdev) map {
+                        case (metricName, metricValue) => (venueKey + "_" + metricName, "metric", metricValue)
+                    }
+            }
 
-        val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
-                .map('centroid -> 'workCentroid) {
-            centroid: String => centroid
-        }
-                .discard(('key1, 'centroid))
-                .joinWithSmaller('key -> 'key1, findhomefromchkins)
-                .map('centroid -> 'homeCentroid) {
-            centroid: String => centroid
-        }
-        //            .map('centroid -> 'homeCentroid) {centroid: String => "0.0:0.0"}
+            val byGender = groupByGender(combined)
+                    .mapTo(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int) =>
+                    val (venueKey, impliedGender, frequency) = in
+                    (venueKey + "_gender", impliedGender, frequency.toDouble)
 
-        val byAge = groupByAge(combined)
-                .mapTo(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, String, Int) =>
-                val (venueKey, ageBracket, frequency) = in
+            }
 
-                val targetVenueGoldenId = venueKey + "_age"
-                val column = ageBracket
-                val value = frequency.toDouble
+            val byDegree = groupByDegree(combined)
+                    .mapTo(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int) =>
+                    val (venueKey, degreeCat, frequency) = in
 
-                (targetVenueGoldenId, column, value)
+                    val targetVenueGoldenId = venueKey + "_education"
+                    val column = degreeCat
+                    val value = frequency.toDouble
 
-        }
+                    (targetVenueGoldenId, column, value)
 
+            }
 
-        val byGender = groupByGender(combined)
-                .mapTo(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, Gender, Int) =>
-                val (venueKey, impliedGender, frequency) = in
+            val totalDegree = byDegree.groupBy('columnName) {
+                _.sum('columnValue)
+            }.map(() -> 'rowKey) {
+                u: Unit => "totalAll_education"
+            }
 
-                val targetVenueGoldenId = venueKey + "_gender"
-                val column = impliedGender
-                val value = frequency.toDouble
+            val totalAge = byAge.groupBy('columnName) {
+                _.sum('columnValue)
+            }.map(() -> 'rowKey) {
+                u: Unit => "totalAll_age"
+            }
 
-                (targetVenueGoldenId, column, value)
+            val totalGender = byGender.groupBy('columnName) {
+                _.sum('columnValue)
+            }.map(() -> 'rowKey) {
+                u: Unit => "totalAll_gender"
+            }
 
-        }
+            /* val totalIncome = byIncome.groupBy('columnName) {
+               _.sum('columnValue)
+           }
+                   .map('columnName -> 'rowKey) {
+               columnName: String => "totalAll_income"
+           } */
 
-        val byDegree = groupByDegree(combined)
-                .mapTo(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, String, Int) =>
-                val (venueKey, degreeCat, frequency) = in
+            val totalStatic = (totalAge ++ totalDegree ++ totalGender).project('rowKey, 'columnName, 'columnValue)
 
-                val targetVenueGoldenId = venueKey + "_education"
-                val column = degreeCat
-                val value = frequency.toDouble
+            val totalCheckins = checkinsWithGoldenId.groupBy('goldenId) {
+                _.size
+            }.mapTo(('goldenId, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Int) =>
+                    val (venueKey, size) = in
+                    (venueKey + "_numCheckins", "count", size.toDouble)
 
-                (targetVenueGoldenId, column, value)
+            }
 
-        }
+            val loyalty = findLoyalty(checkinsWithGoldenId.rename('goldenId -> 'venueKey))
 
-        val totalDegree = byDegree.groupBy('columnName) {
-            _.sum('columnValue)
-        }
-                .map('columnName -> 'rowKey) {
-            columnName: String => "totalAll_education"
-        }
+            val loyaltyCount = loyalty
+                    .mapTo(('venueKey, 'loyalty, 'customers) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int) =>
+                    val (venueKey, customerType, frequency) = in
 
-        val totalAge = byAge.groupBy('columnName) {
-            _.sum('columnValue)
-        }
-                .map('columnName -> 'rowKey) {
-            columnName: String => "totalAll_age"
-        }
+                    val targetVenueGoldenId = venueKey + "_loyalty_customerCount"
+                    val column = customerType
+                    val value = frequency.toDouble
 
-        val totalGender = byGender.groupBy('columnName) {
-            _.sum('columnValue)
-        }
-                .map('columnName -> 'rowKey) {
-            columnName: String => "totalAll_gender"
-        }
+                    (targetVenueGoldenId, column, value)
 
-        /* val totalIncome = byIncome.groupBy('columnName) {
-           _.sum('columnValue)
-       }
-               .map('columnName -> 'rowKey) {
-           columnName: String => "totalAll_income"
-       } */
+            }
 
-        val totalStatic = (totalAge ++ totalDegree ++ totalGender).project('rowKey, 'columnName, 'columnValue)
+            val loyaltyVisits = loyalty
+                    .mapTo(('venueKey, 'loyalty, 'visitsType) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int) =>
+                    val (venueKey, customerType, frequency) = in
 
+                    val targetVenueGoldenId = venueKey + "_loyalty_visitCount"
+                    val column = customerType
+                    val value = frequency.toDouble
 
-        val loyalty = findLoyalty(combined)
+                    (targetVenueGoldenId, column, value)
 
-        val loyaltyCount = loyalty
-                .mapTo(('venueKey, 'loyalty, 'customers) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, String, Int) =>
-                val (venueKey, customerType, frequency) = in
+            }
 
-                val targetVenueGoldenId = venueKey + "_loyalty_customerCount"
-                val column = customerType
-                val value = frequency.toDouble
+            val reach = findReach(withHomeWork)
 
-                (targetVenueGoldenId, column, value)
+            val reachMean = reach
+                    .mapTo(('venueKey, 'meanDist) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Double) =>
+                    val (venueKey, mean) = in
 
-        }
+                    val targetVenueGoldenId = venueKey + "_reach_distance"
+                    val column = "meanDist"
+                    val value = mean
 
-        val loyaltyVisits = loyalty
-                .mapTo(('venueKey, 'loyalty, 'visitsType) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, String, Int) =>
-                val (venueKey, customerType, frequency) = in
+                    (targetVenueGoldenId, column, value)
+            }
 
-                val targetVenueGoldenId = venueKey + "_loyalty_visitCount"
-                val column = customerType
-                val value = frequency.toDouble
+            val reachStdev = reach
+                    .mapTo(('venueKey, 'stdevDist) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Double) =>
+                    val (venueKey, stdev) = in
 
-                (targetVenueGoldenId, column, value)
+                    val targetVenueGoldenId = venueKey + "_reach_distance"
+                    val column = "stdevDist"
+                    val value = stdev
 
-        }
+                    (targetVenueGoldenId, column, value)
+            }
 
-        val reach = findReach(withHomeWork)
+            val reachLat = reach
+                    .mapTo(('venueKey, 'lat) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Double) =>
+                    val (venueKey, lat) = in
 
-        val reachMean = reach
-                .mapTo(('venueKey, 'meanDist) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, Double) =>
-                val (venueKey, mean) = in
+                    val targetVenueGoldenId = venueKey + "_reach_distance"
+                    val column = "latitude"
+                    val value = lat
 
-                val targetVenueGoldenId = venueKey + "_reach_distance"
-                val column = "meanDist"
-                val value = mean
+                    (targetVenueGoldenId, column, value)
+            }
 
-                (targetVenueGoldenId, column, value)
-        }
+            val reachLong = reach
+                    .mapTo(('venueKey, 'lng) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Double) =>
+                    val (venueKey, lng) = in
 
-        val reachStdev = reach
-                .mapTo(('venueKey, 'stdevDist) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, Double) =>
-                val (venueKey, stdev) = in
+                    val targetVenueGoldenId = venueKey + "_reach_distance"
+                    val column = "longitude"
+                    val value = lng
 
-                val targetVenueGoldenId = venueKey + "_reach_distance"
-                val column = "stdevDist"
-                val value = stdev
+                    (targetVenueGoldenId, column, value)
+            }
 
-                (targetVenueGoldenId, column, value)
-        }
+            val reachHome = reach
+                    .mapTo(('venueKey, 'numHome) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Int) =>
+                    val (venueKey, count) = in
 
-        val reachLat = reach
-                .mapTo(('venueKey, 'lat) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, Double) =>
-                val (venueKey, lat) = in
+                    val targetVenueGoldenId = venueKey + "_reach_originCount"
+                    val column = "numHome"
+                    val value = count.toDouble
 
-                val targetVenueGoldenId = venueKey + "_reach_distance"
-                val column = "latitude"
-                val value = lat
+                    (targetVenueGoldenId, column, value)
+            }
 
-                (targetVenueGoldenId, column, value)
-        }
+            val reachWork = reach
+                    .mapTo(('venueKey, 'numWork) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Int) =>
+                    val (venueKey, count) = in
 
-        val reachLong = reach
-                .mapTo(('venueKey, 'lng) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, Double) =>
-                val (venueKey, lng) = in
+                    val targetVenueGoldenId = venueKey + "_reach_originCount"
+                    val column = "numWork"
+                    val value = count.toDouble
 
-                val targetVenueGoldenId = venueKey + "_reach_distance"
-                val column = "longitude"
-                val value = lng
+                    (targetVenueGoldenId, column, value)
+            }
 
-                (targetVenueGoldenId, column, value)
-        }
+            /* val byIncome = byIncome(combined)
+       .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+    in: (String, String, Int) =>
+       val (venueKey, income, frequency) = in
 
-        val reachHome = reach
-                .mapTo(('venueKey, 'numHome) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, Int) =>
-                val (venueKey, count) = in
+       val targetVenueGoldenId = venueKey + "_income"
+       val column = income
+       val value = frequency.toDouble
 
-                val targetVenueGoldenId = venueKey + "_reach_originCount"
-                val column = "numHome"
-                val value = count.toDouble
-
-                (targetVenueGoldenId, column, value)
-        }
-
-        val reachWork = reach
-                .mapTo(('venueKey, 'numWork) ->('rowKey, 'columnName, 'columnValue)) {
-            in: (String, Int) =>
-                val (venueKey, count) = in
-
-                val targetVenueGoldenId = venueKey + "_reach_originCount"
-                val column = "numWork"
-                val value = count.toDouble
-
-                (targetVenueGoldenId, column, value)
-        }
-
-        /* val byIncome = byIncome(combined)
-   .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-in: (String, String, Int) =>
-   val (venueKey, income, frequency) = in
-
-   val targetVenueGoldenId = venueKey + "_income"
-   val column = income
-   val value = frequency.toDouble
-
-   (targetVenueGoldenId, column, value)
-}
-   .project(('rowKey, 'columnName, 'columnValue))   */
-
-        val staticOutput =
-            (totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
-
-        val staticSequence = staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
-        val staticText = staticOutput.write(TextLine(textOutputStatic))
+       (targetVenueGoldenId, column, value)
     }
+       .project(('rowKey, 'columnName, 'columnValue))   */
 
-    val byTime = timeSeries(combined)
-            .mapTo(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, Int, String, Int) =>
-            val (venueKey, hour, serviceType, frequency) = in
+            val staticOutput =
+                (ageMetrics ++ totalCheckins ++ totalStatic ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits ++ byAge ++ byDegree ++ byGender)
 
-            val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
-            val column = hour.toLong * 3600000
-            val value = frequency * 1.0
-
-            (targetVenueGoldenId, column, value)
-
+            staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
+                    .write(Tsv(sequenceOutputStatic + "_tsv", Fields.ALL))
     }
+    sequenceOutputTimeOption foreach {
+        sequenceOutputTime =>
+            val byTime = timeSeries(combined)
+                    .mapTo(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Int, String, Int) =>
+                    val (venueKey, hour, serviceType, frequency) = in
 
-    val timeSequence = byTime.write(SequenceFile(sequenceOutputTime, Fields.ALL))
-    val timeText = byTime.write(TextLine(textOutputTime))
+                    val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
+                    val column = hour.toLong * 3600000
+                    val value = frequency * 1.0
 
+                    (targetVenueGoldenId, column, value)
+
+            }
+
+            byTime.write(SequenceFile(sequenceOutputTime, Fields.ALL))
+                    .write(Tsv(sequenceOutputTime + "_tsv", Fields.ALL))
+    }
 
 }

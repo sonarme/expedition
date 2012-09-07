@@ -1,8 +1,9 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{TextLine, Args}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes.{PlacesCorrelation, CheckinGrouperFunction, BuzzFromCheckins}
-import com.twitter.scalding.Job
+import cascading.tuple.Fields
+import com.twitter.scalding.SequenceFile
 
 class ComputeBuzzScoreJob(args: Args) extends Job(args) with CheckinSource with CheckinGrouperFunction with BuzzFromCheckins with PlacesCorrelation {
 
@@ -11,9 +12,8 @@ class ComputeBuzzScoreJob(args: Args) extends Job(args) with CheckinSource with 
     val shinglesPipe = getShingles(venueIdCheckins)
     val buzz = findBuzz(shinglesPipe, venueIdCheckins)
     val buzzStats = findBuzzStats(buzz)
-    val normalizedBuzz = normalizeBuzz(buzz, buzzStats)
-    val buzzMin = findMin(normalizedBuzz)
-    val buzzMax = findMax(normalizedBuzz)
-    val buzzScore = calculateBuzzScore(normalizedBuzz, buzzMin, buzzMax).write(TextLine(output))
+    val scores = calculateBuzzScore(buzz, buzzStats)
 
+    scores.write(SequenceFile(output, ('rowKey, 'columnName, 'columnValue)))
+            .write(Tsv(output + "_tsv", ('rowKey, 'columnName, 'columnValue)))
 }
