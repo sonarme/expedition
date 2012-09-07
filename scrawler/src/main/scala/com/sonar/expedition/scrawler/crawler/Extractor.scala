@@ -207,6 +207,8 @@ class FoursquareExtractor(content: String) extends Extractor(content) {
 
     override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").replace(",","").toInt
 
+    override def reviews() = extractListByAttributeValue("class", "tipText")
+
     override def peopleCount() = try {
         doc.getElementsByClass("statsnot6digits").get(1).text().replace(",","").toInt
     } catch {

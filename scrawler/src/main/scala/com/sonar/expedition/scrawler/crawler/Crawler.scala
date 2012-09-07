@@ -21,7 +21,7 @@ class Crawler(args: Args) extends Job(args) {
     val level: Int = args("level").toInt
     val levelUp: Int = level + 1
     val outputDir = args("output")
-    val domain = args("domain")
+    val domains = args("domains")
 
     val links = Tsv(outputDir+"/crawl_"+level+"/links.tsv", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
     val linksOutput = Tsv(outputDir+"/crawl_"+levelUp+"/links.tsv", ('url, 'timestamp, 'referer))
@@ -145,7 +145,9 @@ class Crawler(args: Args) extends Job(args) {
                                     } else {
                                         ""
                                     }
-                                }).filter(_.indexOf(domain) > -1)
+                                }).filter(d => {
+                                    domains.split(",").foldLeft(false)(_ || d.indexOf(_) > -1)
+                                })
                             } else List.empty[String]
                         }
                         case _ => List.empty[String]
@@ -172,9 +174,10 @@ class Crawler(args: Args) extends Job(args) {
 
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
-            .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(domain).isIncluded(url)}
-            .map('content -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)) { content: String => {
-                    val extractor = ExtractorFactory.getExtractor(domain, content)
+            .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
+            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)) { in: (String, String) => {
+                    val (url, content) = in
+                    val extractor = ExtractorFactory.getExtractor(url, content)
                     val business = extractor.businessName()
                     val category = extractor.category()
                     val rating = extractor.rating()
