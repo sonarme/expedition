@@ -4,8 +4,8 @@ import org.jsoup.Jsoup
 import reflect.BeanProperty
 import org.jsoup.select.Elements
 import scala.collection.JavaConversions._
-import org.jsoup.nodes.Element
-import org.jsoup.parser.Tag
+import com.sonar.expedition.scrawler.crawler.FacebookExtractor._
+import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper, PropertyNamingStrategy}
 
 /**
  * extract content from a page (content)
@@ -46,6 +46,12 @@ class Extractor(@BeanProperty val content: String) {
     def peopleCount(): Int = 0
 
     def checkinCount(): Int = 0
+
+    def wereHereCount(): Int = 0
+
+    def talkingAboutCount(): Int = 0
+
+    def likes(): Int = 0
 
 
     def extractById(id: String): Option[String] = {
@@ -107,7 +113,7 @@ class YelpExtractor(content: String) extends Extractor(content) {
 
     override def priceRange() = extractById("price_tip").getOrElse("")
 
-    override def reviewCount() = extractByAttributeValue("itemprop", "reviewCount").getOrElse("0").toInt
+    override def reviewCount() = extractByAttributeValue("itemprop", "reviewCount").getOrElse("0").replace(",","").toInt
 
     override def reviews() = extractListByAttributeValue("itemprop", "description")
 }
@@ -142,7 +148,7 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
     override def reviewCount() = Option(doc.getElementById("coreInfo.tabs.reviews")) match {
         case Some(ele) => {
             ele.getElementsByClass("itemCount").headOption match {
-                case Some(e) => e.text().stripPrefix("(").stripSuffix(")").toInt
+                case Some(e) => e.text().stripPrefix("(").stripSuffix(")").replace(",","").toInt
                 case None => 0
             }
         }
@@ -199,6 +205,75 @@ class FoursquareExtractor(content: String) extends Extractor(content) {
 
     override def priceRange() = extractByAttributeValue("itemprop", "priceRange").getOrElse("").replace(" ", "") // "$ $" -> "$$"
 
-    override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").toInt
+    override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").replace(",","").toInt
 
+    override def peopleCount() = try {
+        doc.getElementsByClass("statsnot6digits").get(1).text().replace(",","").toInt
+    } catch {
+        case e: Exception => 0
+    }
+
+    override def checkinCount() = try {
+        doc.getElementsByClass("statsnot6digits").get(2).text().replace(",","").toInt
+    } catch {
+        case e: Exception => 0
+    }
+}
+
+class FacebookExtractor(content: String) extends Extractor(content) {
+
+    def fbPlace = FacebookPlaceObjectMapper.readValue(content, classOf[FacebookPlace])
+
+    override def businessName() = fbPlace.name
+
+    override def category() = fbPlace.category
+
+    override def latitude() = fbPlace.location.latitude
+
+    override def longitude() = fbPlace.location.longitude
+
+    override def address() = fbPlace.location.street
+
+    override def city() = fbPlace.location.city
+
+    override def state() = fbPlace.location.state
+
+    override def zip() = fbPlace.location.zip
+
+    override def phone() = fbPlace.phone
+
+    override def likes() = fbPlace.likes
+
+    override def talkingAboutCount() = fbPlace.talkingAboutCount
+
+    override def wereHereCount() = fbPlace.wereHereCount
+
+    override def checkinCount() = fbPlace.checkins
+}
+
+object FacebookExtractor {
+    val FacebookPlaceObjectMapper = new ObjectMapper
+    FacebookPlaceObjectMapper.disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
+    FacebookPlaceObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
+}
+
+case class FacebookPlace(@BeanProperty name: String,
+                         @BeanProperty phone: String = null,
+                         @BeanProperty category: String = null,
+                         @BeanProperty location: FacebookPlaceLocation = null,
+                         @BeanProperty checkins: Int = 0,
+                         @BeanProperty wereHereCount: Int = 0,
+                         @BeanProperty talkingAboutCount: Int = 0,
+                         @BeanProperty likes: Int = 0) {
+    def this() = this(null)
+}
+
+case class FacebookPlaceLocation(@BeanProperty street: String,
+                                 @BeanProperty city: String = null,
+                                 @BeanProperty state: String = null,
+                                 @BeanProperty country: String = null,
+                                 @BeanProperty zip: String = null,
+                                 @BeanProperty latitude: Double = 0.0,
+                                 @BeanProperty longitude: Double = 0.0) {
+    def this() = this(null)
 }

@@ -41,6 +41,26 @@ class Crawler(args: Args) extends Job(args) {
     val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed3", Fields.ALL) //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
     val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw3", ('url, 'timestamp, 'status, 'content, 'links)) //('url, 'timestamp, 'status, 'content, 'links)
 
+    val venues = TextLine("/Users/rogchang/Desktop/venuessorted.txt")
+    val venuesOutput = Tsv("/Users/rogchang/Desktop/links.tsv")
+
+    /*
+    val foursquareVenues = venues
+        .read
+        .filter('line) { goldenId: String => goldenId.startsWith("foursquare")}
+        .mapTo('line -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("https://foursquare.com/v/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)}
+
+    foursquareVenues
+        .write(Tsv("/Users/rogchang/Desktop/foursquareLinks.tsv"))
+
+    val facebookVenues = venues
+        .read
+        .filter('line) { goldenId: String => goldenId.startsWith("facebook")}
+        .mapTo('line -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("http://graph.facebook.com/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)}
+
+    facebookVenues
+        .write(Tsv("/Users/rogchang/Desktop/facebookLinks.tsv"))
+    */
 
     //Read from status.tsv and output the fetched urls
     //TODO: find a way to split in one step
@@ -153,7 +173,7 @@ class Crawler(args: Args) extends Job(args) {
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
             .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(domain).isIncluded(url)}
-            .map('content -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews)) { content: String => {
+            .map('content -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)) { content: String => {
                     val extractor = ExtractorFactory.getExtractor(domain, content)
                     val business = extractor.businessName()
                     val category = extractor.category()
@@ -168,8 +188,13 @@ class Crawler(args: Args) extends Job(args) {
                     val priceRange = extractor.priceRange()
                     val reviewCount = extractor.reviewCount()
                     val reviews = extractor.reviews()
+                    val peopleCount = extractor.peopleCount()
+                    val checkins = extractor.checkinCount()
+                    val wereHereCount = extractor.wereHereCount()
+                    val talkingAboutCount = extractor.talkingAboutCount()
+                    val likes = extractor.likes()
 
-                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, reviews)
+                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, reviews, peopleCount, checkins, wereHereCount, talkingAboutCount, likes)
                 }
             }
             .discard('content, 'links, 'status)
