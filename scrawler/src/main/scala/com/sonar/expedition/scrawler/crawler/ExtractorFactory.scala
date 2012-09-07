@@ -5,6 +5,7 @@ object ExtractorFactory {
         domain match {
             case d: String if d.indexOf(Sites.Yelp) > -1 => new YelpExtractor(content)
             case d: String if d.indexOf(Sites.CitySearch) > -1 => new CitySearchExtractor(content)
+            case d: String if d.indexOf(Sites.Foursquare) > -1 => new FoursquareExtractor(content)
             case _ => new Extractor(content)
         }
     }
