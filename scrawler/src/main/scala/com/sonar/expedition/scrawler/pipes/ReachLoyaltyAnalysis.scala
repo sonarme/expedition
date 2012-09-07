@@ -6,9 +6,8 @@ import com.sonar.expedition.scrawler.util.Haversine
 
 trait ReachLoyaltyAnalysis extends ScaldingImplicits {
 
-    def findReach(combinedInput: RichPipe): RichPipe = {
-
-        val processed = combinedInput.map(('loc, 'homeCentroid, 'workCentroid) ->('distanceTraveled, 'isHome)) {
+    def findReach(combinedInput: RichPipe) =
+        combinedInput.map(('loc, 'homeCentroid, 'workCentroid) ->('distanceTraveled, 'isHome)) {
             fields: (String, String, String) => {
                 val (loc, home, work) = fields
                 val loclat = loc.split(":").head.toDouble
@@ -22,61 +21,40 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
                 (math.min(homedist, workdist), homedist < workdist)
 
             }
-        }
+        }.groupBy('venueKey) {
 
-        val stats = processed.groupBy('venueKey) {
             _.sizeAveStdev('distanceTraveled ->('count, 'meanDist, 'stdevDistRaw))
                     .count('isHome -> 'numHome) {
                 x: Boolean => x
             }
                     .count('isHome -> 'numWork) {
                 x: Boolean => !x
-            }
-                    .max('loc)
-        }
-                .map(('loc) ->('lat, 'lng)) {
-            fields: (String) =>
+            } //.max('loc) // TODO this is wrong
+
+        } /*.map(('loc) ->('lat, 'lng)) {
+            fields: String =>
                 val loc = fields
                 val lat = loc.split(":").head
                 val long = loc.split(":").last
                 (lat, long)
-        }
-                .map('stdevDistRaw -> 'stdevDist) {
-            stdev: Double => {
-                if (stdev.toString.equals("NaN"))
-                    0.0
-                else
-                    stdev
-            }
+        }*/ .map('stdevDistRaw -> 'stdevDist) {
+            stdev: Double => if (stdev.toString.equals("NaN")) 0.0 else stdev
         }
 
-        stats
 
-    }
-
-    def findLoyalty(combinedInput: RichPipe): RichPipe = {
-
-        val processed = combinedInput.groupBy('keyid, 'venueKey) {
+    def findLoyalty(combinedInput: RichPipe) =
+        combinedInput.groupBy('keyid, 'venueKey) {
             _.size('visits)
-        }
-                .map('visits -> 'loyalty) {
-            size: Int => {
-                if (size == 1)
+        }.map('visits -> 'loyalty) {
+            size: Int =>
+                if (size <= 1)
                     "Passers-By"
                 else if (size <= 3)
                     "Regulars"
                 else
                     "Addicts"
 
-            }
+        }.groupBy('venueKey, 'loyalty) {
+            _.size('customers).sum('visits -> 'loyaltyVisitCount)
         }
-
-        val stats = processed.groupBy('venueKey, 'loyalty) {
-            _.size('customers)
-                    .sum('visits -> 'visitsType)
-        }
-
-        stats
-    }
-
 }
