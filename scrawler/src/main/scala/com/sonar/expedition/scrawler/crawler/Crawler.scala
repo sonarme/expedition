@@ -38,8 +38,8 @@ class Crawler(args: Args) extends Job(args) {
     val linksOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/links", ('url, 'timestamp, 'referer))
     val statusSequence = SequenceFile(outputDir+"/crawl_"+level+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
-    val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed3", Fields.ALL) //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
-    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw3", ('url, 'timestamp, 'status, 'content, 'links)) //('url, 'timestamp, 'status, 'content, 'links)
+    val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL) //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
+    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", ('url, 'timestamp, 'status, 'content, 'links)) //('url, 'timestamp, 'status, 'content, 'links)
 
     val venues = TextLine("/Users/rogchang/Desktop/venuessorted.txt")
     val venuesOutput = Tsv("/Users/rogchang/Desktop/links.tsv")
@@ -65,7 +65,7 @@ class Crawler(args: Args) extends Job(args) {
     val twitterVenues = venues
             .read
             .filter('line) { goldenId: String => goldenId.startsWith("twitter")}
-            .mapTo('line -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("http://graph.facebook.com/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)}
+            .mapTo('line -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("https://api.twitter.com/1/geo/id/" + goldenId.split(":").tail.head + ".json", new DateTime().getMillis, goldenId)}
 
         twitterVenues
             .write(Tsv("/Users/rogchang/Desktop/twitterLinks.tsv"))
