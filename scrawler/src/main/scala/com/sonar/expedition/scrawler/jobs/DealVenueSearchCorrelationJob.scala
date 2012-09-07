@@ -1,7 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{SequenceFile, Tsv, Job, Args}
-import crawlercommons.fetcher.http.{UserAgent, SimpleHttpFetcher}
 import org.jsoup.Jsoup
 import org.apache.commons.validator.routines.UrlValidator
 import java.net.URL
@@ -9,9 +8,13 @@ import org.joda.time.DateTime
 import com.sonar.expedition.scrawler.crawler.filter.ParseFilterFactory
 import com.sonar.expedition.scrawler.crawler.ExtractorFactory
 import cascading.tuple.Fields
-import com.sonar.expedition.scrawler.jobs.DealVenueSearchCorrelationJob._
 import ch.hsr.geohash.util.VincentyGeodesy
 import ch.hsr.geohash.WGS84Point
+import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.client.methods.HttpGet
+import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
+import util.Random
+import org.apache.http.util.EntityUtils
 
 class DealVenueSearchCorrelationJob(args: Args) extends Job(args) {
 
@@ -34,12 +37,15 @@ class DealVenueSearchCorrelationJob(args: Args) extends Job(args) {
 
     val rawTuples = deals
                 .map('siteLink -> 'content) { url: String => {
-                        val fetcher = new SimpleHttpFetcher(1, userAgent)
+                        val httpclient = new DefaultHttpClient
+                        val method = new HttpGet(url)
+                        method.setHeader("User-Agent", PublicProfileCrawlerUtils.USER_AGENT_LIST(Random.nextInt((PublicProfileCrawlerUtils.USER_AGENT_LIST.size) - 1)))
                         val (status, content) = try {
                             println("fetching: " + url)
                             Thread.sleep(1000)
-                            val fetch = fetcher.fetch(url).getContent
-                            ("fetched", new String(fetch))
+                            val response = httpclient.execute(method)
+                            val fetchedResult = EntityUtils.toString(response.getEntity)
+                            ("fetched", fetchedResult)
                         } catch {
                             case e: Exception => ("error", "")
                         }
@@ -165,8 +171,4 @@ class DealVenueSearchCorrelationJob(args: Args) extends Job(args) {
                 .discard('match)
                 .write(maybeMatchedSequence)
     */
-}
-
-object DealVenueSearchCorrelationJob {
-    val userAgent = new UserAgent("test", "test@domain.com", "http://test.domain.com")
 }

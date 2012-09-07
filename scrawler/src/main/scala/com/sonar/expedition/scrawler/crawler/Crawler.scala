@@ -5,14 +5,16 @@ import collection.JavaConversions._
 import filter.ParseFilterFactory
 import org.joda.time.DateTime
 import cascading.pipe.joiner.{RightJoin, LeftJoin, OuterJoin}
-import crawlercommons.fetcher.http.{SimpleHttpFetcher, UserAgent}
-import org.ccil.cowan.tagsoup.jaxp.SAXFactoryImpl
-import Crawler._
 import org.jsoup.Jsoup
 import java.net.URL
 import org.apache.commons.validator.routines.UrlValidator
 import com.twitter.scalding.Tsv
 import cascading.tuple.Fields
+import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.util.EntityUtils
+import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
+import util.Random
 
 class Crawler(args: Args) extends Job(args) {
 
@@ -83,12 +85,15 @@ class Crawler(args: Args) extends Job(args) {
     //foreach allUnfetched -> fetch content and write to raw and parsed
     val rawTuples = allUnfetched
             .map('url -> ('timestamp, 'status, 'content, 'links)) { url: String => {
-                    val fetcher = new SimpleHttpFetcher(1, userAgent)
+                    val httpclient = new DefaultHttpClient
+                    val method = new HttpGet(url)
+                    method.setHeader("User-Agent", PublicProfileCrawlerUtils.USER_AGENT_LIST(Random.nextInt((PublicProfileCrawlerUtils.USER_AGENT_LIST.size) - 1)))
                     val (status, content) = try {
                         println("fetching: " + url)
                         Thread.sleep(1000)
-                        val fetch = fetcher.fetch(url).getContent
-                        ("fetched", new String(fetch))
+                        val response = httpclient.execute(method)
+                        val fetchedResult = EntityUtils.toString(response.getEntity)
+                        ("fetched", fetchedResult)
                     } catch {
                         case e: Exception => ("error", "")
                     }
@@ -187,8 +192,4 @@ class Crawler(args: Args) extends Job(args) {
     statusOut
         .write(statusOutput)
 
-}
-
-object Crawler {
-    val userAgent = new UserAgent("test", "test@domain.com", "http://test.domain.com")
 }
