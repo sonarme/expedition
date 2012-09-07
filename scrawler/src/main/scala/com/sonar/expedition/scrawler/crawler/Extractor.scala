@@ -6,7 +6,7 @@ import org.jsoup.select.Elements
 import scala.collection.JavaConversions._
 import com.sonar.expedition.scrawler.crawler.FacebookExtractor._
 import com.sonar.expedition.scrawler.crawler.TwitterExtractor._
-import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper, PropertyNamingStrategy}
+import com.fasterxml.jackson.databind.{DeserializationFeature, PropertyNamingStrategy, DeserializationConfig, ObjectMapper}
 
 /**
  * extract content from a page (content)
@@ -256,7 +256,7 @@ class FacebookExtractor(content: String) extends Extractor(content) {
 
 object FacebookExtractor {
     val FacebookPlaceObjectMapper = new ObjectMapper
-    FacebookPlaceObjectMapper.disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
+    FacebookPlaceObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     FacebookPlaceObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
 }
 
@@ -318,6 +318,6 @@ case class GeoGeometry(@BeanProperty coordinates: Array[Double]) {
 
 object TwitterExtractor {
     val TwitterGeoObjectMapper = new ObjectMapper
-    TwitterGeoObjectMapper.disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
+    TwitterGeoObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     TwitterGeoObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
 }
