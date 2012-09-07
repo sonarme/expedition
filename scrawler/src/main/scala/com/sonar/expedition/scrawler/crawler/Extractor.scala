@@ -7,6 +7,7 @@ import scala.collection.JavaConversions._
 import com.sonar.expedition.scrawler.crawler.FacebookExtractor._
 import com.sonar.expedition.scrawler.crawler.TwitterExtractor._
 import com.fasterxml.jackson.databind.{DeserializationFeature, PropertyNamingStrategy, DeserializationConfig, ObjectMapper}
+import com.sonar.dossier.ScalaGoodies._
 
 /**
  * extract content from a page (content)
@@ -225,23 +226,23 @@ class FoursquareExtractor(content: String) extends Extractor(content) {
 
 class FacebookExtractor(content: String) extends Extractor(content) {
 
-    def fbPlace = FacebookPlaceObjectMapper.readValue(content, classOf[FacebookPlace])
+    def fbPlace = try{ FacebookPlaceObjectMapper.readValue(content, classOf[FacebookPlace]) } catch { case e: Exception => new FacebookPlace()}
 
     override def businessName() = fbPlace.name
 
     override def category() = fbPlace.category
 
-    override def latitude() = fbPlace.location.latitude
+    override def latitude() =  try { fbPlace.location.latitude } catch { case e: Exception => 0.0 }
 
-    override def longitude() = fbPlace.location.longitude
+    override def longitude() = try { fbPlace.location.longitude } catch { case e: Exception => 0.0 }
 
-    override def address() = fbPlace.location.street
+    override def address() = ?(fbPlace.location.street)
 
-    override def city() = fbPlace.location.city
+    override def city() = ?(fbPlace.location.city)
 
-    override def state() = fbPlace.location.state
+    override def state() = ?(fbPlace.location.state)
 
-    override def zip() = fbPlace.location.zip
+    override def zip() = ?(fbPlace.location.zip)
 
     override def phone() = fbPlace.phone
 
@@ -291,11 +292,11 @@ class TwitterExtractor(content: String) extends Extractor(content) {
 
     override def longitude() = try { twGeo.geometry.coordinates(0) } catch { case e: Exception => 0.0}
 
-    override def address() = try { twGeo.attributes.streetAddress } catch { case e: Exception => ""}
+    override def address() = ?(twGeo.attributes.streetAddress)
 
-    override def zip() = try { twGeo.attributes.postalCode } catch { case e: Exception => ""}
+    override def zip() = ?(twGeo.attributes.postalCode)
 
-    override def phone() = try { twGeo.attributes.phone } catch { case e: Exception => ""}
+    override def phone() = ?(twGeo.attributes.phone)
 }
 
 case class TwitterGeo(@BeanProperty name: String,
