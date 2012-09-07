@@ -61,6 +61,15 @@ class Crawler(args: Args) extends Job(args) {
     facebookVenues
         .write(Tsv("/Users/rogchang/Desktop/facebookLinks.tsv"))
     */
+    /*
+    val twitterVenues = venues
+            .read
+            .filter('line) { goldenId: String => goldenId.startsWith("twitter")}
+            .mapTo('line -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("http://graph.facebook.com/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)}
+
+        twitterVenues
+            .write(Tsv("/Users/rogchang/Desktop/twitterLinks.tsv"))
+    */
 
     //Read from status.tsv and output the fetched urls
     //TODO: find a way to split in one step
@@ -83,8 +92,8 @@ class Crawler(args: Args) extends Job(args) {
                 .filter('status) {status: String => status != "fetched"}
                 .project('unfetchedUrl)
 
-    unfetchedLinks
-        .write(dummy)
+//    unfetchedLinks
+//        .write(dummy)
 
 
     //get all unfetched links
@@ -98,8 +107,8 @@ class Crawler(args: Args) extends Job(args) {
                 unfetchedUrl
         }
 
-    allUnfetched
-        .write(dummy2)
+//    allUnfetched
+//        .write(dummy2)
 
 
     //foreach allUnfetched -> fetch content and write to raw and parsed
@@ -159,9 +168,10 @@ class Crawler(args: Args) extends Job(args) {
 //    rawTuples
 //        .write(raw)
 
-//    rawTuples
-//        .write(rawSequence)
+    rawTuples
+        .write(rawSequence)
 
+    /*
     //Write outgoing links from rawTuples to next links level
     val outgoingLinks = rawTuples
             .flatMapTo('links -> 'link) { links : Iterable[String] => links.filter(link => link != null && link != "") }
@@ -170,7 +180,7 @@ class Crawler(args: Args) extends Job(args) {
 
     outgoingLinks
         .write(linksOutput)
-
+    */
 
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
@@ -202,14 +212,14 @@ class Crawler(args: Args) extends Job(args) {
             }
             .discard('content, 'links, 'status)
 
-    parsedTuples
-        .write(parsed)
-
 //    parsedTuples
-//        .write(parsedSequence)
+//        .write(parsed)
+
+    parsedTuples
+        .write(parsedSequence)
 
     //Write status of each fetch
-
+    /*
     val statusOut = rawTuples
             .mapTo(('url, 'status, 'timestamp) -> ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)){ x: (String, String, Long) => {
                 val (url, status, timestamp) = x
@@ -219,5 +229,5 @@ class Crawler(args: Args) extends Job(args) {
 
     statusOut
         .write(statusOutput)
-
+    */
 }
