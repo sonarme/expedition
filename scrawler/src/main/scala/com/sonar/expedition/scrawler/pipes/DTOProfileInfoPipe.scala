@@ -33,6 +33,8 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
     // updated to include foursquare data
     // uncomment last line to get hashes of fb, ln, and fsids to compare prod data
 
+    def serviceProfiles(args: Args) = SequenceFile(args("serviceProfileInput"), ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)).read
+
     def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
 
         val dtoProfiles = datahandle
