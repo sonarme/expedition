@@ -57,7 +57,7 @@ class Extractor(@BeanProperty val content: String) {
 
     def price(): String = ""
 
-    def purchased(): Int = 0
+    def purchased(): String = ""
 
     def savingsPercent(): String = ""
 
@@ -414,10 +414,10 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
 
     override def purchased() = Option(doc.getElementById("deal-purchase-count")) match {
         case Some(d) => d.getElementsByClass("value").headOption match {
-            case Some(e) => e.text().replace(",", "").toInt
-            case None => 0
+            case Some(e) => e.text()
+            case None => ""
         }
-        case None => 0
+        case None => ""
     }
 
     override def savingsPercent() = extractById("percentage").getOrElse("").stripSuffix("%")
