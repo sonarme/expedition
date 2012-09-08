@@ -16,7 +16,7 @@ class CrawlAggregationJob(args: Args) extends Job(args) {
                 url: String => val id = url.stripSuffix("/").split('/').last.stripSuffix(".json")
                 serviceType + ":" + id
             }
-    }.reduce(_ ++ _).write(OneSequenceFile(args("output"), CrawlOutTuple))
+    }.reduce(_ ++ _).write(SequenceFile(args("output"), CrawlOutTuple))
 }
 
 object CrawlAggregationJob {
@@ -24,13 +24,3 @@ object CrawlAggregationJob {
     val CrawlOutTuple = ('venueId, 'url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
 }
 
-
-case class OneSequenceFile(p: String, f: Fields = Fields.ALL) extends FixedPathSource(p) with SequenceFileScheme {
-    override val fields = f
-
-    override def hdfsScheme = {
-        val scheme = new CHSequenceFile(fields).asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
-        scheme.setNumSinkParts(10)
-        scheme
-    }
-}

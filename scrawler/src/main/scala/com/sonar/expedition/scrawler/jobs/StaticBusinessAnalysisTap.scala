@@ -48,6 +48,8 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
             val (fbid, lnid, fsid, twid) = in
             //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
             List("facebook:" + fbid, "twitter:" + twid, "foursquare:" + fsid)
+    }.groupBy('key) {
+        _.head('uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)
     }
 
     /*
