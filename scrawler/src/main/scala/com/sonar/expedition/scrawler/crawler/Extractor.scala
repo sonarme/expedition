@@ -55,6 +55,16 @@ class Extractor(@BeanProperty val content: String) {
 
     def likes(): Int = 0
 
+    def price(): String = ""
+
+    def purchased(): Int = 0
+
+    def savingsPercent(): String = ""
+
+    def dealDescription(): String = ""
+
+    def dealImage(): String = ""
+
 
     def extractById(id: String): Option[String] = {
         Option(doc.getElementById(id)) match {
@@ -226,15 +236,27 @@ class FoursquareExtractor(content: String) extends Extractor(content) {
 
 class FacebookExtractor(content: String) extends Extractor(content) {
 
-    def fbPlace = try{ FacebookPlaceObjectMapper.readValue(content, classOf[FacebookPlace]) } catch { case e: Exception => new FacebookPlace()}
+    def fbPlace = try {
+        FacebookPlaceObjectMapper.readValue(content, classOf[FacebookPlace])
+    } catch {
+        case e: Exception => new FacebookPlace()
+    }
 
     override def businessName() = fbPlace.name
 
     override def category() = fbPlace.category
 
-    override def latitude() =  try { fbPlace.location.latitude } catch { case e: Exception => 0.0 }
+    override def latitude() = try {
+        fbPlace.location.latitude
+    } catch {
+        case e: Exception => 0.0
+    }
 
-    override def longitude() = try { fbPlace.location.longitude } catch { case e: Exception => 0.0 }
+    override def longitude() = try {
+        fbPlace.location.longitude
+    } catch {
+        case e: Exception => 0.0
+    }
 
     override def address() = ?(fbPlace.location.street)
 
@@ -288,9 +310,17 @@ class TwitterExtractor(content: String) extends Extractor(content) {
 
     override def businessName() = twGeo.name
 
-    override def latitude() = try { twGeo.geometry.coordinates(1) } catch { case e: Exception => 0.0}
+    override def latitude() = try {
+        twGeo.geometry.coordinates(1)
+    } catch {
+        case e: Exception => 0.0
+    }
 
-    override def longitude() = try { twGeo.geometry.coordinates(0) } catch { case e: Exception => 0.0}
+    override def longitude() = try {
+        twGeo.geometry.coordinates(0)
+    } catch {
+        case e: Exception => 0.0
+    }
 
     override def address() = ?(twGeo.attributes.streetAddress)
 
@@ -321,4 +351,84 @@ object TwitterExtractor {
     val TwitterGeoObjectMapper = new ObjectMapper
     TwitterGeoObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     TwitterGeoObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
+}
+
+class LivingSocialExtractor(content: String) extends Extractor(content) {
+    override def businessName() = extractByAttributeValueAttribute("property", "og:merchant", "content").getOrElse(extractByAttributeValueAttribute("property", "og:title", "content").getOrElse(""))
+
+    val latlng = doc.getElementsByClass("directions").headOption match {
+        case Some(d) => d.getElementsByTag("a").headOption match {
+            case Some(a) => {
+                val href = a.attr("href")
+                href.substring(href.indexOf("q=") + 2)
+            }
+            case None => "0.0"
+        }
+        case None => "0.0"
+    }
+
+    override def latitude() = try {
+        latlng.split(",")(0).trim.toDouble
+    } catch {
+        case e: Exception => 0.0
+    }
+
+    override def longitude() = try {
+        latlng.split(",")(1).trim.toDouble
+    } catch {
+        case e: Exception => 0.0
+    }
+
+    def fullAddress = extractByAttributeValue("class", "street_1").getOrElse("").split(",")
+
+    override def address() = try {
+        fullAddress(0).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def city() = try {
+        fullAddress(1).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def state() = try {
+        fullAddress(2).split(" ")(0).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def zip() = try {
+        fullAddress(2).split(" ")(1).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def phone() = extractByAttributeValue("class", "phone").getOrElse("").stripSuffix(" |")
+
+    override def price() = doc.getElementsByClass("deal-price").headOption match {
+        case Some(e) => Jsoup.parse(e.text()).text()
+        case None => ""
+    }
+
+    override def purchased() = Option(doc.getElementById("deal-purchase-count")) match {
+        case Some(d) => d.getElementsByClass("value").headOption match {
+            case Some(e) => e.text().toInt
+            case None => 0
+        }
+        case None => 0
+    }
+
+    override def savingsPercent() = extractById("percentage").getOrElse("").stripSuffix("%")
+
+    override def dealDescription() = extractById("view-details-full").getOrElse("")
+
+    override def dealImage() = doc.getElementsByClass("lead-deal portrait").headOption match {
+        case Some(e) => e.getElementsByTag("img").headOption match {
+            case Some(img) => img.attr("src")
+            case None => ""
+        }
+        case None => ""
+    }
 }

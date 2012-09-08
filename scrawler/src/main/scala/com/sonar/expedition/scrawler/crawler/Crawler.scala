@@ -86,11 +86,11 @@ class Crawler(args: Args) extends Job(args) {
 
     //get unique unfetched links by joining links and status
     val unfetchedLinks = links
-                .discard('timestamp)
-                .rename('url -> 'unfetchedUrl)
+//                .discard('timestamp)
+                .rename(('url, 'timestamp) -> ('unfetchedUrl, 'oldtimestamp))
                 .joinWithSmaller('unfetchedUrl -> 'url, fetched, joiner = new LeftJoin)
                 .filter('status) {status: String => status != "fetched"}
-                .project('unfetchedUrl)
+                .project('unfetchedUrl, 'oldtimestamp)
 
 //    unfetchedLinks
 //        .write(dummy)
@@ -99,12 +99,12 @@ class Crawler(args: Args) extends Job(args) {
     //get all unfetched links
     val allUnfetched = unfetchedLinks
         .joinWithSmaller('unfetchedUrl -> 'url, unfetched, joiner = new OuterJoin)
-        .mapTo(('unfetchedUrl, 'url) -> ('url)) { x: (String, String) =>
-            val (url, unfetchedUrl) = x
+        .mapTo(('unfetchedUrl, 'url, 'oldtimestamp) -> ('url, 'oldtimestamp)) { x: (String, String, Long) =>
+            val (url, unfetchedUrl, timestamp) = x
             if (url != null)
-                url
+                (url, timestamp)
             else
-                unfetchedUrl
+                (unfetchedUrl, timestamp)
         }
 
 //    allUnfetched
@@ -113,16 +113,15 @@ class Crawler(args: Args) extends Job(args) {
 
     //foreach allUnfetched -> fetch content and write to raw and parsed
     val rawTuples = allUnfetched
-            .map('url -> ('timestamp, 'status, 'content, 'links)) { url: String => {
+            .map('url -> ('status, 'content, 'links)) { url: String => {
                     val httpclient = new DefaultHttpClient
                     val method = new HttpGet(url)
                     method.setHeader("User-Agent", PublicProfileCrawlerUtils.USER_AGENT_LIST(Random.nextInt((PublicProfileCrawlerUtils.USER_AGENT_LIST.size) - 1)))
                     val (status, content) = try {
                         println("fetching: " + url)
                         val rnd = new Random()
-                        val range = 18000 to 34000
-                        Thread.sleep(range(rnd.nextInt(range length)))   //for twitter
-//                        Thread.sleep(10000)
+                        val range = 800 to 2000 // randomly sleep btw .8s to 2s
+                        Thread.sleep(range(rnd.nextInt(range length)))
                         val response = httpclient.execute(method)
                         val fetchedResult = EntityUtils.toString(response.getEntity)
                         ("fetched", fetchedResult)
@@ -164,7 +163,7 @@ class Crawler(args: Args) extends Job(args) {
                         }
                         case _ => List.empty[String]
                     }
-                    (new DateTime().getMillis, status, content, links)
+                    (status, content, links)
                 }
             }
 
@@ -188,7 +187,7 @@ class Crawler(args: Args) extends Job(args) {
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
             .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
-            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)) { in: (String, String) => {
+            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
                     val (url, content) = in
                     val extractor = ExtractorFactory.getExtractor(url, content)
                     val business = extractor.businessName()
@@ -209,8 +208,13 @@ class Crawler(args: Args) extends Job(args) {
                     val wereHereCount = extractor.wereHereCount()
                     val talkingAboutCount = extractor.talkingAboutCount()
                     val likes = extractor.likes()
+                    val dealPrice = extractor.price()
+                    val purchased = extractor.purchased()
+                    val savingsPercent = extractor.savingsPercent()
+                    val dealDescription = extractor.dealDescription()
+                    val dealImage = extractor.dealImage()
 
-                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, reviews, peopleCount, checkins, wereHereCount, talkingAboutCount, likes)
+                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, likes, dealPrice, purchased, savingsPercent, dealDescription, dealImage)
                 }
             }
             .discard('content, 'links, 'status)

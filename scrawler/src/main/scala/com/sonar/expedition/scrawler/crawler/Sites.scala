@@ -6,4 +6,5 @@ object Sites {
     val Foursquare = "foursquare.com"
     val Facebook = "facebook.com"
     val Twitter = "twitter.com"
+    val LivingSocial = "livingsocial.com"
 }
