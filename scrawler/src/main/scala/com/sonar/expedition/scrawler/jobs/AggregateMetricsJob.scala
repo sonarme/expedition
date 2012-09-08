@@ -11,18 +11,18 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")
     val yelpReviews = args("yelpReviews")
-    val allPipes = staticInputFiles.map(file => SequenceFile(file, ('rowKey, 'columnName, 'columnValue)).read).reduce(_ ++ _)
+    val allPipes = staticInputFiles.map(file => SequenceFile(file, ('rowKey, 'columnName, 'value)).read).reduce(_ ++ _)
     val yelp = SequenceFile(yelpReviews, AggregateMetricsJob.YelpReviews).read.mapTo(('dealId, 'yrating, 'ypriceRange, 'yreviewCount) ->('dealId, 'yrating, 'ypriceRangeMetric, 'yreviewCount)) {
         in: (String, String, String, java.lang.Integer) =>
             val (dealId, yrating, ypriceRange, yreviewCount) = in
             (dealId, if (yrating == null || yrating == "") 0.0 else yrating.toDouble, ypriceRange.length, optionInteger(yreviewCount).getOrElse(0))
     }
-    val metrics = allPipes.mapTo(('rowKey, 'columnName) ->('venueId, 'metric)) {
+    val metrics = allPipes.map(('rowKey, 'columnName) ->('venueId, 'metric)) {
         in: (String, String) =>
             val (rowKey, columnName) = in
             val Array(venueId, metricPrefix) = rowKey.split("_", 2)
             (venueId, metricPrefix + "_" + columnName)
-    }
+    }.discard('rowKey, 'columnName)
     val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).filter('enabled) {
         enabled: Boolean => enabled
     }.map(('venName, 'merchantName) ->('venName, 'merchantName)) {
@@ -30,7 +30,7 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
     }
     val results = deals.leftJoinWithLarger('goldenId -> 'venueId, metrics)
             .groupBy(DealAnalysis.DealsOutputTuple) {
-        _.pivot(('metric, 'columnValue) -> AggregateMetricsJob.MetricsFields)
+        _.pivot(('metric, 'value) -> AggregateMetricsJob.MetricsFields)
     }
     results
             .leftJoinWithTiny('dealId -> 'yelpDealId, yelp.rename('dealId -> 'yelpDealId)).write(Csv(metricsOut, Fields.ALL))
