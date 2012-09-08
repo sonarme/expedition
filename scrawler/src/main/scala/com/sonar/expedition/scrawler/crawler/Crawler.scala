@@ -86,6 +86,7 @@ class Crawler(args: Args) extends Job(args) {
 
     //get unique unfetched links by joining links and status
     val unfetchedLinks = links
+                .read
 //                .discard('timestamp)
                 .rename(('url, 'timestamp) -> ('unfetchedUrl, 'oldtimestamp))
                 .joinWithSmaller('unfetchedUrl -> 'url, fetched, joiner = new LeftJoin)
