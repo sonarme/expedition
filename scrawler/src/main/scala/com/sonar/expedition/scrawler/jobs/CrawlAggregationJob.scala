@@ -30,7 +30,7 @@ case class OneSequenceFile(p: String, f: Fields = Fields.ALL) extends FixedPathS
 
     override def hdfsScheme = {
         val scheme = new CHSequenceFile(fields).asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
-        scheme.setNumSinkParts(1)
+        scheme.setNumSinkParts(10)
         scheme
     }
 }
