@@ -4,7 +4,7 @@ import com.twitter.scalding._
 import com.fasterxml.jackson.databind.{DeserializationFeature, DeserializationConfig, ObjectMapper}
 import java.util
 import com.sonar.expedition.scrawler.util._
-import ch.hsr.geohash.GeoHash
+import ch.hsr.geohash.{WGS84Point, GeoHash}
 import DealAnalysis._
 import reflect.BeanProperty
 import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}
@@ -31,12 +31,13 @@ import com.sonar.expedition.scrawler.jobs.DealLocation
 import com.twitter.scalding.SequenceFile
 import scala.Some
 import com.twitter.scalding.Tsv
+import ch.hsr.geohash.util.VincentyGeodesy
 
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")
-    val distanceArg = args.getOrElse("distance", "200").toInt
+    val distanceArg = args.getOrElse("distance", "250").toInt
     val levenshteinFactor = args.getOrElse("levenshteinFactor", "0.33").toDouble
     val firstNumber = """\s*(\d+)[^\d]*""".r
 
@@ -83,7 +84,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, Double, Double, String, String, String, Double, Double, String, String) =>
             val (stemmedVenName, venueLat, venueLng, venAddress, venuePhone, stemmedMerchantName, merchantLat, merchantLng, merchantAddress, merchantPhone) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            lazy val distance = Haversine.haversine(venueLat, venueLng, merchantLat, merchantLng)
+            lazy val distance = VincentyGeodesy.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
             if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distanceArg) None
             else {
                 val houseNumber = extractFirstNumber(venAddress)
