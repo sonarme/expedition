@@ -58,34 +58,34 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
-            .flatMap(('merchantName, 'locationJSON) ->('stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)) {
-        in: (String, String) =>
-            val (merchantName, locationJSON) = in
+            .flatMap('locationJSON ->('merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)) {
+        locationJSON: String =>
             val dealLocations = try {
                 DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, DealLocationsTypeReference)
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
-            val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             dealLocations map {
                 dealLocation =>
-                    (stemmedMerchantName, dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude), dealLocation.address, dealLocation.phone)
+                    (dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude), dealLocation.address, dealLocation.phone)
             }
     }.discard('locationJSON)
 
-    val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng, 'venName) ->('geosector, 'stemmedVenName)) {
-        in: (Double, Double, String) =>
-            val (lat, lng, venName) = in
-            (dealMatchGeosector(lat, lng), StemAndMetaphoneEmployer.removeStopWords(venName))
+    val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
+        in: (Double, Double) =>
+            val (lat, lng) = in
+            dealMatchGeosector(lat, lng)
     }
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
             .leftJoinWithSmaller('venueId -> 'crawlVenueId, crawls).discard('crawlVenueId)
-            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'venAddress, 'crawlPhone, 'stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone) ->('levenshtein, 'distance)) {
+            .flatMap(('venName, 'venueLat, 'venueLng, 'venAddress, 'crawlPhone, 'merchantName, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone) ->('levenshtein, 'distance)) {
         in: (String, Double, Double, String, String, String, Double, Double, String, String) =>
-            val (stemmedVenName, venueLat, venueLng, venAddress, venuePhone, stemmedMerchantName, merchantLat, merchantLng, merchantAddress, merchantPhone) = in
-            val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            lazy val distance = VincentyGeodesy.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
-            if (levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor || distance > distanceArg) None
+            val (venName, venueLat, venueLng, venAddress, venuePhone, merchantName, merchantLat, merchantLng, merchantAddress, merchantPhone) = in
+            val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
+            val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
+            lazy val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
+            val distance = Haversine.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
+            if (distance > distanceArg || levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor) None
             else {
                 val houseNumber = extractFirstNumber(venAddress)
                 val phone = stripPhone(venuePhone)

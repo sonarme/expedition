@@ -1,6 +1,7 @@
 package com.sonar.expedition.scrawler.util
 
 import math._
+import ch.hsr.geohash.WGS84Point
 
 //http://rosettacode.org/wiki/Haversine_formula#Scala
 
@@ -16,6 +17,7 @@ object Haversine extends Serializable {
         R * c
     }
 
+    def distanceInMeters(p1: WGS84Point, p2: WGS84Point) = haversine(p1.getLatitude, p1.getLongitude, p2.getLatitude, p2.getLongitude) * 1000
 
 }
 
