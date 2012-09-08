@@ -16,8 +16,8 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
                 val homelong = home.split(":").last.toDouble
                 val worklat = work.split(":").head.toDouble
                 val worklong = work.split(":").last.toDouble
-                val homedist = Haversine.haversine(loclat, loclong, homelat, homelong)
-                val workdist = Haversine.haversine(loclat, loclong, worklat, worklong)
+                val homedist = Haversine.haversineInKm(loclat, loclong, homelat, homelong)
+                val workdist = Haversine.haversineInKm(loclat, loclong, worklat, worklong)
                 (math.min(homedist, workdist), homedist < workdist)
 
             }

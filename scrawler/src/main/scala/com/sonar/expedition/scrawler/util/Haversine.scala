@@ -8,7 +8,7 @@ import ch.hsr.geohash.WGS84Point
 object Haversine extends Serializable {
     val R = 6372.8 //earth radius in km
 
-    def haversine(lat1: Double, lon1: Double, lat2: Double, lon2: Double) = {
+    def haversineInKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double) = {
         val dLat = (lat2 - lat1).toRadians
         val dLon = (lon2 - lon1).toRadians
 
@@ -17,7 +17,7 @@ object Haversine extends Serializable {
         R * c
     }
 
-    def distanceInMeters(p1: WGS84Point, p2: WGS84Point) = haversine(p1.getLatitude, p1.getLongitude, p2.getLatitude, p2.getLongitude) * 1000
+    def distanceInMeters(p1: WGS84Point, p2: WGS84Point) = haversineInKm(p1.getLatitude, p1.getLongitude, p2.getLatitude, p2.getLongitude) * 1000
 
 }
 

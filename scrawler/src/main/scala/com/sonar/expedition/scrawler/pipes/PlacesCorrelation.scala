@@ -30,8 +30,8 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 val (lat, lng, geometryLatitude, geometryLongitude) = in
                 if (lat == null || lng == null || geometryLatitude == null || geometryLongitude == null) Some(-1)
                 else {
-                    val distance = Haversine.haversine(lat, lng, geometryLatitude, geometryLongitude)
-                    if (distance > 1000) None else Some(distance)
+                    val distance = Haversine.haversineInKm(lat, lng, geometryLatitude, geometryLongitude)
+                    if (distance > 1) None else Some(distance)
                 }
         }.groupBy('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng) {
             _.min('distance).head('classifiersCategory, 'propertiesAddress, 'venuePhone)
