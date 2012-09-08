@@ -2,9 +2,11 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
 import cascading.tuple.Fields
-import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import com.sonar.dossier.ScalaGoodies._
+import com.twitter.scalding.SequenceFile
+import cascading.scheme.Scheme
+import org.apache.hadoop.mapred.{OutputCollector, RecordReader, JobConf}
 
 class AggregateMetricsJob(args: Args) extends Job(args) {
     val staticInputFiles = args("staticInputFiles").split(',')
@@ -23,13 +25,13 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
             val Array(venueId, metricPrefix) = rowKey.split("_", 2)
             (venueId, metricPrefix + "_" + columnName)
     }.discard('rowKey, 'columnName)
-    val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).filter('enabled) {
+    val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).read.project(AggregateMetricsJob.AggregateDealTuple).filter('enabled) {
         enabled: Boolean => enabled
-    }.map(('venName, 'merchantName) ->('venName, 'merchantName)) {
-        in: (String, String) => ("\"" + in._1 + "\"", "\"" + in._2 + "\"")
+    }.map(('majorCategory, 'minorCategory, 'venName, 'merchantName) ->('majorCategory, 'minorCategory, 'venName, 'merchantName)) {
+        in: (String, String, String, String) => ("\"" + in._1 + "\"", "\"" + in._2 + "\"", "\"" + in._3 + "\"", "\"" + in._4 + "\"")
     }
     val results = deals.leftJoinWithLarger('goldenId -> 'venueId, metrics)
-            .groupBy(DealAnalysis.DealsOutputTuple) {
+            .groupBy(AggregateMetricsJob.AggregateDealTuple) {
         _.pivot(('metric, 'value) -> AggregateMetricsJob.MetricsFields)
     }
     results
@@ -38,6 +40,7 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
 }
 
 object AggregateMetricsJob extends FieldConversions {
+    val AggregateDealTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint)
     val YelpReviews =
         new Fields("dealId", "successfulDeal", "merchantName", "majorCategory", "minorCategory", "minPricepoint", "address", "city", "state", "zip", "lat", "lng", "yelpLink", "ybusinessName", "ycategory", "yrating", "ylatitude", "ylongitude", "yaddress", "ycity", "ystate", "yzip", "yphone", "ypriceRange", "yreviewCount", "yreviews")
     val MetricsFields = new Fields(
@@ -76,9 +79,18 @@ object AggregateMetricsJob extends FieldConversions {
     val OutputFormat = (('dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName /*'venAddress, 'venuePhone,  'merchantAddress, 'merchantPhone, 'distance, 'levenshtein*/ ): Fields).append(MetricsFields).append(('yrating, 'ypriceRangeMetric, 'yreviewCount))
 }
 
+import cascading.scheme.hadoop.{TextLine => CHTextLine, TextDelimited => CHTextDelimited, SequenceFile => CHSequenceFile}
+
 case class Csv(p: String, f: Fields = Fields.ALL) extends FixedPathSource(p)
 with DelimitedScheme {
     override val fields = f
     override val separator = ","
     override val writeHeader = true
+
+    override def hdfsScheme = {
+        val scheme = new CHSequenceFile(fields).asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
+        scheme.setNumSinkParts(1)
+        scheme
+    }
+
 }
