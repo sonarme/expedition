@@ -101,8 +101,9 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 centroid: String => centroid
             }
 
-            val ageGenderDegreeCheckins = ageGenderDegree(combined, "checkins")
-            val ageGenderDegreePeople = ageGenderDegree(combined.unique('venueKey, 'keyid, 'age, 'impliedGender, 'degree), "people")
+
+            val ageGenderDegreeCheckins = ageGenderDegree(combined)
+
             /* val totalIncome = byIncome.groupBy('columnName) {
                _.sum('columnValue)
            }
@@ -127,22 +128,35 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
             }
 
-            val loyalty = findLoyalty(checkinsWithGoldenId.rename('goldenId -> 'venueKey))
 
-            val loyaltyCount = loyalty
-                    .mapTo(('venueKey, 'loyalty, 'customers) ->('rowKey, 'columnName, 'columnValue)) {
-                in: (String, String, Int) =>
-                    val (venueKey, customerType, frequency) = in
-                    (venueKey + "_loyalty_customerCount", customerType, frequency.toDouble)
 
+            val visits = checkinsWithGoldenId.rename('goldenId -> 'venueKey).groupBy('keyid, 'venueKey) {
+                _.size('visits)
             }
 
-            val loyaltyVisits = loyalty
-                    .mapTo(('venueKey, 'loyalty, 'loyaltyVisitCount) ->('rowKey, 'columnName, 'columnValue)) {
-                in: (String, String, Int) =>
-                    val (venueKey, customerType, frequency) = in
-                    (venueKey + "_loyalty_visitCount", customerType, frequency.toDouble)
+            val visitsStats = visits.groupBy('venueKey) {
+                _.sizeAveStdev('visits ->('_size_, 'visitsAve, 'visitsStdev))
+            }.discard('_size_).flatMapTo(('venueKey, 'visitsAve, 'visitsStdev) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Double, Double) =>
+                    val (venueKey, visitsAve, visitsStdev) = in
+                    List((venueKey + "_visits", "ave", visitsAve), (venueKey + "_visits", "stdev", visitsStdev))
+            }
 
+            val loyalty = visits.map('visits -> 'loyalty) {
+                size: Int =>
+                    if (size <= 1)
+                        "Passers-By"
+                    else if (size <= 3)
+                        "Regulars"
+                    else
+                        "Addicts"
+
+            }.groupBy('venueKey, 'loyalty) {
+                _.size('customers).sum('visits -> 'loyaltyVisitCount)
+            }.flatMapTo(('venueKey, 'loyalty, 'customers, 'loyaltyVisitCount) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int, Int) =>
+                    val (venueKey, customerType, customers, loyaltyVisitCount) = in
+                    List((venueKey + "_loyalty_customerCount", customerType, customers.toDouble), (venueKey + "_loyalty_visitCount", customerType, loyaltyVisitCount.toDouble))
             }
 
             val reach = findReach(withHomeWork)
@@ -205,7 +219,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
        .project(('rowKey, 'columnName, 'columnValue))   */
 
             val staticOutput =
-                (ageGenderDegreePeople ++ ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork /* ++ reachLat ++ reachLong*/ ++ reachMean ++ reachStdev ++ loyaltyCount ++ loyaltyVisits)
+                (ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork /* ++ reachLat ++ reachLong*/ ++ reachMean ++ reachStdev ++ loyalty ++ visitsStats)
 
             staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
                     .write(Tsv(sequenceOutputStatic + "_tsv", Fields.ALL))
@@ -230,7 +244,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
     }
 
 
-    def ageGenderDegree(combined: RichPipe, postfix: String) = {
+    def ageGenderDegree(combined: RichPipe, postfix: String = "") = {
 
 
         val ageMetrics = combined.groupBy('venueKey) {
@@ -239,7 +253,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
             in: (String, Int, Double, Double) =>
                 val (venueKey, ageSize, ageAve, ageStdev) = in
                 List("ageSize" -> ageSize, "ageAve" -> ageAve, "ageStdev" -> ageStdev) map {
-                    case (metricName, metricValue) => (venueKey + "_" + metricName + "_" + postfix, "metric", metricValue)
+                    case (metricName, metricValue) => (venueKey + "_" + metricName + postfix, "metric", metricValue)
                 }
         }
 
@@ -247,14 +261,14 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 .mapTo(('venueKey, 'ageBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, ageBracket, frequency) = in
-                (venueKey + "_age" + "_" + postfix, ageBracket, frequency.toDouble)
+                (venueKey + "_age" + postfix, ageBracket, frequency.toDouble)
         }
 
         val byGender = groupByGender(combined)
                 .mapTo(('venueKey, 'impliedGender, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, impliedGender, frequency) = in
-                (venueKey + "_gender" + "_" + postfix, impliedGender, frequency.toDouble)
+                (venueKey + "_gender" + postfix, impliedGender, frequency.toDouble)
 
         }
 
@@ -262,7 +276,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 .mapTo(('venueKey, 'degreeCat, 'size) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, String, Int) =>
                 val (venueKey, degreeCat, frequency) = in
-                (venueKey + "_education" + "_" + postfix, degreeCat, frequency.toDouble)
+                (venueKey + "_education" + postfix, degreeCat, frequency.toDouble)
 
         }
         /*

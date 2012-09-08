@@ -42,19 +42,4 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
         }
 
 
-    def findLoyalty(combinedInput: RichPipe) =
-        combinedInput.groupBy('keyid, 'venueKey) {
-            _.size('visits)
-        }.map('visits -> 'loyalty) {
-            size: Int =>
-                if (size <= 1)
-                    "Passers-By"
-                else if (size <= 3)
-                    "Regulars"
-                else
-                    "Addicts"
-
-        }.groupBy('venueKey, 'loyalty) {
-            _.size('customers).sum('visits -> 'loyaltyVisitCount)
-        }
 }
