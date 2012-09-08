@@ -23,22 +23,16 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
             }
         }.groupBy('venueKey) {
 
-            _.sizeAveStdev('distanceTraveled ->('count, 'meanDist, 'stdevDistRaw))
+            _.sizeAveStdev('distanceTraveled ->('count, 'meanDist, 'stdevDist))
                     .count('isHome -> 'numHome) {
                 x: Boolean => x
             }
                     .count('isHome -> 'numWork) {
                 x: Boolean => !x
-            } //.max('loc) // TODO this is wrong
+            }
 
-        } /*.map(('loc) ->('lat, 'lng)) {
-            fields: String =>
-                val loc = fields
-                val lat = loc.split(":").head
-                val long = loc.split(":").last
-                (lat, long)
-        }*/ .map('stdevDistRaw -> 'stdevDist) {
-            stdev: Double => if (stdev.toString.equals("NaN")) 0.0 else stdev
+        }.map('stdevDist -> 'stdevDist) {
+            stdev: Double => if (stdev.isNaN) 0.0 else stdev
         }
 
 
