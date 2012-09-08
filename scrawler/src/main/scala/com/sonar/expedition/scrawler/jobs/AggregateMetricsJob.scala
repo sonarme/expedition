@@ -88,9 +88,8 @@ with DelimitedScheme {
     override val writeHeader = true
 
     override def hdfsScheme = {
-        val scheme = new CHSequenceFile(fields).asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
+        val scheme = new CHTextDelimited(fields, skipHeader, writeHeader, separator, types).asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
         scheme.setNumSinkParts(1)
         scheme
     }
-
 }
