@@ -50,7 +50,10 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         case _ => None
     }
 
+
     def stripPhone(s: String) = if (s == null || s == "") None else Some(s.replaceAllLiterally("+1", "").replaceAllLiterally("-", "").replaceAllLiterally(" ", ""))
+
+    val crawls = SequenceFile(args("crawl"), CrawlAggregationJob.CrawlOutTuple).read.project('venueId, 'phone).rename(('venueId, 'phone) ->('crawlVenueId, 'crawlPhone))
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
@@ -74,8 +77,9 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val (lat, lng, venName) = in
             (dealMatchGeosector(lat, lng), StemAndMetaphoneEmployer.removeStopWords(venName))
     }
+            .joinWithSmaller('venueId -> 'crawlVenueId, crawls).discard('crawlVenueId)
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
-            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'venAddress, 'venuePhone, 'stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone) ->('levenshtein, 'distance)) {
+            .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'venAddress, 'crawlPhone, 'stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone) ->('levenshtein, 'distance)) {
         in: (String, Double, Double, String, String, String, Double, Double, String, String) =>
             val (stemmedVenName, venueLat, venueLng, venAddress, venuePhone, stemmedMerchantName, merchantLat, merchantLng, merchantAddress, merchantPhone) = in
             val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
@@ -105,6 +109,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 }
 
 object DealAnalysis {
+    val CrawlTuple = ('url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
     val DealsOutputTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'venAddress, 'venuePhone, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
