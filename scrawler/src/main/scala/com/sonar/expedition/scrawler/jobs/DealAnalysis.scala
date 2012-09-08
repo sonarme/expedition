@@ -77,7 +77,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val (lat, lng, venName) = in
             (dealMatchGeosector(lat, lng), StemAndMetaphoneEmployer.removeStopWords(venName))
     }
-            .joinWithSmaller('venueId -> 'crawlVenueId, crawls).discard('crawlVenueId)
+            .leftJoinWithSmaller('venueId -> 'crawlVenueId, crawls).discard('crawlVenueId)
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
             .flatMap(('stemmedVenName, 'venueLat, 'venueLng, 'venAddress, 'crawlPhone, 'stemmedMerchantName, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone) ->('levenshtein, 'distance)) {
         in: (String, Double, Double, String, String, String, Double, Double, String, String) =>
