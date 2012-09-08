@@ -8,3 +8,4 @@ class SequenceFileLimitJob(args: Args) extends Job(args) {
     val limit = args("limit").toInt
     SequenceFile(input).limit(limit).write(SequenceFile(output))
 }
+

@@ -17,11 +17,11 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
             val (dealId, yrating, ypriceRange, yreviewCount) = in
             (dealId, if (yrating == null || yrating == "") 0.0 else yrating.toDouble, ypriceRange.length, optionInteger(yreviewCount).getOrElse(0))
     }
-    val metrics = allPipes.mapTo(('rowKey, 'columnName, 'columnValue) ->('venueId, 'metric, 'value)) {
+    val metrics = allPipes.mapTo(('rowKey, 'columnName) ->('venueId, 'metric)) {
         in: (String, String, java.lang.Double) =>
-            val (rowKey, columnName, columnValue) = in
+            val (rowKey, columnName) = in
             val Array(venueId, metricPrefix) = rowKey.split("_", 2)
-            (venueId, metricPrefix + "_" + columnName, optionDouble(columnValue).getOrElse(0.0))
+            (venueId, metricPrefix + "_" + columnName)
     }
     val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).filter('enabled) {
         enabled: Boolean => enabled
@@ -30,21 +30,11 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
     }
     val results = deals.leftJoinWithLarger('goldenId -> 'venueId, metrics)
             .groupBy(DealAnalysis.DealsOutputTuple) {
-        _.pivot(('metric, 'value) -> AggregateMetricsJob.MetricsFields)
+        _.pivot(('metric, 'columnValue) -> AggregateMetricsJob.MetricsFields)
     }
     results
             .leftJoinWithTiny('dealId -> 'yelpDealId, yelp.rename('dealId -> 'yelpDealId)).write(Csv(metricsOut, Fields.ALL))
 
-    def readCrawl(in: RichPipe, file: String, crawler: String) = {
-        val fields = List("dealId", "_successfulDeal", "_merchantName", "_majorCategory", "_minorCategory", "_minPricepoint", "_address", "_city", "_state", "_zip", "_lat", "_lng", "Link", "businessName", "category", "rating", "latitude", "longitude", "address", "city", "state", "zip", "phone", "priceRange", "reviewCount", "reviews").map(crawler + "_" + _)
-        val important = List("dealId", "rating", "priceRange", "reviewCount").map(crawler + "_" + _)
-
-        val crawl = SequenceFile(file, new Fields(fields: _*)).read.project(new Fields(important: _*)).map(new Fields(crawler + "_priceRange") -> new Fields(crawler + "_ypriceRangeMetric")) {
-            priceRange: String => priceRange.length
-        }
-        val crawlerDealId = new Fields(crawler + "_dealId")
-        in.leftJoinWithTiny('dealId -> crawlerDealId, crawl).discard(crawlerDealId)
-    }
 }
 
 object AggregateMetricsJob extends FieldConversions {
