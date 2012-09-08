@@ -424,7 +424,7 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
 
     override def dealDescription() = extractById("view-details-full").getOrElse("")
 
-    override def dealImage() = doc.getElementsByClass("lead-deal portrait").headOption match {
+    override def dealImage() = doc.getElementsByClass("portrait").headOption match {
         case Some(e) => e.getElementsByTag("img").headOption match {
             case Some(img) => img.attr("src")
             case None => ""
