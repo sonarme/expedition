@@ -5,6 +5,6 @@ import cascading.tuple.{Tuple, Fields}
 
 class TestJob(args: Args) extends Job(args) {
     Tsv("test.tsv", ('a, 'b, 'c)).read.map('b -> 'b) {
-        in: String => in + "_"
+        in: String => Set(in + "_")
     }.write(Tsv("test_out.tsv", Fields.ALL, false, true))
 }
