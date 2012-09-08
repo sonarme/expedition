@@ -18,7 +18,7 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
             (dealId, if (yrating == null || yrating == "") 0.0 else yrating.toDouble, ypriceRange.length, optionInteger(yreviewCount).getOrElse(0))
     }
     val metrics = allPipes.mapTo(('rowKey, 'columnName) ->('venueId, 'metric)) {
-        in: (String, String, java.lang.Double) =>
+        in: (String, String) =>
             val (rowKey, columnName) = in
             val Array(venueId, metricPrefix) = rowKey.split("_", 2)
             (venueId, metricPrefix + "_" + columnName)

@@ -4,10 +4,9 @@ import com.twitter.scalding._
 import CrawlAggregationJob._
 import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
-import cascading.scheme.hadoop.SequenceFile
-import com.twitter.scalding.SequenceFile
 import cascading.scheme.Scheme
 import org.apache.hadoop.mapred.{OutputCollector, RecordReader, JobConf}
+import cascading.scheme.hadoop.{TextLine => CHTextLine, TextDelimited => CHTextDelimited, SequenceFile => CHSequenceFile}
 
 class CrawlAggregationJob(args: Args) extends Job(args) {
     args("inputs").split(',').map {
@@ -25,7 +24,6 @@ object CrawlAggregationJob {
     val CrawlOutTuple = ('venueId, 'url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
 }
 
-import cascading.scheme.hadoop.{TextLine => CHTextLine, TextDelimited => CHTextDelimited, SequenceFile => CHSequenceFile}
 
 case class OneSequenceFile(p: String, f: Fields = Fields.ALL) extends FixedPathSource(p) with SequenceFileScheme {
     override val fields = f
