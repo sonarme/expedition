@@ -414,7 +414,7 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
 
     override def purchased() = Option(doc.getElementById("deal-purchase-count")) match {
         case Some(d) => d.getElementsByClass("value").headOption match {
-            case Some(e) => e.text().toInt
+            case Some(e) => e.text().replace(",", "").toInt
             case None => 0
         }
         case None => 0
