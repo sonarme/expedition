@@ -25,7 +25,7 @@ class Crawler(args: Args) extends Job(args) {
 
     val links = Tsv(outputDir+"/crawl_"+level+"/links.tsv", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
     val linksOutput = Tsv(outputDir+"/crawl_"+levelUp+"/links.tsv", ('url, 'timestamp, 'referer))
-    val status = Tsv(outputDir+"/crawl_"+level+"/status.tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
+    val status = Tsv(outputDir+"/crawl_"+level+"/status.tsv", ('url, 'status, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutput = Tsv(outputDir+"/crawl_"+levelUp+"/status.tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
     val parsed = Tsv(outputDir+"/crawl_"+level+"/parsed.tsv") //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
     val raw = Tsv(outputDir+"/crawl_"+level+"/raw.tsv") //('url, 'timestamp, 'status, 'content, 'links)
@@ -86,11 +86,12 @@ class Crawler(args: Args) extends Job(args) {
 
     //get unique unfetched links by joining links and status
     val unfetchedLinks = links
+                .read
 //                .discard('timestamp)
-                .rename(('url, 'timestamp) -> ('unfetchedUrl, 'oldtimestamp))
+                .rename('url -> 'unfetchedUrl)
                 .joinWithSmaller('unfetchedUrl -> 'url, fetched, joiner = new LeftJoin)
                 .filter('status) {status: String => status != "fetched"}
-                .project('unfetchedUrl, 'oldtimestamp)
+                .project('unfetchedUrl, 'timestamp)
 
 //    unfetchedLinks
 //        .write(dummy)
@@ -99,7 +100,7 @@ class Crawler(args: Args) extends Job(args) {
     //get all unfetched links
     val allUnfetched = unfetchedLinks
         .joinWithSmaller('unfetchedUrl -> 'url, unfetched, joiner = new OuterJoin)
-        .mapTo(('unfetchedUrl, 'url, 'oldtimestamp) -> ('url, 'oldtimestamp)) { x: (String, String, Long) =>
+        .mapTo(('unfetchedUrl, 'url, 'timestamp) -> ('url, 'timestamp)) { x: (String, String, Long) =>
             val (url, unfetchedUrl, timestamp) = x
             if (url != null)
                 (url, timestamp)
