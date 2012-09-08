@@ -44,7 +44,7 @@ class VenueFetchJob(args: Args) extends Job(args) with PlacesCorrelation with Ch
             val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             lazy val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
             val distance = Haversine.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
-            distance < distanceArg || levenshtein <= math.min(stemmedVenName.length, stemmedMerchantName.length) * 0.33
+            distance < distanceArg && levenshtein <= math.min(stemmedVenName.length, stemmedMerchantName.length) * 0.33
     }.unique('venueId)
             .write(Tsv(venueOutput, Fields.ALL))
 }
