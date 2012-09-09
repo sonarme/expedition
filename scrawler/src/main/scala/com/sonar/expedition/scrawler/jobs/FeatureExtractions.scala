@@ -4,7 +4,7 @@ import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
-import com.sonar.expedition.scrawler.util.CommonFunctions
+import com.sonar.expedition.scrawler.util.{Haversine, CommonFunctions}
 import CommonFunctions._
 import collection.immutable.TreeMap
 import Numeric.Implicits._
@@ -16,7 +16,6 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
         "fine_age" -> Map(0 -> 6, 6 -> 13, 13 -> 19, 19 -> 25, 25 -> 37, 37 -> 50, 50 -> 75, 75 -> 100)
 
     )
-    /*
     val friendinput = args("friendInput")
     val sequenceOutputStaticOption = args.optional("staticOutput")
     val sequenceOutputTimeOption = args.optional("timeOutput")
@@ -28,7 +27,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
         fields: (String, String) =>
             val (lat, lng) = fields
             lat + ":" + lng
-    }*/
+    }
 
     val profiles = serviceProfiles(args).limit(500).map('degree -> 'degreeCat) {
         degree: String =>
@@ -56,14 +55,38 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
             result.mkString(",")
     }
     userFeatures.write(Tsv("test", 'features))
+    checkinsWithGoldenIdAndLoc
+            .unique('goldenId, 'keyid, 'lat, 'lng)
+            .joinWithSmaller('keyid -> 'key, userFeatures)
+            .leftJoinWithSmaller('key -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid)))
+            .map(('lat, 'lng, 'workCentroid, 'homeCentroid) ->('workDistance, 'homeDistance, 'minDistance)) {
+        in: (Double, Double, String, String) =>
+            val (lat, lng, workCentroid, homeCentroid) = in
+            val workdist = {
+                val Array(otherLat, otherLng) = workCentroid.split(':')
+                Haversine.haversineInMeters(lat, lng, otherLat.toDouble, otherLng.toDouble)
+            }
+            val homedist = {
+                val Array(otherLat, otherLng) = homeCentroid.split(':')
+                Haversine.haversineInMeters(lat, lng, otherLat.toDouble, otherLng.toDouble)
+            }
 
-    // val combined = combineCheckinsProfiles(checkinsWithGoldenIdAndLoc, userFeatures).leftJoinWithSmaller('key -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid)))
+            (workdist, homedist, math.min(homedist, workdist))
+    }
+            .groupBy('goldenId) {
+        _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
+            (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
+        }
+    }.write(Tsv("test", ('goldenId, 'featuresCount)))
+
 
     def powerset[A](s: Set[A]) = s.foldLeft(Set(Set.empty[A])) {
         case (ss, el) => ss ++ ss.map(_ + el)
     } - Set.empty[A]
 
-    def bucketing(features: Iterable[(String, Double)]) = for ((kind, value) <- features; granularity <- Seq("coarse", "fine"); bucket <- buckets(granularity, kind, value)) yield bucket
+    def bucketing(features: Iterable[(String, Double)]) = for ((kind, value) <- features;
+                                                               granularity <- Seq("coarse", "fine");
+                                                               bucket <- buckets(granularity, kind, value)) yield bucket
 
     def buckets(granularity: String, kind: String, value: Double) = {
         val name = granularity + "_" + kind
