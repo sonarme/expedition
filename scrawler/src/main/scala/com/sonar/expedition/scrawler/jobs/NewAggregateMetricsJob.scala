@@ -16,7 +16,7 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
     val features = SequenceFile(args("features"), FeatureExtractions.OutputTuple).read
 
     val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).read
-            .joinWithSmaller('dealId -> '_dealId, reviews("yelp", args("yelp"))).discard('_dealId)
+            .leftJoinWithSmaller('dealId -> '_dealId, reviews("yelp", args("yelp"))).discard('_dealId)
     val fields = NewAggregateMetricsJob.NonFeatureTuple.append((List("yelp") map NewAggregateMetricsJob.reviewTuple) reduce (_ append _))
     val fieldnames = fields.iterator().toList.map(_.toString)
     val results = features.leftJoinWithSmaller('goldenId -> 'goldenId1, deals.rename('goldenId -> 'goldenId1)).mapTo(('featuresCount).append(fields) -> 'json) {
