@@ -15,8 +15,8 @@ class TestJob(args: Args) extends Job(args) with CheckinSource {
             val set = ((1 to 10000) map (x + _)).toSet[String]
             set
     }.groupBy('venId) {
-        _.foldLeft('keyid -> 'q)(Map.empty[String, Int]) {
-            (agg: Map[String, Int], f: String) => agg + (f -> (agg.getOrElse(f, 0) + 1))
+        _.foldLeft('bla -> 'q)(Map.empty[String, Int]) {
+            (agg: Map[String, Int], fq: Set[String]) => agg ++ fq.map(f => f -> (agg.getOrElse(f, 0) + 1))
         }
     }.write(SequenceFile(args("output"), 'q))
 }
