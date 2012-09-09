@@ -80,14 +80,14 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val dealId = url.split('/').last.split('-').head
             for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
             yield (dealId, "?", geosector, "?")
-    }.project('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone).limit(1)
-
+    }.project('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)
+    val combined = (deals ++ ls).unique('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
             dealMatchGeosector(lat, lng)
     }
-            .joinWithSmaller('geosector -> 'merchantGeosector, deals ++ ls)
+            .joinWithSmaller('geosector -> 'merchantGeosector, combined)
             .map(('venueLat, 'venueLng, 'merchantLat, 'merchantLng) -> 'distance) {
         in: (Double, Double, Double, Double) =>
             val (venueLat, venueLng, merchantLat, merchantLng) = in
