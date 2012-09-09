@@ -17,7 +17,7 @@ object Haversine extends Serializable {
         R * c
     }
 
-    def haversineInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double) = haversineInKm(lat1, lon1, lat2, lon2) * 1000
+    def haversineInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double) = (haversineInKm(lat1, lon1, lat2, lon2) * 1000).toInt
 
     def distanceInMeters(p1: WGS84Point, p2: WGS84Point) = haversineInKm(p1.getLatitude, p1.getLongitude, p2.getLatitude, p2.getLongitude) * 1000
 
