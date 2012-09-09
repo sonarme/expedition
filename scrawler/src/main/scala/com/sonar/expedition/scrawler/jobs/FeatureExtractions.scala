@@ -44,7 +44,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
             val categoricalValues = Set("gender_" + gender, "education_" + degreeCat, "income_" + incomeCat)
             val realValues = Set("age" -> age)
             val buckets = bucketedRealValues(realValues)
-            val features = categoricalValues ++ buckets
+            val features = categoricalValues.map(x => Set(x)) ++ buckets
             features
         /* val result = realValues.map {
    case (feature, value) => feature + "=" + value
@@ -68,7 +68,7 @@ result.mkString(",")         */
             .leftJoinWithSmaller('key -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid)))
             // compute venue features
             .map(('lat, 'lng, 'workCentroid, 'homeCentroid, 'loyalty, 'features) -> 'features) {
-        in: (Double, Double, String, String, Int, Set[String]) =>
+        in: (Double, Double, String, String, Int, Iterable[Set[String]]) =>
             val (lat, lng, workCentroid, homeCentroid, loyalty, userFeatures) = in
             //distance calculation
             val workdist = if (workCentroid == null) -1
@@ -85,7 +85,7 @@ result.mkString(",")         */
 
             val realValues = Set("distance" -> minDistance, "loyalty" -> loyalty)
             val buckets = bucketedRealValues(realValues)
-            val powersetFeatures = powerset(userFeatures ++ buckets) map (_.mkString("_and_"))
+            val powersetFeatures = combine(userFeatures ++ buckets)
             powersetFeatures
     }
             .groupBy('goldenId) {
@@ -94,25 +94,26 @@ result.mkString(",")         */
         }
     }.write(Tsv(args("output"), ('goldenId, 'featuresCount)))
 
-
-    def powerset[A](s: Set[A]) = s.foldLeft(Set(Set.empty[A])) {
-        case (ss, el) => ss ++ ss.map(_ + el)
-    } - Set.empty[A]
+    def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
+        case (acc, set) =>
+            for (a <- acc; s <- set) yield {
+                a + "_and_" + s
+            }
+    }
 
     def bucketedRealValues(features: Iterable[(String, Int)]) = for ((kind, value) <- features;
-                                                                     granularity <- Seq("fine");
-                                                                     bucket <- buckets(granularity, kind, value)) yield bucket
+                                                                     granularity <- Seq("fine")) yield buckets(granularity, kind, value)
 
     def buckets(granularity: String, kind: String, value: Int) = {
         val name = granularity + "_" + kind
         val greaterEquals = FeatureExtractions.bucketMap(name).filter {
             case (low, _) => low <= value
         }
-        if (greaterEquals.isEmpty) Seq(kind + "_unknown")
+        if (greaterEquals.isEmpty) Set(kind + "_unknown")
         else {
             val (low, high) = greaterEquals.maxBy(_._1)
             val highName = if (high == Int.MaxValue) "+" else "-" + high
-            (name + "=" + low + highName) :: greaterEquals.map(name + ">=" + _._1).toList
+            greaterEquals.keySet.map(name + ">=" + _) + (name + "=" + low + highName)
         }
     }
 

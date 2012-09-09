@@ -4,7 +4,9 @@ import com.twitter.scalding.{Tsv, TextLine, Job, Args}
 import cascading.tuple.{Tuple, Fields}
 
 class TestJob(args: Args) extends Job(args) {
-    Tsv("test.tsv", ('a, 'b, 'c)).read.map('b -> 'b) {
-        in: String => Set(in + "_")
-    }.write(Tsv("test_out.tsv", Fields.ALL, false, true))
+    Tsv(args("input"), ('a, 'b, 'c)).read.groupBy('a) {
+        _.foldLeft('b -> 'q)(Map.empty[String, String]) {
+            (agg: Map[String, String], f: String) => agg + (f -> "x")
+        }
+    }.write(Tsv(args("output"), Fields.ALL, false, true))
 }
