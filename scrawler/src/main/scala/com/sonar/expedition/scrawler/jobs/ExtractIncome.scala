@@ -19,7 +19,7 @@ class ExtractIncome(args: Args) extends Job(args) with CheckinSource with DTOPro
     }
     calcProb(seqModel, jobtypes)
             .unique('data, 'key, 'weight)
-            .rename(('data, 'key) ->('spid, 'income))
-            .write(SequenceFile(args("output"), ('spid, 'income, 'weight)))
+            .rename(('data, 'key) ->('worktitle, 'income))
+            .write(SequenceFile(args("output"), ('worktitle, 'income, 'weight)))
 
 }
