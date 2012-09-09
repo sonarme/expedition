@@ -22,14 +22,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
     val (newCheckins, checkinsWithGoldenId) = checkinSource(args, false, true)
 
-    val checkinsWithGoldenIdAndLoc = checkinsWithGoldenId
-            .map(('lat, 'lng) -> 'loc) {
-        fields: (String, String) =>
-            val (lat, lng) = fields
-            lat + ":" + lng
-    }
-
-    val profiles = serviceProfiles(args).limit(500).map('degree -> 'degreeCat) {
+    val profiles = serviceProfiles(args).map('degree -> 'degreeCat) {
         degree: String =>
             degree match {
                 case College(str) => "College"
@@ -54,8 +47,8 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
             }.toSeq ++ powersetFeatures.toSeq.sortBy(_.length)
             result.mkString(",")
     }
-    userFeatures.write(Tsv("test", 'features))
-    checkinsWithGoldenIdAndLoc
+    //userFeatures.write(Tsv("test", 'features))
+    checkinsWithGoldenId
             .unique('goldenId, 'keyid, 'lat, 'lng)
             .joinWithSmaller('keyid -> 'key, userFeatures)
             .leftJoinWithSmaller('key -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid)))
@@ -77,7 +70,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
         _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
             (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
         }
-    }.write(Tsv("test", ('goldenId, 'featuresCount)))
+    }.write(Tsv("testFeatures", ('goldenId, 'featuresCount)))
 
 
     def powerset[A](s: Set[A]) = s.foldLeft(Set(Set.empty[A])) {

@@ -71,12 +71,20 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             }
     }.discard('locationJSON)
 
+    val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'city, 'state, 'zip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
+            .map(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
+        in: (String, Double, Double) =>
+            val (url, lat, lng) = in
+            val dealId = url.split('/').last.split('-').head
+            (dealId, "?", dealMatchGeosector(lat, lng), "?")
+    }.project('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)
+
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
             dealMatchGeosector(lat, lng)
     }
-            .joinWithTiny('geosector -> 'merchantGeosector, deals)
+            .joinWithTiny('geosector -> 'merchantGeosector, deals ++ ls)
             .leftJoinWithSmaller('venueId -> 'crawlVenueId, crawls).discard('crawlVenueId)
             .flatMap(('venName, 'venueLat, 'venueLng, 'venAddress, 'crawlPhone, 'merchantName, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone) ->('levenshtein, 'distance)) {
         in: (String, Double, Double, String, String, String, Double, Double, String, String) =>
