@@ -72,12 +72,15 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     }.discard('locationJSON)
 
     val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'city, 'state, 'zip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
+            .filter('minPricepoint) {
+        price: Int => price > 0
+    }
             .map(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
         in: (String, Double, Double) =>
             val (url, lat, lng) = in
             val dealId = url.split('/').last.split('-').head
             (dealId, "?", dealMatchGeosector(lat, lng), "?")
-    }.project('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)
+    }.project('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone).limit(1)
 
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
         in: (Double, Double) =>
@@ -92,7 +95,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
             val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
             lazy val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
-            val distance = Haversine.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
+            val distance = Haversine.haversineInMeters(venueLat, venueLng, merchantLat, merchantLng)
             if (distance > distanceArg || levenshtein > math.min(stemmedVenName.length, stemmedMerchantName.length) * levenshteinFactor) None
             else {
                 val houseNumber = extractFirstNumber(venAddress)
