@@ -52,7 +52,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 result.mkString(",")         */
 
     }
-    userFeatures.write(Tsv("test", 'features))
+
     val loyalty = checkinsWithGoldenId.groupBy('goldenId, 'keyid) {
         _.size('loyalty)
     }
