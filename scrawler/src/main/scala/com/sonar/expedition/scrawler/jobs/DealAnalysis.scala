@@ -52,23 +52,28 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             yield (dealLocation.latitude, dealLocation.longitude, geosector, dealLocation.address, dealLocation.phone)
     }.project(DealAnalysis.DealSheetTuple)
 
-    val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName2, 'majorCategory2, 'rating, 'merchantLat2, 'merchantLng2, 'merchantAddress2, 'city, 'state, 'zip, 'merchantPhone2, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint2, 'purchased, 'savingsPercent)).read
-            .filter('minPricepoint2) {
-        price: Int => price > 0
+    val combined = args.optional("livingsocial") match {
+        case Some(file) =>
+            val ls = SequenceFile(file, ('url, 'timestamp, 'merchantName2, 'majorCategory2, 'rating, 'merchantLat2, 'merchantLng2, 'merchantAddress2, 'city, 'state, 'zip, 'merchantPhone2, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint2, 'purchased, 'savingsPercent)).read
+                    .filter('minPricepoint2) {
+                price: Int => price > 0
+            }
+                    .flatMap(('url, 'merchantLat2, 'merchantLng2) ->('dealId2, 'successfulDeal2, 'merchantGeosector2, 'minorCategory2)) {
+                in: (String, Double, Double) =>
+                    val (url, lat, lng) = in
+                    val dealId = url.split('/').last.split('-').head
+                    for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
+                    yield (dealId, "?", geosector, "?")
+            }
+            ls.leftJoinWithTiny('dealId2 -> 'dealId, deals).map(DealAnalysis.DealSheetTuple.append(DealAnalysis.DealSheetTuple2) -> DealAnalysis.DealSheetTuple) {
+                in: Tuple =>
+                    val out = pickBest(in, DealAnalysis.DealSheetTuple.size())
+                    out
+            }
+        case _ => deals.map(() -> DealAnalysis.LsCrawlSpecialTuple) {
+            u: Unit => ("?", "?", "?", "?", "?", "?")
+        }
     }
-            .flatMap(('url, 'merchantLat2, 'merchantLng2) ->('dealId2, 'successfulDeal2, 'merchantGeosector2, 'minorCategory2)) {
-        in: (String, Double, Double) =>
-            val (url, lat, lng) = in
-            val dealId = url.split('/').last.split('-').head
-            for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
-            yield (dealId, "?", geosector, "?")
-    }
-    val combined = ls.leftJoinWithTiny('dealId2 -> 'dealId, deals).map(DealAnalysis.DealSheetTuple.append(DealAnalysis.DealSheetTuple2) -> DealAnalysis.DealSheetTuple) {
-        in: Tuple =>
-            val out = pickBest(in, DealAnalysis.DealSheetTuple.size())
-            out
-    }
-
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
