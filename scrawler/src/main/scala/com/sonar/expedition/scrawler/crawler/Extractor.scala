@@ -65,6 +65,7 @@ class Extractor(@BeanProperty val content: String) {
 
     def dealImage(): String = ""
 
+    def dealRegion(): String = ""
 
     def extractById(id: String): Option[String] = {
         Option(doc.getElementById(id)) match {
@@ -367,6 +368,8 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
         case None => "0.0"
     }
 
+    override def category() = try { content.substring(content.indexOf("dealCategory        =") + 23, content.indexOf("\",", content.indexOf("dealCategory        =") + 21)) } catch { case e: Exception => ""}
+
     override def latitude() = try {
         latlng.split(",")(0).trim.toDouble
     } catch {
@@ -431,4 +434,6 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
         }
         case None => ""
     }
+
+    override def dealRegion() = extractByAttributeValue("class", "market").getOrElse("")
 }

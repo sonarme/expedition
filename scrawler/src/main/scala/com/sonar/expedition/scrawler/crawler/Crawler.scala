@@ -188,7 +188,7 @@ class Crawler(args: Args) extends Job(args) {
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawSequence
             .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
-            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
+            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
                     val (url, content) = in
                     val extractor = ExtractorFactory.getExtractor(url, content)
                     val business = extractor.businessName()
@@ -214,8 +214,9 @@ class Crawler(args: Args) extends Job(args) {
                     val savingsPercent = extractor.savingsPercent()
                     val dealDescription = extractor.dealDescription()
                     val dealImage = extractor.dealImage()
+                    val dealRegion = extractor.dealRegion()
 
-                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, likes, dealPrice, purchased, savingsPercent, dealDescription, dealImage)
+                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, likes, dealRegion, dealPrice, purchased, savingsPercent, dealDescription, dealImage)
                 }
             }
             .discard('content, 'links, 'status)
