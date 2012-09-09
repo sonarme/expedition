@@ -21,7 +21,9 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
         in: Tuple =>
             val features = in.getObject(0).asInstanceOf[Map[String, Int]]
             val dealMetrics = NewAggregateMetricsJob.DealMetrics.zip(in.tail)
-            val result = NewAggregateMetricsJob.ObjectMapper.writeValueAsString(features ++ dealMetrics)
+            import collection.JavaConversions._
+
+            val result = NewAggregateMetricsJob.ObjectMapper.writeValueAsString(features ++ dealMetrics: java.util.Map[String, Any])
             result
     }
     results.write(TextLine(metricsOut))
@@ -44,7 +46,7 @@ object NewAggregateMetricsJob extends FieldConversions {
     val NonFeatureTuple = ('numCheckins).append(DealAnalysis.DealsOutputTuple)
     val JsonTuple = ('featuresCount).append(NonFeatureTuple)
     val ObjectMapper = new ObjectMapper
-    ObjectMapper.registerModule(DefaultScalaModule)
+
     val DealMetrics = NonFeatureTuple.iterator().toIterable.map(_.toString)
     /*
 

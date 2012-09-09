@@ -167,9 +167,9 @@
             <version>2.0.0</version>
         </dependency>
         <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
+            <groupId>com.fasterxml</groupId>
             <artifactId>jackson-module-scala</artifactId>
-            <version>2.0.2</version>
+            <version>1.9.3</version>
         </dependency>
         <dependency>
             <groupId>com.lambdaworks</groupId>
