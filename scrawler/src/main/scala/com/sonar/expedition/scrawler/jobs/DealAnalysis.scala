@@ -5,33 +5,15 @@ import com.fasterxml.jackson.databind.{DeserializationFeature, DeserializationCo
 import java.util
 import com.sonar.expedition.scrawler.util._
 import ch.hsr.geohash.{WGS84Point, GeoHash}
-import DealAnalysis._
 import reflect.BeanProperty
 import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}
 import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.{DoubleSerializer, LongSerializer, DateSerializer, StringSerializer}
 import com.sonar.expedition.scrawler.pipes.{CheckinGrouperFunction, PlacesCorrelation}
-import scala.Some
-import com.sonar.scalding.cassandra.CassandraSource
-import com.twitter.scalding.Tsv
-import com.sonar.scalding.cassandra.NarrowRowScheme
-import cascading.tuple.Fields
-import com.sonar.expedition.scrawler.util.CommonFunctions._
-import com.twitter.scalding.SequenceFile
-import scala.Some
-import com.sonar.scalding.cassandra.CassandraSource
-import com.twitter.scalding.Tsv
-import com.twitter.scalding.TextLine
-import com.sonar.scalding.cassandra.NarrowRowScheme
-import util.Date
-import java.text.SimpleDateFormat
-import cascading.pipe.Pipe
+import cascading.tuple.{Tuple, Fields}
 import com.fasterxml.jackson.core.`type`.TypeReference
-import com.sonar.expedition.scrawler.jobs.DealLocation
 import com.twitter.scalding.SequenceFile
-import scala.Some
 import com.twitter.scalding.Tsv
-import ch.hsr.geohash.util.VincentyGeodesy
 
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")
@@ -61,27 +43,32 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             .flatMap('locationJSON ->('merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)) {
         locationJSON: String =>
             val dealLocations = try {
-                DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, DealLocationsTypeReference)
+                DealAnalysis.DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, DealAnalysis.DealLocationsTypeReference)
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
             for (dealLocation <- dealLocations;
                  geosector <- dealMatchGeosectorsAdjacent(dealLocation.latitude, dealLocation.longitude))
             yield (dealLocation.latitude, dealLocation.longitude, geosector, dealLocation.address, dealLocation.phone)
-    }.discard('locationJSON)
+    }.project(DealAnalysis.DealSheetTuple)
 
-    val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'city, 'state, 'zip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
-            .filter('minPricepoint) {
+    val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName2, 'majorCategory2, 'rating, 'merchantLat2, 'merchantLng2, 'merchantAddress2, 'city, 'state, 'zip, 'merchantPhone2, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint2, 'purchased, 'savingsPercent)).read
+            .filter('minPricepoint2) {
         price: Int => price > 0
     }
-            .flatMap(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
+            .flatMap(('url, 'merchantLat2, 'merchantLng2) ->('dealId2, 'successfulDeal2, 'merchantGeosector2, 'minorCategory2)) {
         in: (String, Double, Double) =>
             val (url, lat, lng) = in
             val dealId = url.split('/').last.split('-').head
             for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
             yield (dealId, "?", geosector, "?")
-    }.project('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)
-    val combined = (deals ++ ls).unique('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)
+    }
+    val combined = ls.leftJoinWithTiny('dealId2 -> 'dealId, deals).map(DealAnalysis.DealSheetTuple.append(DealAnalysis.DealSheetTuple2) -> DealAnalysis.DealSheetTuple) {
+        in: Tuple =>
+            val out = pickBest(in, DealAnalysis.DealSheetTuple.size())
+            out
+    }
+
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
@@ -112,22 +99,36 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
                 Some(score)
             }
     }.groupBy('dealId) {
-        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head('successfulDeal, 'goldenId, 'venName, 'venAddress, 'venuePhone, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
-        /* _.max('levenshtein -> 'maxLevenshtein)
-            .max('distance -> 'maxDistance)
-            .sortWithTake[(Double,Double,Double,Double)](('levenshtein, 'maxLevenshtein,'distance, 'maxDistance)  -> 'topVenueMatch, 1) {
-        (in1: (Double,Double,Double,Double), in2:  (Double,Double,Double,Double)) =>
-           distanceCalc(in1) < distanceCalc(in2)
-    }.head('goldenId, 'venName, 'merchantName, 'distance, 'levenshtein)*/
-    } // TODO: need to dedupe venues here
-    dealVenues.map(() -> 'enabled) {
-        u: Unit => true
+        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head(DealAnalysis.DealsOutputTupleWithoutId -> DealAnalysis.DealsOutputTupleWithoutId)
+
+    }.map(('venueLat, 'venueLng) -> 'venueSector) {
+        in: (Double, Double) => GeoHash.withCharacterPrecision(in._1, in._2, 8).toBase32
     }
-            .write(SequenceFile(dealsOutput, DealsOutputTuple))
+            .write(Tsv(dealsOutput, DealAnalysis.DealsOutputTuple.append('venueSector)))
+
+
+    def pickBest(tuple: Tuple, num: Int) = {
+        val (left, right) = tuple.splitAt(num)
+        new Tuple((left zip right map {
+            case (l, r) => Option(l).getOrElse(r)
+        }).toSeq: _*)
+    }
 }
 
-object DealAnalysis {
-    val DealsOutputTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'venAddress, 'venuePhone, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantPhone, 'distance, 'levenshtein)
+import collection.JavaConversions._
+
+object DealAnalysis extends FieldConversions {
+    val DealSheetTuple = ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone)
+
+    def doubleFields(fields: Fields) = {
+        val fieldsSeq = fields.iterator().map(_.toString).toSeq
+        new Fields(fieldsSeq.map(_ + "2"): _*)
+    }
+
+    val DealSheetTuple2 = doubleFields(DealSheetTuple)
+    val LsCrawlSpecialTuple = ('rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venAddress, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
+    val DealsOutputTupleWithoutId = DealsOutputTuple.subtract('dealId)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}
