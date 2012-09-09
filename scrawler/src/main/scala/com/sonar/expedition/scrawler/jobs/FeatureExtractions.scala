@@ -49,10 +49,12 @@ result.mkString(",")         */
     val loyalty = checkinsWithGoldenId.groupBy('goldenId, 'keyid) {
         _.size('loyalty)
     }
-    val total = checkinsWithGoldenId.groupBy('goldenId) {
+    val numCheckins = checkinsWithGoldenId.groupBy('goldenId) {
         _.size('numCheckins)
     }
-
+    val numCheckinsWithProfile = checkinsWithGoldenId.groupBy('goldenId, 'keyid) {
+        _.size('numCheckinsWithProfile)
+    }
     checkinsWithGoldenId
             .unique('goldenId, 'keyid, 'lat, 'lng)
             // loyalty
@@ -87,7 +89,9 @@ result.mkString(",")         */
         _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
             (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
         }
-    }.joinWithLarger('goldenId -> 'goldenId2, total.rename('goldenId -> 'goldenId2)).write(SequenceFile(args("output"), FeatureExtractions.OutputTuple))
+    }.joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
+            .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
+            .write(SequenceFile(args("output"), FeatureExtractions.OutputTuple))
 
     def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
         case (acc, set) =>
@@ -115,7 +119,7 @@ result.mkString(",")         */
 }
 
 object FeatureExtractions extends TupleConversions {
-    val OutputTuple = ('goldenId, 'featuresCount, 'numCheckins)
+    val OutputTuple = ('goldenId, 'featuresCount, 'numCheckins, 'numCheckinsWithProfile)
     val bucketMap = Map(
         //  "coarse_age" -> Map(0 -> 13, 13 -> 25, 25 -> 50, 50 -> 100),
         "fine_age" -> Map(1 -> 6, 6 -> 13, 13 -> 19, 19 -> 25, 25 -> 37, 37 -> 50, 50 -> 75, 75 -> Int.MaxValue),
