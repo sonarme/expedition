@@ -1,3 +1,4 @@
+/*
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
@@ -79,17 +80,4 @@ object AggregateMetricsJob extends FieldConversions {
     val OutputFormat = (('dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName /*'venAddress, 'venuePhone,  'merchantAddress, 'merchantPhone, 'distance, 'levenshtein*/ ): Fields).append(MetricsFields).append(('yrating, 'ypriceRangeMetric, 'yreviewCount))
 }
 
-import cascading.scheme.hadoop.{TextLine => CHTextLine, TextDelimited => CHTextDelimited, SequenceFile => CHSequenceFile}
-
-case class Csv(p: String, f: Fields = Fields.ALL) extends FixedPathSource(p)
-with DelimitedScheme {
-    override val fields = f
-    override val separator = ","
-    override val writeHeader = true
-
-    override def hdfsScheme = {
-        val scheme = new CHTextDelimited(fields, skipHeader, writeHeader, separator, types).asInstanceOf[Scheme[JobConf, RecordReader[_, _], OutputCollector[_, _], _, _]]
-        scheme.setNumSinkParts(1)
-        scheme
-    }
-}
+*/
