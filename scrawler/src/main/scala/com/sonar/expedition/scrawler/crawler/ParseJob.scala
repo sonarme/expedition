@@ -22,9 +22,7 @@ class ParseJob(args: Args) extends Job(args) {
         in: (String, String, String, String) =>
             val (url, price, purchased, savings) = in
             val priceNum = try {
-                val p = price.substring(1).replace(",", "").toInt
-                println(p)
-                p
+                price.substring(1).replace(",", "").toInt
             } catch {
                 case e: Exception => println("url: " + url + "\n" + e); 0
             }
@@ -45,6 +43,7 @@ class ParseJob(args: Args) extends Job(args) {
             (priceNum, purchaseNum, savingsNum)
     }
             .discard('dealPrice, 'purchased, 'savingsPercent)
+            .filter('dealPriceNum) { price: Int => price > 0}
 
     parsedAgain
         .write(parsed2)
