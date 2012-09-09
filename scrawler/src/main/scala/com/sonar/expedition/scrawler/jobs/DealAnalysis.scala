@@ -123,7 +123,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     dealVenues.map(() -> 'enabled) {
         u: Unit => true
     }
-            .write(Tsv(dealsOutput, DealsOutputTuple))
+            .write(SequenceFile(dealsOutput, DealsOutputTuple))
 }
 
 object DealAnalysis {

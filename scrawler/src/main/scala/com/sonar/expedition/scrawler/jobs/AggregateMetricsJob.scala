@@ -25,7 +25,7 @@ class AggregateMetricsJob(args: Args) extends Job(args) {
             val Array(venueId, metricPrefix) = rowKey.split("_", 2)
             (venueId, metricPrefix + "_" + columnName)
     }.discard('rowKey, 'columnName)
-    val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).read.project(AggregateMetricsJob.AggregateDealTuple).filter('enabled) {
+    val deals = SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).read.project(AggregateMetricsJob.AggregateDealTuple).filter('enabled) {
         enabled: Boolean => enabled
     }.map(('majorCategory, 'minorCategory, 'venName, 'merchantName) ->('majorCategory, 'minorCategory, 'venName, 'merchantName)) {
         in: (String, String, String, String) => ("\"" + in._1 + "\"", "\"" + in._2 + "\"", "\"" + in._3 + "\"", "\"" + in._4 + "\"")
