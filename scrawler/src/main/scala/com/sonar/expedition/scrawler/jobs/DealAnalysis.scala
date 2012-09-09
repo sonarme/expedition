@@ -65,21 +65,21 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
-            dealLocations map {
-                dealLocation =>
-                    (dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude), dealLocation.address, dealLocation.phone)
-            }
+            for (dealLocation <- dealLocations;
+                 geosector <- dealMatchGeosectorsAdjacent(dealLocation.latitude, dealLocation.longitude))
+            yield (dealLocation.latitude, dealLocation.longitude, geosector, dealLocation.address, dealLocation.phone)
     }.discard('locationJSON)
 
     val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'city, 'state, 'zip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
             .filter('minPricepoint) {
         price: Int => price > 0
     }
-            .map(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
+            .flatMap(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
         in: (String, Double, Double) =>
             val (url, lat, lng) = in
             val dealId = url.split('/').last.split('-').head
-            (dealId, "?", dealMatchGeosector(lat, lng), "?")
+            for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
+            yield (dealId, "?", geosector, "?")
     }.project('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantPhone).limit(1)
 
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
