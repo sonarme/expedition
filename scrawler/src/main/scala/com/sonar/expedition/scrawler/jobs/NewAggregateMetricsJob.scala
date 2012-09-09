@@ -7,19 +7,22 @@ import com.sonar.dossier.ScalaGoodies._
 import com.twitter.scalding.SequenceFile
 import cascading.scheme.Scheme
 import org.apache.hadoop.mapred.{OutputCollector, RecordReader, JobConf}
+import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper}
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
 class NewAggregateMetricsJob(args: Args) extends Job(args) {
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")
-    //val features = SequenceFile(args("features"), FeatureExtractions.OutputTuple).read
+    val features = SequenceFile(args("features"), FeatureExtractions.OutputTuple).read
 
     val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).read
     //reviews(args,deals)
-    val results = deals /*.leftJoinWithLarger('goldenId -> 'venueId, features)*/ .mapTo(NewAggregateMetricsJob.JsonTuple -> 'json) {
+    val results = features.leftJoinWithSmaller('goldenId -> 'goldenId1, deals.rename('goldenId -> 'goldenId1)).mapTo(NewAggregateMetricsJob.JsonTuple -> 'json) {
         in: Tuple =>
             val features = in.getObject(0).asInstanceOf[Map[String, Int]]
             val dealMetrics = NewAggregateMetricsJob.DealMetrics.zip(in.tail)
-            DealAnalysis.DealObjectMapper.writeValueAsString(features ++ dealMetrics)
+            val result = NewAggregateMetricsJob.ObjectMapper.writeValueAsString(features ++ dealMetrics)
+            result
     }
     results.write(TextLine(metricsOut))
     /*
@@ -38,9 +41,11 @@ import collection.JavaConversions._
 
 object NewAggregateMetricsJob extends FieldConversions {
     val AggregateDealTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint)
-    val JsonTuple = /*('feature).append(*/ DealAnalysis.DealsOutputTuple
-    /*)*/
-    val DealMetrics = DealAnalysis.DealsOutputTuple.iterator().toIterable.map(_.toString)
+    val NonFeatureTuple = ('numCheckins).append(DealAnalysis.DealsOutputTuple)
+    val JsonTuple = ('featuresCount).append(NonFeatureTuple)
+    val ObjectMapper = new ObjectMapper
+    ObjectMapper.registerModule(DefaultScalaModule)
+    val DealMetrics = NonFeatureTuple.iterator().toIterable.map(_.toString)
     /*
 
         val Reviews =
