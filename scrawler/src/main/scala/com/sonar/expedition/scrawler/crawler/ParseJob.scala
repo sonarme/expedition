@@ -10,8 +10,8 @@ class ParseJob(args: Args) extends Job(args) {
     val outputDir = args("output")
     val domains = args("domains")
 
-    val parsed = Tsv(outputDir + "/crawl_" + level + "/parsed.tsv", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
-    val parsedSequence = SequenceFile(outputDir + "/crawl_" + level + "/parsed", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
+    val parsed = Tsv(outputDir + "/crawl_" + level + "/parsed.tsv", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
+    val parsedSequence = SequenceFile(outputDir + "/crawl_" + level + "/parsed", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
 
     val parsed2 = Tsv(outputDir + "/crawl_" + level + "/parsed2.tsv")
     val parsedSequence2 = SequenceFile(outputDir + "/crawl_" + level + "/parsed2", Fields.ALL)
