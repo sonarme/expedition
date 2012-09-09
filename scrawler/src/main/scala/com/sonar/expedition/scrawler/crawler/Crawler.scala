@@ -25,7 +25,7 @@ class Crawler(args: Args) extends Job(args) {
 
     val links = Tsv(outputDir+"/crawl_"+level+"/links.tsv", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
     val linksOutput = Tsv(outputDir+"/crawl_"+levelUp+"/links.tsv", ('url, 'timestamp, 'referer))
-    val status = Tsv(outputDir+"/crawl_"+level+"/status.tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
+    val status = Tsv(outputDir+"/crawl_"+level+"/status.tsv", ('url, 'status, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutput = Tsv(outputDir+"/crawl_"+levelUp+"/status.tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
     val parsed = Tsv(outputDir+"/crawl_"+level+"/parsed.tsv") //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
     val raw = Tsv(outputDir+"/crawl_"+level+"/raw.tsv") //('url, 'timestamp, 'status, 'content, 'links)
@@ -38,11 +38,10 @@ class Crawler(args: Args) extends Job(args) {
     val linksOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/links", ('url, 'timestamp, 'referer))
     val statusSequence = SequenceFile(outputDir+"/crawl_"+level+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
-    val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed3", Fields.ALL) //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
-    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw3", ('url, 'timestamp, 'status, 'content, 'links)) //('url, 'timestamp, 'status, 'content, 'links)
+    val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL) //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
+    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", ('url, 'timestamp, 'status, 'content, 'links)) //('url, 'timestamp, 'status, 'content, 'links)
 
     val venues = TextLine("/Users/rogchang/Desktop/venuessorted.txt")
-    val venuesOutput = Tsv("/Users/rogchang/Desktop/links.tsv")
 
     /*
     val foursquareVenues = venues
@@ -61,7 +60,17 @@ class Crawler(args: Args) extends Job(args) {
     facebookVenues
         .write(Tsv("/Users/rogchang/Desktop/facebookLinks.tsv"))
     */
+    /*
+    val twitterVenues = venues
+            .read
+            .filter('line) { goldenId: String => goldenId.startsWith("twitter")}
+            .mapTo('line -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("https://api.twitter.com/1/geo/id/" + goldenId.split(":").tail.head + ".json", new DateTime().getMillis, goldenId)}
 
+        twitterVenues
+            .write(Tsv("/Users/rogchang/Desktop/twitterLinks.tsv"))
+    */
+
+    /*
     //Read from status.tsv and output the fetched urls
     //TODO: find a way to split in one step
     val fetched = status
@@ -77,40 +86,43 @@ class Crawler(args: Args) extends Job(args) {
 
     //get unique unfetched links by joining links and status
     val unfetchedLinks = links
-                .discard('timestamp)
+                .read
+//                .discard('timestamp)
                 .rename('url -> 'unfetchedUrl)
                 .joinWithSmaller('unfetchedUrl -> 'url, fetched, joiner = new LeftJoin)
                 .filter('status) {status: String => status != "fetched"}
-                .project('unfetchedUrl)
+                .project('unfetchedUrl, 'timestamp)
 
-    unfetchedLinks
-        .write(dummy)
+//    unfetchedLinks
+//        .write(dummy)
 
 
     //get all unfetched links
     val allUnfetched = unfetchedLinks
         .joinWithSmaller('unfetchedUrl -> 'url, unfetched, joiner = new OuterJoin)
-        .mapTo(('unfetchedUrl, 'url) -> ('url)) { x: (String, String) =>
-            val (url, unfetchedUrl) = x
+        .mapTo(('unfetchedUrl, 'url, 'timestamp) -> ('url, 'timestamp)) { x: (String, String, Long) =>
+            val (url, unfetchedUrl, timestamp) = x
             if (url != null)
-                url
+                (url, timestamp)
             else
-                unfetchedUrl
+                (unfetchedUrl, timestamp)
         }
 
-    allUnfetched
-        .write(dummy2)
+//    allUnfetched
+//        .write(dummy2)
 
 
     //foreach allUnfetched -> fetch content and write to raw and parsed
     val rawTuples = allUnfetched
-            .map('url -> ('timestamp, 'status, 'content, 'links)) { url: String => {
+            .map('url -> ('status, 'content, 'links)) { url: String => {
                     val httpclient = new DefaultHttpClient
                     val method = new HttpGet(url)
                     method.setHeader("User-Agent", PublicProfileCrawlerUtils.USER_AGENT_LIST(Random.nextInt((PublicProfileCrawlerUtils.USER_AGENT_LIST.size) - 1)))
                     val (status, content) = try {
                         println("fetching: " + url)
-                        Thread.sleep(1000)
+                        val rnd = new Random()
+                        val range = 1000 to 3000 // randomly sleep btw 1s to 3s
+                        Thread.sleep(range(rnd.nextInt(range length)))
                         val response = httpclient.execute(method)
                         val fetchedResult = EntityUtils.toString(response.getEntity)
                         ("fetched", fetchedResult)
@@ -152,16 +164,17 @@ class Crawler(args: Args) extends Job(args) {
                         }
                         case _ => List.empty[String]
                     }
-                    (new DateTime().getMillis, status, content, links)
+                    (status, content, links)
                 }
             }
 
 //    rawTuples
 //        .write(raw)
 
-//    rawTuples
-//        .write(rawSequence)
-
+    rawTuples
+        .write(rawSequence)
+    */
+    /*
     //Write outgoing links from rawTuples to next links level
     val outgoingLinks = rawTuples
             .flatMapTo('links -> 'link) { links : Iterable[String] => links.filter(link => link != null && link != "") }
@@ -170,12 +183,12 @@ class Crawler(args: Args) extends Job(args) {
 
     outgoingLinks
         .write(linksOutput)
-
+    */
 
     //Parse out the content and write to parsed.tsv
-    val parsedTuples = rawTuples
+    val parsedTuples = rawSequence
             .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
-            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)) { in: (String, String) => {
+            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
                     val (url, content) = in
                     val extractor = ExtractorFactory.getExtractor(url, content)
                     val business = extractor.businessName()
@@ -196,8 +209,14 @@ class Crawler(args: Args) extends Job(args) {
                     val wereHereCount = extractor.wereHereCount()
                     val talkingAboutCount = extractor.talkingAboutCount()
                     val likes = extractor.likes()
+                    val dealPrice = extractor.price()
+                    val purchased = extractor.purchased()
+                    val savingsPercent = extractor.savingsPercent()
+                    val dealDescription = extractor.dealDescription()
+                    val dealImage = extractor.dealImage()
+                    val dealRegion = extractor.dealRegion()
 
-                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, reviews, peopleCount, checkins, wereHereCount, talkingAboutCount, likes)
+                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, likes, dealRegion, dealPrice, purchased, savingsPercent, dealDescription, dealImage)
                 }
             }
             .discard('content, 'links, 'status)
@@ -205,11 +224,11 @@ class Crawler(args: Args) extends Job(args) {
     parsedTuples
         .write(parsed)
 
-//    parsedTuples
-//        .write(parsedSequence)
+    parsedTuples
+        .write(parsedSequence)
 
     //Write status of each fetch
-
+    /*
     val statusOut = rawTuples
             .mapTo(('url, 'status, 'timestamp) -> ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)){ x: (String, String, Long) => {
                 val (url, status, timestamp) = x
@@ -219,5 +238,5 @@ class Crawler(args: Args) extends Job(args) {
 
     statusOut
         .write(statusOutput)
-
+    */
 }

@@ -4,7 +4,7 @@ object LocationScorer extends Serializable {
 
     def getScore(workName: String, workLat: String, workLng: String, placeName: String, placeLat: String, placeLng: String) = {
         val havDistance =
-            if (placeLat == null) -1.0 else Haversine.haversine(workLat.toDouble, workLng.toDouble, placeLat.toDouble, placeLng.toDouble)
+            if (placeLat == null) -1.0 else Haversine.haversineInKm(workLat.toDouble, workLng.toDouble, placeLat.toDouble, placeLng.toDouble)
         val levDistance =
             if (placeName == null) -1.0 else Levenshtein.compareInt(workName, placeName)
         (levDistance, havDistance)

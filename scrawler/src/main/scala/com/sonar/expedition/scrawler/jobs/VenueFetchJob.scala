@@ -15,11 +15,11 @@ class VenueFetchJob(args: Args) extends Job(args) with PlacesCorrelation with Ch
     val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val venueOutput = args("venueOutput")
-    val distanceArg = args.getOrElse("distance", "100").toInt
+    val distanceArg = args.getOrElse("distance", "250").toInt
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
-            .flatMapTo('locationJSON ->('merchantLat, 'merchantLng, 'merchantGeosector)) {
+            .flatMap('locationJSON ->('merchantLat, 'merchantLng, 'merchantGeosector)) {
         locationJSON: String =>
             val dealLocations = try {
                 DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, DealLocationsTypeReference)
@@ -31,18 +31,20 @@ class VenueFetchJob(args: Args) extends Job(args) with PlacesCorrelation with Ch
                     (dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude))
             }
     }
-
     SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
             dealMatchGeosector(lat, lng)
     }
             .joinWithTiny('geosector -> 'merchantGeosector, deals)
-            .filter('venueLat, 'venueLng, 'merchantLat, 'merchantLng) {
-        in: (Double, Double, Double, Double) =>
-            val (venueLat, venueLng, merchantLat, merchantLng) = in
-            val distance = VincentyGeodesy.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
-            distance < distanceArg
+            .filter('venName, 'venueLat, 'venueLng, 'merchantName, 'merchantLat, 'merchantLng) {
+        in: (String, Double, Double, String, Double, Double) =>
+            val (venName, venueLat, venueLng, merchantName, merchantLat, merchantLng) = in
+            val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
+            val stemmedMerchantName = StemAndMetaphoneEmployer.removeStopWords(merchantName)
+            lazy val levenshtein = Levenshtein.compareInt(stemmedVenName, stemmedMerchantName)
+            val distance = Haversine.distanceInMeters(new WGS84Point(venueLat, venueLng), new WGS84Point(merchantLat, merchantLng))
+            distance <= distanceArg && levenshtein <= math.min(stemmedVenName.length, stemmedMerchantName.length) * 0.33
     }.unique('venueId)
             .write(Tsv(venueOutput, Fields.ALL))
 }

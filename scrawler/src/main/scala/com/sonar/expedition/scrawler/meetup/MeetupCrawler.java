@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.FileCopyUtils;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
@@ -26,10 +28,12 @@ public class MeetupCrawler {
 
     public static String importLinks(String urlsitemap) throws Exception {
         String urls = "";
+        FileWriter fstream = new FileWriter("/Users/rogchang/Desktop/lsDeals.tsv");
+        BufferedWriter out = new BufferedWriter(fstream);
         try {
 
             SiteMapParser siteMapParser = new SiteMapParser();
-            URL url = new URL("http://www.meetup.com/sitemap.xml");
+            URL url = new URL(urlsitemap);
             URLConnection connection = url.openConnection();
             String siteMapContent = FileCopyUtils.copyToString(new InputStreamReader(connection.getInputStream()));
             String contentType = connection.getContentType();
@@ -44,10 +48,10 @@ public class MeetupCrawler {
                         SiteMap siteMap = (SiteMap) abstractSiteMap;
                         URL curSiteMapUrl = siteMap.getUrl();
                         String curSiteMapUrlString = curSiteMapUrl.toExternalForm();
-                        if (!curSiteMapUrlString.contains("group") || curSiteMapUrlString.endsWith("kmz")) {
-                            LOGGER.debug("skipping sitemap: " + curSiteMapUrl.toExternalForm() + " as it is not a group sitemap");
-                            continue;
-                        }
+//                        if (!curSiteMapUrlString.contains("group") || curSiteMapUrlString.endsWith("kmz")) {
+//                            LOGGER.debug("skipping sitemap: " + curSiteMapUrl.toExternalForm() + " as it is not a group sitemap");
+//                            continue;
+//                        }
                         URLConnection curSiteMapConnection = curSiteMapUrl.openConnection();
                         byte[] curSiteMapContent = FileCopyUtils.copyToByteArray(curSiteMapConnection.getInputStream());
                         String curContentType = curSiteMapConnection.getContentType();
@@ -55,8 +59,11 @@ public class MeetupCrawler {
                         Collection<SiteMapURL> siteMapURLs = ((SiteMap) curSiteMap).getSiteMapUrls();
                         for (SiteMapURL siteMapURL : siteMapURLs) {
                             //todo: update datum to include other sitemapurl details, such as priority and frequency
-                            String currentSiteMapUrl = siteMapURL.getUrl().toExternalForm();
-                            urls += currentSiteMapUrl + "\n";
+                            String currentSiteMapUrl = siteMapURL.getUrl().toExternalForm() + "?show_missed=true";
+                            long lastMod = siteMapURL.getLastModified().getTime();
+//                            urls += currentSiteMapUrl + "\n";
+                            if(!currentSiteMapUrl.contains("/cities/") && !currentSiteMapUrl.contains("/events/"))
+                                out.write(currentSiteMapUrl + "\t" + lastMod + "\t" + "http://www.livingsocial.com\n");
                             counter++;
                             if (counter > MAX_SITEMAP_URLS) {
                                 break;
@@ -66,11 +73,19 @@ public class MeetupCrawler {
                 }
             }
 
-
+            out.close();
             //writer.close();
         } catch (Exception e) {
             throw e;
         }
         return urls;
+    }
+
+    public static void main(String[] args) {
+        try {
+            String s = MeetupCrawler.importLinks("http://www.livingsocial.com/sitemap.xml");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

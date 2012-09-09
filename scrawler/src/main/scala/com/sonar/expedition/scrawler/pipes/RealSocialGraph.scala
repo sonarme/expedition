@@ -67,7 +67,7 @@ trait RealSocialGraph extends ScaldingImplicits {
                 val originalLng = originalLoc.split(":").last.toDouble
                 val friendLat = friendLoc.split(":").head.toDouble
                 val friendLng = friendLoc.split(":").last.toDouble
-                (Haversine.haversine(originalLat, originalLng, friendLat, friendLng) < locationPrecision) && (friendDay == originalDay) && (originalHour <= (friendHour + hourPrecision)) && (originalHour >= (friendHour - hourPrecision)) && (!originalLoc.equals("0.0:0.0")) && (!friendLoc.equals("0.0:0.0"))
+                (Haversine.haversineInKm(originalLat, originalLng, friendLat, friendLng) < locationPrecision) && (friendDay == originalDay) && (originalHour <= (friendHour + hourPrecision)) && (originalHour >= (friendHour - hourPrecision)) && (!originalLoc.equals("0.0:0.0")) && (!friendLoc.equals("0.0:0.0"))
         }
 
 

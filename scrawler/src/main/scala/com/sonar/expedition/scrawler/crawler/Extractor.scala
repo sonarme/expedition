@@ -5,7 +5,9 @@ import reflect.BeanProperty
 import org.jsoup.select.Elements
 import scala.collection.JavaConversions._
 import com.sonar.expedition.scrawler.crawler.FacebookExtractor._
-import org.codehaus.jackson.map.{DeserializationConfig, ObjectMapper, PropertyNamingStrategy}
+import com.sonar.expedition.scrawler.crawler.TwitterExtractor._
+import com.fasterxml.jackson.databind.{DeserializationFeature, PropertyNamingStrategy, DeserializationConfig, ObjectMapper}
+import com.sonar.dossier.ScalaGoodies._
 
 /**
  * extract content from a page (content)
@@ -53,6 +55,17 @@ class Extractor(@BeanProperty val content: String) {
 
     def likes(): Int = 0
 
+    def price(): String = ""
+
+    def purchased(): String = ""
+
+    def savingsPercent(): String = ""
+
+    def dealDescription(): String = ""
+
+    def dealImage(): String = ""
+
+    def dealRegion(): String = ""
 
     def extractById(id: String): Option[String] = {
         Option(doc.getElementById(id)) match {
@@ -113,7 +126,7 @@ class YelpExtractor(content: String) extends Extractor(content) {
 
     override def priceRange() = extractById("price_tip").getOrElse("")
 
-    override def reviewCount() = extractByAttributeValue("itemprop", "reviewCount").getOrElse("0").replace(",","").toInt
+    override def reviewCount() = extractByAttributeValue("itemprop", "reviewCount").getOrElse("0").replace(",", "").toInt
 
     override def reviews() = extractListByAttributeValue("itemprop", "description")
 }
@@ -148,7 +161,7 @@ class CitySearchExtractor(content: String) extends Extractor(content) {
     override def reviewCount() = Option(doc.getElementById("coreInfo.tabs.reviews")) match {
         case Some(ele) => {
             ele.getElementsByClass("itemCount").headOption match {
-                case Some(e) => e.text().stripPrefix("(").stripSuffix(")").replace(",","").toInt
+                case Some(e) => e.text().stripPrefix("(").stripSuffix(")").replace(",", "").toInt
                 case None => 0
             }
         }
@@ -205,18 +218,18 @@ class FoursquareExtractor(content: String) extends Extractor(content) {
 
     override def priceRange() = extractByAttributeValue("itemprop", "priceRange").getOrElse("").replace(" ", "") // "$ $" -> "$$"
 
-    override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").replace(",","").toInt
+    override def reviewCount() = extractByAttributeValueAttribute("property", "playfoursquare:number_of_tips", "content").getOrElse("0").replace(",", "").toInt
 
     override def reviews() = extractListByAttributeValue("class", "tipText")
 
     override def peopleCount() = try {
-        doc.getElementsByClass("statsnot6digits").get(1).text().replace(",","").toInt
+        doc.getElementsByClass("statsnot6digits").get(1).text().replace(",", "").toInt
     } catch {
         case e: Exception => 0
     }
 
     override def checkinCount() = try {
-        doc.getElementsByClass("statsnot6digits").get(2).text().replace(",","").toInt
+        doc.getElementsByClass("statsnot6digits").get(2).text().replace(",", "").toInt
     } catch {
         case e: Exception => 0
     }
@@ -224,23 +237,35 @@ class FoursquareExtractor(content: String) extends Extractor(content) {
 
 class FacebookExtractor(content: String) extends Extractor(content) {
 
-    def fbPlace = FacebookPlaceObjectMapper.readValue(content, classOf[FacebookPlace])
+    def fbPlace = try {
+        FacebookPlaceObjectMapper.readValue(content, classOf[FacebookPlace])
+    } catch {
+        case e: Exception => new FacebookPlace()
+    }
 
     override def businessName() = fbPlace.name
 
     override def category() = fbPlace.category
 
-    override def latitude() = fbPlace.location.latitude
+    override def latitude() = try {
+        fbPlace.location.latitude
+    } catch {
+        case e: Exception => 0.0
+    }
 
-    override def longitude() = fbPlace.location.longitude
+    override def longitude() = try {
+        fbPlace.location.longitude
+    } catch {
+        case e: Exception => 0.0
+    }
 
-    override def address() = fbPlace.location.street
+    override def address() = ?(fbPlace.location.street)
 
-    override def city() = fbPlace.location.city
+    override def city() = ?(fbPlace.location.city)
 
-    override def state() = fbPlace.location.state
+    override def state() = ?(fbPlace.location.state)
 
-    override def zip() = fbPlace.location.zip
+    override def zip() = ?(fbPlace.location.zip)
 
     override def phone() = fbPlace.phone
 
@@ -255,7 +280,7 @@ class FacebookExtractor(content: String) extends Extractor(content) {
 
 object FacebookExtractor {
     val FacebookPlaceObjectMapper = new ObjectMapper
-    FacebookPlaceObjectMapper.disable(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES)
+    FacebookPlaceObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     FacebookPlaceObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
 }
 
@@ -278,4 +303,137 @@ case class FacebookPlaceLocation(@BeanProperty street: String,
                                  @BeanProperty latitude: Double = 0.0,
                                  @BeanProperty longitude: Double = 0.0) {
     def this() = this(null)
+}
+
+class TwitterExtractor(content: String) extends Extractor(content) {
+
+    def twGeo = TwitterGeoObjectMapper.readValue(content, classOf[TwitterGeo])
+
+    override def businessName() = twGeo.name
+
+    override def latitude() = try {
+        twGeo.geometry.coordinates(1)
+    } catch {
+        case e: Exception => 0.0
+    }
+
+    override def longitude() = try {
+        twGeo.geometry.coordinates(0)
+    } catch {
+        case e: Exception => 0.0
+    }
+
+    override def address() = ?(twGeo.attributes.streetAddress)
+
+    override def zip() = ?(twGeo.attributes.postalCode)
+
+    override def phone() = ?(twGeo.attributes.phone)
+}
+
+case class TwitterGeo(@BeanProperty name: String,
+                      @BeanProperty attributes: GeoAttributes = null,
+                      @BeanProperty geometry: GeoGeometry = null) {
+    def this() = this(null)
+}
+
+case class GeoAttributes(@BeanProperty streetAddress: String,
+                         @BeanProperty postalCode: String = null,
+                         @BeanProperty region: String = null,
+                         @BeanProperty locality: String = null,
+                         @BeanProperty phone: String = null) {
+    def this() = this(null)
+}
+
+case class GeoGeometry(@BeanProperty coordinates: Array[Double]) {
+    def this() = this(null)
+}
+
+object TwitterExtractor {
+    val TwitterGeoObjectMapper = new ObjectMapper
+    TwitterGeoObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    TwitterGeoObjectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES)
+}
+
+class LivingSocialExtractor(content: String) extends Extractor(content) {
+    override def businessName() = extractByAttributeValueAttribute("property", "og:merchant", "content").getOrElse(extractByAttributeValueAttribute("property", "og:title", "content").getOrElse(""))
+
+    val latlng = doc.getElementsByClass("directions").headOption match {
+        case Some(d) => d.getElementsByTag("a").headOption match {
+            case Some(a) => {
+                val href = a.attr("href")
+                href.substring(href.indexOf("q=") + 2)
+            }
+            case None => "0.0"
+        }
+        case None => "0.0"
+    }
+
+    override def category() = try { content.substring(content.indexOf("dealCategory        =") + 23, content.indexOf("\",", content.indexOf("dealCategory        =") + 21)) } catch { case e: Exception => ""}
+
+    override def latitude() = try {
+        latlng.split(",")(0).trim.toDouble
+    } catch {
+        case e: Exception => 0.0
+    }
+
+    override def longitude() = try {
+        latlng.split(",")(1).trim.toDouble
+    } catch {
+        case e: Exception => 0.0
+    }
+
+    def fullAddress = extractByAttributeValue("class", "street_1").getOrElse("").split(",")
+
+    override def address() = try {
+        fullAddress(0).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def city() = try {
+        fullAddress(1).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def state() = try {
+        fullAddress(2).split(" ")(0).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def zip() = try {
+        fullAddress(2).split(" ")(1).trim
+    } catch {
+        case e: Exception => ""
+    }
+
+    override def phone() = extractByAttributeValue("class", "phone").getOrElse("").stripSuffix(" |")
+
+    override def price() = doc.getElementsByClass("deal-price").headOption match {
+        case Some(e) => Jsoup.parse(e.text()).text()
+        case None => ""
+    }
+
+    override def purchased() = Option(doc.getElementById("deal-purchase-count")) match {
+        case Some(d) => d.getElementsByClass("value").headOption match {
+            case Some(e) => e.text()
+            case None => ""
+        }
+        case None => ""
+    }
+
+    override def savingsPercent() = extractById("percentage").getOrElse("").stripSuffix("%")
+
+    override def dealDescription() = extractById("view-details-full").getOrElse("")
+
+    override def dealImage() = doc.getElementsByClass("portrait").headOption match {
+        case Some(e) => e.getElementsByTag("img").headOption match {
+            case Some(img) => img.attr("src")
+            case None => ""
+        }
+        case None => ""
+    }
+
+    override def dealRegion() = extractByAttributeValue("class", "market").getOrElse("")
 }

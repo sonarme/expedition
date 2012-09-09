@@ -74,7 +74,7 @@ trait SonarCheckinVenue extends RealSocialGraph {
                 val sonarLng = sonarLoc.split(":").last.toDouble
                 val lat = loc.split(":").head.toDouble
                 val lng = loc.split(":").last.toDouble
-                val dist = Haversine.haversine(sonarLat, sonarLng, lat, lng)
+                val dist = Haversine.haversineInKm(sonarLat, sonarLng, lat, lng)
 
                 dist
             }

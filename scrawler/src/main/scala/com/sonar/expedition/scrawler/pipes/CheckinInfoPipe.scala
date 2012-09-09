@@ -36,8 +36,8 @@ trait CheckinInfoPipe extends ScaldingImplicits {
         citypipe
     }
 
-    def findClusteroidofUserFromChkins(chkins: RichPipe): RichPipe = {
-        val citypipe = chkins.groupBy('key) {
+    def findClusteroidofUserFromChkins(chkins: RichPipe) =
+        chkins.groupBy('key) {
             _
                     //.mapReduceMap('key->'key1), todo understand mapreducemap api
 
@@ -50,8 +50,6 @@ trait CheckinInfoPipe extends ScaldingImplicits {
                 (key, chkcity)
         }
 
-        citypipe
-    }
 
     def findCityFromChkins(chkinlist: List[String]): String = {
         var centroid = Array(0.toDouble, 0.toDouble)
