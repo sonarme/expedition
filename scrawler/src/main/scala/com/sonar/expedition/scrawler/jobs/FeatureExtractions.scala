@@ -29,20 +29,13 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
         in: (String, String, String, Int) =>
             val (gender, degreeCat, incomeStr, age) = in
 
-            // income classification TODO: maybe make it a real value with buckets?
-            val income = if (incomeStr == null) -1 else incomeStr.replaceAll("\\D", "").toInt
-            val incomeCat = if (income < 0) "unknown"
-            else if (income < 50000)
-                "0-50k"
-            else if (income < 100000)
-                "50-100k"
-            else if (income < 150000)
-                "100-150k"
-            else
-                "150k+"
-
-            val categoricalValues = Set("gender_" + gender, "education_" + degreeCat, "income_" + incomeCat)
-            val realValues = Set("age" -> age)
+            val income = if (incomeStr == null) -1
+            else {
+                val clean = incomeStr.replaceAll("\\D", "")
+                if (clean.isEmpty) -1 else clean.toInt
+            }
+            val categoricalValues = Set("gender_" + gender, "education_" + degreeCat)
+            val realValues = Set("age" -> age, "income" -> income)
             val buckets = bucketedRealValues(realValues)
             val features = categoricalValues.map(x => Set(x)) ++ buckets
             features
@@ -51,12 +44,11 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 }.toSeq ++ powersetFeatures.toSeq.sortBy(_.length)
 result.mkString(",")         */
 
-    }
+    } //.write(Tsv("testout",Fields.ALL))
 
     val loyalty = checkinsWithGoldenId.groupBy('goldenId, 'keyid) {
         _.size('loyalty)
     }
-
 
     checkinsWithGoldenId
             .unique('goldenId, 'keyid, 'lat, 'lng)
@@ -124,7 +116,7 @@ object FeatureExtractions {
         //  "coarse_age" -> Map(0 -> 13, 13 -> 25, 25 -> 50, 50 -> 100),
         "fine_age" -> Map(1 -> 6, 6 -> 13, 13 -> 19, 19 -> 25, 25 -> 37, 37 -> 50, 50 -> 75, 75 -> Int.MaxValue),
         "fine_distance" -> Map(0 -> 1000, 1000 -> 2000, 2000 -> 5000, 5000 -> 10000, 10000 -> Int.MaxValue),
-        "fine_loyalty" -> Map(1 -> 2, 2 -> 4, 4 -> 10, 10 -> Int.MaxValue)
-
+        "fine_loyalty" -> Map(1 -> 2, 2 -> 4, 4 -> 10, 10 -> Int.MaxValue),
+        "fine_income" -> Map(1 -> 50000, 50000 -> 100000, 100000 -> 150000, 150000 -> 250000, 250000 -> 500000, 500000 -> Int.MaxValue)
     )
 }

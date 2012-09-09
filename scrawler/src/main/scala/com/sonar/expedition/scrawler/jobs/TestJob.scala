@@ -18,5 +18,5 @@ class TestJob(args: Args) extends Job(args) with CheckinSource {
         _.foldLeft('keyid -> 'q)(Map.empty[String, Int]) {
             (agg: Map[String, Int], f: String) => agg + (f -> (agg.getOrElse(f, 0) + 1))
         }
-    }.write(Tsv(args("output"), Fields.ALL, false, true))
+    }.write(SequenceFile(args("output"), 'q))
 }
