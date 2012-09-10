@@ -114,26 +114,11 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             .write(SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple))
             .write(Tsv(dealsOutput + "_tsv", DealAnalysis.DealsOutputTuple))
 
-
-    def pickBest(tuple: Tuple, num: Int) = {
-        val (left, right) = tuple.splitAt(num)
-        new Tuple((left zip right map {
-            case (l, r) => Option(l).getOrElse(r)
-        }).toSeq: _*)
-    }
 }
 
 import collection.JavaConversions._
 
 object DealAnalysis extends FieldConversions {
-    val DealSheetTuple = ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone)
-
-    def doubleFields(fields: Fields) = {
-        val fieldsSeq = fields.iterator().map(_.toString).toSeq
-        new Fields(fieldsSeq.map(_ + "2"): _*)
-    }
-
-    val DealSheetTuple2 = doubleFields(DealSheetTuple)
     val LsCrawlSpecialTuple = ('rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
     val DealsDataTuple = ('successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
     val DealsOutputTuple = ('dealId).append(DealsDataTuple).append('venueSector)
