@@ -38,8 +38,8 @@ class CrawlerJob(args: Args) extends Job(args) {
     val linksOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/links", ('url, 'timestamp, 'referer))
     val statusSequence = SequenceFile(outputDir+"/crawl_"+level+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
-    val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL) //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
-    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", ('url, 'timestamp, 'status, 'content, 'links)) //('url, 'timestamp, 'status, 'content, 'links)
+    val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL)
+    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", CrawlerJob.RawTuple)
 
     val venues = TextLine("/Users/rogchang/Desktop/venuessorted.txt")
 
@@ -115,8 +115,7 @@ class CrawlerJob(args: Args) extends Job(args) {
     //foreach allUnfetched -> fetch content and write to raw and parsed
     val rawTuples = allUnfetched
             .map('url -> ('status, 'content, 'links)) { url: String => {
-                    val crawler = new Crawler
-                    crawler.fetchToTuple(url)
+                    Crawler.fetchToTuple(url)
                 }
             }
 
@@ -191,4 +190,8 @@ class CrawlerJob(args: Args) extends Job(args) {
     statusOut
         .write(statusOutput)
     */
+}
+
+object CrawlerJob extends FieldConversions {
+    val RawTuple = ('url, 'timestamp, 'status, 'content, 'links)
 }

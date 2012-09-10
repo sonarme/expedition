@@ -10,22 +10,9 @@ import util.Random
 import org.apache.http.util.EntityUtils
 import collection.JavaConversions._
 
-class Crawler {
+object Crawler {
     def fetchToTuple(url: String, domains: String = ""): Tuple3[String, String, Iterable[String]] = {
-        val httpclient = new DefaultHttpClient
-        val method = new HttpGet(url)
-        method.setHeader("User-Agent", PublicProfileCrawlerUtils.USER_AGENT_LIST(Random.nextInt((PublicProfileCrawlerUtils.USER_AGENT_LIST.size) - 1)))
-        val (status, content) = try {
-            println("fetching: " + url)
-            val rnd = new Random()
-            val range = 1000 to 3000 // randomly sleep btw 1s to 3s
-            Thread.sleep(range(rnd.nextInt(range length)))
-            val response = httpclient.execute(method)
-            val fetchedResult = EntityUtils.toString(response.getEntity)
-            ("fetched", fetchedResult)
-        } catch {
-            case e: Exception => ("error", "")
-        }
+        val (status, content) = fetchContent(url)
         val links = content match {
             case s: String if s.length > 0 => {
                 val doc = Jsoup.parse(s)
@@ -62,5 +49,23 @@ class Crawler {
             case _ => List.empty[String]
         }
         (status, content, links)
+    }
+
+    def fetchContent(url: String): Tuple2[String, String] = {
+        val httpclient = new DefaultHttpClient
+        val method = new HttpGet(url)
+        method.setHeader("User-Agent", PublicProfileCrawlerUtils.USER_AGENT_LIST(Random.nextInt((PublicProfileCrawlerUtils.USER_AGENT_LIST.size) - 1)))
+        val (status, content) = try {
+            println("fetching: " + url)
+            val rnd = new Random()
+            val range = 1000 to 3000 // randomly sleep btw 1s to 3s
+            Thread.sleep(range(rnd.nextInt(range length)))
+            val response = httpclient.execute(method)
+            val fetchedResult = EntityUtils.toString(response.getEntity)
+            ("fetched", fetchedResult)
+        } catch {
+            case e: Exception => ("error", "")
+        }
+        (status, content)
     }
 }
