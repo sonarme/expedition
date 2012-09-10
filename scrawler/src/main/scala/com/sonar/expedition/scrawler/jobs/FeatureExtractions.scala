@@ -87,10 +87,15 @@ result.mkString(",")         */
     }
             .groupBy('goldenId) {
 
-        _.foldLeft('features -> 'featuresCount)(new java.util.HashMap[String, Int]) {
-            (agg: java.util.Map[String, Int], features: Set[String]) =>
-                import collection.JavaConversions._
-                new java.util.HashMap[String, Int](agg.toMap ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1)))
+        _.foldLeft('features -> 'featuresCount)(new java.util.HashMap[String, java.lang.Integer]) {
+            (agg: java.util.HashMap[String, java.lang.Integer], features: Set[String]) =>
+                features.foreach {
+                    feature =>
+                        val existing = agg.get(feature)
+                        agg.put(feature, if (existing == null) 0 else existing + 1)
+                }
+                // scalding is making sure this gets cloned
+                agg
         }
 
     }.joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
