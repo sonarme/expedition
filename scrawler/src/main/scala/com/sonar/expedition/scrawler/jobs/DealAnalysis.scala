@@ -53,7 +53,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
                  geosector <- dealMatchGeosectorsAdjacent(dealLocation.latitude, dealLocation.longitude))
             yield (dealLocation.latitude, dealLocation.longitude, geosector, dealLocation.address, dealLocation.city, dealLocation.state, dealLocation.zip, dealLocation.phone)
     }.discard('locationJSON).map(() -> DealAnalysis.LsCrawlSpecialTuple) {
-        u: Unit => (null, null, null, null, null, null, null)
+        u: Unit => (null, null, null, null, null, null)
     }
 
     val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
@@ -101,7 +101,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
                 Some(score)
             }
     }.groupBy('dealId) {
-        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head(DealAnalysis.DealsOutputTupleWithoutId -> DealAnalysis.DealsOutputTupleWithoutId)
+        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head(DealAnalysis.DealsDataTuple -> DealAnalysis.DealsDataTuple)
 
     }.map(('venueLat, 'venueLng) -> 'venueSector) {
         in: (Double, Double) => GeoHash.withCharacterPrecision(in._1, in._2, 8).toBase32
@@ -109,8 +109,8 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         merchantAddress: String =>
             if (merchantAddress == null) null else merchantAddress.replaceAll("\\s", " ")
     }
-            .write(SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple.append('venueSector)))
-            .write(Tsv(dealsOutput + "_tsv", DealAnalysis.DealsOutputTuple.append('venueSector)))
+            .write(SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple))
+            .write(Tsv(dealsOutput + "_tsv", DealAnalysis.DealsOutputTuple))
 
 
     def pickBest(tuple: Tuple, num: Int) = {
@@ -132,9 +132,9 @@ object DealAnalysis extends FieldConversions {
     }
 
     val DealSheetTuple2 = doubleFields(DealSheetTuple)
-    val LsCrawlSpecialTuple = ('dealRegion, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
-    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
-    val DealsOutputTupleWithoutId = DealsOutputTuple.subtract('dealId)
+    val LsCrawlSpecialTuple = ('rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+    val DealsDataTuple = ('successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
+    val DealsOutputTuple = ('dealId).append(DealsDataTuple).append('venueSector)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     val DealLocationsTypeReference = new TypeReference[util.List[DealLocation]] {}
