@@ -18,7 +18,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
         case 1 =>
             val (newCheckins, allCheckinsWithGoldenId) = checkinSource(args, false, true)
 
-            val checkinsWithGoldenId = allCheckinsWithGoldenId.filter('lat, 'lng) {
+            val selectedCheckins = allCheckinsWithGoldenId.filter('lat, 'lng) {
                 in: (Double, Double) =>
                 // NY
                     GeoHash.withCharacterPrecision(in._1, in._2, 2).longValue() == 7331860193359167488L
@@ -27,7 +27,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
             val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
 
-            val loyalty = checkinsWithGoldenId.groupBy('goldenId, 'keyid) {
+            val loyalty = selectedCheckins.groupBy('goldenId, 'keyid) {
                 _.size('loyalty)
             }
             /*  val numCheckins = checkinsWithGoldenId.groupBy('goldenId) {
@@ -36,7 +36,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
             val numCheckinsWithProfile = checkinsWithGoldenId.groupBy('goldenId, 'keyid) {
                 _.size('numCheckinsWithProfile)
             }*/
-            checkinsWithGoldenId
+            selectedCheckins
                     .unique('goldenId, 'keyid, 'lat, 'lng)
                     // loyalty
                     .joinWithSmaller(('goldenId, 'keyid) ->('goldenId1, 'keyid1), loyalty.rename(('goldenId, 'keyid) ->('goldenId1, 'keyid1)))
@@ -117,7 +117,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
                     NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("goldenId" -> goldenId /*, "numCheckins" -> numCheckins, "numCheckinsWithProfile" -> numCheckinsWithProfile*/): java.util.Map[String, Any])
             }
-                    .write(TextLine(args("output"), 'json))
+                    .write(TextLine(args("output")))
     }
 
     def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
