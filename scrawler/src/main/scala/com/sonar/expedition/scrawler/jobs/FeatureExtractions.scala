@@ -13,7 +13,10 @@ import Ordering.Implicits._
 class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
     val (newCheckins, checkinsWithGoldenId) = checkinSource(args, false, true)
+
     val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
+
+    // profiles with degree
     val profiles = serviceProfiles(args).map('degree -> 'degreeCat) {
         degree: String =>
             degree match {
@@ -28,12 +31,13 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
     val userFeatures = profiles.map(('impliedGender, 'degreeCat, 'income, 'age) -> 'features) {
         in: (String, String, String, Int) =>
             val (gender, degreeCat, incomeStr, age) = in
-
+            // income parsing
             val income = if (incomeStr == null) -1
             else {
                 val clean = incomeStr.replaceAll("\\D", "")
                 if (clean.isEmpty) -1 else clean.toInt
             }
+
             val categoricalValues = Set("gender_" + gender, "education_" + degreeCat)
             val realValues = Set("age" -> age, "income" -> income)
             val buckets = bucketedRealValues(realValues)
@@ -86,7 +90,8 @@ result.mkString(",")         */
             powersetFeatures
     }
             .groupBy('goldenId) {
-
+        // count the features for the venue
+        // using java map because of kryo problems
         _.foldLeft('features -> 'featuresCount)(new java.util.HashMap[String, java.lang.Integer]) {
             (agg: java.util.HashMap[String, java.lang.Integer], features: Set[String]) =>
                 features.foreach {
@@ -98,8 +103,11 @@ result.mkString(",")         */
                 agg
         }
 
-    }.joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
+    } // join numCheckins
+            .joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
+            // join numCheckinsWithProfile
             .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
+            // write to output
             .write(SequenceFile(args("output"), FeatureExtractions.OutputTuple))
 
     def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
