@@ -70,7 +70,7 @@ class CrawlerJob(args: Args) extends Job(args) {
             .write(Tsv("/Users/rogchang/Desktop/twitterLinks.tsv"))
     */
 
-    /*
+
     //Read from status.tsv and output the fetched urls
     //TODO: find a way to split in one step
     val fetched = status
@@ -117,6 +117,7 @@ class CrawlerJob(args: Args) extends Job(args) {
             .map('url -> ('status, 'content, 'links)) { url: String => {
                     val crawler = new Crawler
                     crawler.fetchToTuple(url)
+                }
             }
 
 //    rawTuples
@@ -124,7 +125,7 @@ class CrawlerJob(args: Args) extends Job(args) {
 
     rawTuples
         .write(rawSequence)
-    */
+
     /*
     //Write outgoing links from rawTuples to next links level
     val outgoingLinks = rawTuples
@@ -137,7 +138,7 @@ class CrawlerJob(args: Args) extends Job(args) {
     */
 
     //Parse out the content and write to parsed.tsv
-    val parsedTuples = rawSequence
+    val parsedTuples = rawTuples
             .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
             .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
                     val (url, content) = in

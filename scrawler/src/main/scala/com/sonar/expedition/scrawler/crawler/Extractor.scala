@@ -368,7 +368,11 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
         case None => "0.0"
     }
 
-    override def category() = try { content.substring(content.indexOf("dealCategory        =") + 23, content.indexOf("\",", content.indexOf("dealCategory        =") + 21)) } catch { case e: Exception => ""}
+    override def category() = try {
+        content.substring(content.indexOf("dealCategory        =") + 23, content.indexOf("\",", content.indexOf("dealCategory        =") + 21))
+    } catch {
+        case e: Exception => ""
+    }
 
     override def latitude() = try {
         latlng.split(",")(0).trim.toDouble
@@ -420,12 +424,32 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
             case Some(e) => e.text()
             case None => ""
         }
-        case None => ""
+        case None => doc.getElementsByClass("purchased").headOption match {
+            //for /escapes
+            case Some(d) => d.getElementsByClass("value").headOption match {
+                case Some(e) => e.text()
+                case None => ""
+            }
+            case None => ""
+        }
     }
 
-    override def savingsPercent() = extractById("percentage").getOrElse("").stripSuffix("%")
+    override def savingsPercent() = extractById("percentage").getOrElse {
+        doc.getElementsByClass("discount").headOption match {
+            case Some(d) => d.getElementsByClass("value").headOption match {
+                case Some(e) => e.text()
+                case None => ""
+            }
+            case None => ""
+        }
+    }.stripSuffix("%")
 
-    override def dealDescription() = extractById("view-details-full").getOrElse("")
+    override def dealDescription() = extractById("view-details-full").getOrElse{
+        doc.getElementsByClass("deal-description").headOption match {
+            case Some(d) => Jsoup.parse(d.text()).text()
+            case None => ""
+        }
+    }
 
     override def dealImage() = doc.getElementsByClass("portrait").headOption match {
         case Some(e) => e.getElementsByTag("img").headOption match {
