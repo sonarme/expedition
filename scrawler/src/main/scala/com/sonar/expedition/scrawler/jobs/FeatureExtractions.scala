@@ -92,15 +92,8 @@ result.mkString(",")         */
             .groupBy('goldenId) {
         // count the features for the venue
         // using java map because of kryo problems
-        _.foldLeft('features -> 'featuresCount)(new java.util.HashMap[String, java.lang.Integer]) {
-            (agg: java.util.HashMap[String, java.lang.Integer], features: Set[String]) =>
-                features.foreach {
-                    feature =>
-                        val existing = agg.get(feature)
-                        agg.put(feature, if (existing == null) 0 else existing + 1)
-                }
-                // scalding is making sure this gets cloned
-                agg
+        _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
+            (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
         }
 
     } // join numCheckins
@@ -108,6 +101,13 @@ result.mkString(",")         */
             // join numCheckinsWithProfile
             .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
             // write to output
+            .map(('goldenId, 'featuresCount, 'numCheckins, 'numCheckinsWithProfile) -> 'json) {
+        in: (String, Map[String, Int], Int, Int) =>
+            val (goldenId, featuresCount, numCheckins, numCheckinsWithProfile) = in
+            import collection.JavaConversions._
+
+            NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("goldenId" -> goldenId, "numCheckins" -> numCheckins, "numCheckinsWithProfile" -> numCheckinsWithProfile): java.util.Map[String, Any])
+    }
             .write(SequenceFile(args("output"), FeatureExtractions.OutputTuple))
 
     def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {

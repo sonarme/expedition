@@ -17,17 +17,19 @@ class TrainBayesModelForVenueType(args: Args) extends Job(args) with LocationBeh
     val placesData = args("placesData")
 
     val docs = placesPipe(TextLine(placesData).read)
+            //propertiesTags    classifiersCategory  classifiersType  classifiersSubcategory
             .flatMapTo(('propertiesName, 'propertiesTags, 'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'linenum) ->('key, 'token, 'doc)) {
-        fields: (String, String, String, String, String, String) =>
+        fields: (String, List[String], List[String], List[String], List[String], String) =>
             val (propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, docid) = fields
-            val key = classifiersCategory.toLowerCase
-            val tokens = List(propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory)
-            for ((token, idx) <- tokens.zipWithIndex) yield (key, token, docid + "_" + idx)
+            val tokens = propertiesName :: (propertiesTags ++ classifiersCategory ++ classifiersType ++ classifiersSubcategory)
+            for (key <- classifiersCategory;
+                 (token, idx) <- tokens.zipWithIndex) yield (key.toLowerCase, token, docid + "_" + idx)
 
     }.project(('key, 'token, 'doc))
 
     val model = trainBayesModel(docs)
     model.write(SequenceFile(trainingmodel, Fields.ALL))
+            .write(Tsv(trainingmodel + "_tsv", Fields.ALL))
 
 
 }

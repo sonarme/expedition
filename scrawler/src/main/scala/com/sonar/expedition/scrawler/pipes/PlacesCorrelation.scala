@@ -37,10 +37,10 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
             _.min('distance).head('classifiersCategory, 'propertiesAddress, 'venuePhone)
         }.discard('distance).map(('venTypeFromModel, 'classifiersCategory) -> ('venueType)) {
 
-            in: (String, String) =>
+            in: (String, List[String]) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
                 // TODO: allow multiple venue types
-                if (CommonFunctions.isNullOrEmpty(venTypeFromPlacesData)) venTypeFromModel else venTypeFromPlacesData.split(",").head
+                if (venTypeFromPlacesData == null || venTypeFromPlacesData.isEmpty) venTypeFromModel else venTypeFromPlacesData.head
 
         }
     }
