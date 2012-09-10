@@ -33,8 +33,8 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     val distance = Haversine.haversineInKm(lat, lng, geometryLatitude, geometryLongitude)
                     if (distance > 1) None else Some(distance)
                 }
-        }.groupBy('goldenId) {
-            _.min('distance).head('venName, 'stemmedVenName, 'geosector, 'venueId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng, 'classifiersCategory, 'propertiesAddress, 'venuePhone)
+        }.groupBy('venueId) {
+            _.min('distance).head('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng, 'classifiersCategory, 'propertiesAddress, 'venuePhone)
         }.discard('distance).map(('venTypeFromModel, 'classifiersCategory) -> ('venueType)) {
 
             in: (String, List[String]) =>
