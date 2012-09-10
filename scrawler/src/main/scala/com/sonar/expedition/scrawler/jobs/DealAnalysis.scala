@@ -52,31 +52,25 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             for (dealLocation <- dealLocations;
                  geosector <- dealMatchGeosectorsAdjacent(dealLocation.latitude, dealLocation.longitude))
             yield (dealLocation.latitude, dealLocation.longitude, geosector, dealLocation.address, dealLocation.city, dealLocation.state, dealLocation.zip, dealLocation.phone)
-    }.project(DealAnalysis.DealSheetTuple)
-
-    val combined = args.optional("livingsocial") match {
-        case Some(file) =>
-            val ls = SequenceFile(file,
-                ('url, 'timestamp, 'merchantName2, 'majorCategory2, 'rating, 'merchantLat2, 'merchantLng2, 'merchantAddress2, 'merchantCity2, 'merchantState2, 'merchantZip2, 'merchantPhone2, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint2, 'purchased, 'savingsPercent)).read
-                    .filter('minPricepoint2) {
-                price: Int => price > 0
-            }
-                    .flatMap(('url, 'merchantLat2, 'merchantLng2) ->('dealId2, 'successfulDeal2, 'merchantGeosector2, 'minorCategory2)) {
-                in: (String, Double, Double) =>
-                    val (url, lat, lng) = in
-                    val dealId = url.split('/').last.split('-').head
-                    for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
-                    yield (dealId, "?", geosector, "?")
-            }
-            ls.leftJoinWithTiny('dealId2 -> 'dealId, deals).map(DealAnalysis.DealSheetTuple.append(DealAnalysis.DealSheetTuple2) -> DealAnalysis.DealSheetTuple) {
-                in: Tuple =>
-                    val out = pickBest(in, DealAnalysis.DealSheetTuple.size())
-                    out
-            }
-        case _ => deals.map(() -> DealAnalysis.LsCrawlSpecialTuple) {
-            u: Unit => ("?", "?", "?", "?", "?", "?")
-        }
+    }.discard('locationJSON).map(() -> DealAnalysis.LsCrawlSpecialTuple) {
+        u: Unit => (null, null, null, null, null, null)
     }
+
+    val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
+            .filter('minPricepoint) {
+        price: Int => price > 0
+    }
+            .flatMap(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
+        in: (String, Double, Double) =>
+            val (url, lat, lng) = in
+            val dealId = url.split('/').last.split('-').head
+            for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
+            yield (dealId, " ", geosector, "?")
+    }.project(('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone).append(DealAnalysis.LsCrawlSpecialTuple))
+    val combined = (deals ++ ls).groupBy('dealId) {
+        _.sortedTake[String]('successfulDeal -> 'top, 1).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+    }
+
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
