@@ -95,9 +95,11 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
         }
 
         if (withVenueGoldenId) {
-            val places = SequenceFile(placeClassification.get, PlaceClassification.PlaceClassificationOutputTuple).read
-            val checkinsWithGoldenId = withGoldenIdFromPlaces(places, checkins)
-            (checkins, checkinsWithGoldenId)
+            /*val places = SequenceFile(placeClassification.get, PlaceClassification.PlaceClassificationOutputTuple).read
+            val checkinsWithGoldenId = withGoldenIdFromPlaces(places, checkins)*/
+            (checkins, checkins.map('venId -> 'goldenId) {
+                identity[String]
+            })
         }
         else (checkins, null)
     }

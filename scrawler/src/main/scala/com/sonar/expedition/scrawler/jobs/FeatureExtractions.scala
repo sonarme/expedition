@@ -17,7 +17,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
         case 1 =>
             val (newCheckins, allCheckinsWithGoldenId) = checkinSource(args, false, true)
-
+            /*
             val selectedCheckins = allCheckinsWithGoldenId.filter('lat, 'lng) {
                 in: (Double, Double) =>
                 // NY 2 char
@@ -25,24 +25,28 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
                 // NY 4 char
                     GeoHash.withCharacterPrecision(in._1, in._2, 4).longValue() == 7335079563405295616L
             }
+            */
+            val selectedCheckins = SequenceFile(args("dealsOutput"), DealAnalysis.DealsOutputTuple).read.unique('dealId, 'goldenId).joinWithLarger('goldenId -> 'goldenId1, allCheckinsWithGoldenId.rename('goldenId -> 'goldenId1)).discard('goldenId1)
 
             val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
 
+            val numCheckins = selectedCheckins.groupBy('goldenId) {
+                _.size('numCheckins)
+            }
+
+            val peopleCheckins = selectedCheckins
+                    .unique('dealId, 'goldenId, 'keyid, 'lat, 'lng)
+            val numPeople = peopleCheckins.groupBy('goldenId) {
+                _.size('numPeople)
+            }
+            numCheckins.leftJoinWithSmaller('goldenId -> 'goldenId1, numPeople.rename('goldenId -> 'goldenId1)).discard('goldenId1).write(Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)))
+
+            // loyalty
             val loyalty = selectedCheckins.groupBy('goldenId, 'keyid) {
                 _.size('loyalty)
             }
-            /*  val numCheckins = checkinsWithGoldenId.groupBy('goldenId) {
-                _.size('numCheckins)
-            }
-            val numCheckinsWithProfile = checkinsWithGoldenId.groupBy('goldenId, 'keyid) {
-                _.size('numCheckinsWithProfile)
-            }*/
-            selectedCheckins
-                    .unique('goldenId, 'keyid, 'lat, 'lng)
-                    // loyalty
-                    .joinWithSmaller(('goldenId, 'keyid) ->('goldenId1, 'keyid1), loyalty.rename(('goldenId, 'keyid) ->('goldenId1, 'keyid1)))
-                    // per-user features
-                    .joinWithSmaller('keyid -> 'key, serviceProfiles(args))
+            peopleCheckins.joinWithSmaller(('goldenId, 'keyid) ->('goldenId1, 'keyid1), loyalty.rename(('goldenId, 'keyid) ->('goldenId1, 'keyid1))).discard('goldenId1, 'keyid1)
+                    .joinWithSmaller('keyid -> 'key, serviceProfiles(args)).discard('key)
                     .map('degree -> 'degreeCat) {
                 degree: String =>
                     degree match {
@@ -51,7 +55,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
                         case Grad(str) => "GradSchool"
                         case _ => "unknown"
                     }
-            }.leftJoinWithSmaller('worktitle -> 'worktitle1, income.rename('worktitle -> 'worktitle1))
+            }.leftJoinWithSmaller('worktitle -> 'worktitle1, income.rename('worktitle -> 'worktitle1)).discard('worktitle1)
                     .map(('impliedGender, 'degreeCat, 'income, 'age) -> 'features) {
                 in: (String, String, String, Int) =>
                     val (gender, degreeCat, incomeStr, age) = in
@@ -74,7 +78,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
             }
                     // centroids
-                    .leftJoinWithSmaller('key -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid)))
+                    .leftJoinWithSmaller('keyid -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid))).discard('key1)
                     // compute venue features
                     .map(('lat, 'lng, 'workCentroid, 'homeCentroid, 'loyalty, 'features) -> 'features) {
                 in: (Double, Double, String, String, Int, Iterable[Set[String]]) =>
@@ -94,29 +98,26 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
                     val realValues = Set("distance" -> minDistance, "loyalty" -> loyalty)
                     val buckets = bucketedRealValues(realValues)
-                    //(userFeatures ++ buckets).flatten.toSet[String]
+                    val raw = (userFeatures ++ buckets).flatten.toSet[String]
                     val powersetFeatures = combine(userFeatures ++ buckets)
-                    powersetFeatures
-            }.write(SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)))
+                    raw ++ powersetFeatures
+            }.write(SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple))
         case 2 =>
-            SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)).read.groupBy('goldenId) {
+            val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read
+            SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple).read.groupBy('dealId, 'goldenId) {
                 // count the features for the venue
                 // using java map because of kryo problems
                 _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
                     (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
                 }
 
-            } /*// join numCheckins
-   .joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
-   // join numCheckinsWithProfile
-   .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
-   // write to output*/
+            }.joinWithSmaller('goldenId -> 'goldenId1, numCheckins.rename('goldenId -> 'goldenId1)).discard('goldenId1)
                     .mapTo(FeatureExtractions.OutputTuple -> 'json) {
-                in: (String, Map[String, Int] /*, Int, Int*/ ) =>
-                    val (goldenId, featuresCount /*, numCheckins, numCheckinsWithProfile*/ ) = in
+                in: (String, String, Map[String, Int], Int, Int) =>
+                    val (dealId, goldenId, featuresCount, numCheckins, numPeople) = in
                     import collection.JavaConversions._
 
-                    NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("goldenId" -> goldenId /*, "numCheckins" -> numCheckins, "numCheckinsWithProfile" -> numCheckinsWithProfile*/): java.util.Map[String, Any])
+                    NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("dealId" -> dealId, "goldenId" -> goldenId, "numCheckins" -> numCheckins, "numPeople" -> numPeople): java.util.Map[String, Any])
             }
                     .write(TextLine(args("output")))
     }
@@ -148,7 +149,8 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 }
 
 object FeatureExtractions extends TupleConversions {
-    val OutputTuple = ('goldenId, 'featuresCount /*, 'numCheckins, 'numCheckinsWithProfile*/ )
+    val RawTuple = ('dealId, 'goldenId, 'keyid, 'features)
+    val OutputTuple = ('dealId, 'goldenId, 'featuresCount, 'numCheckins, 'numPeople)
     val bucketMap = Map(
         //  "coarse_age" -> Map(0 -> 13, 13 -> 25, 25 -> 50, 50 -> 100),
         "fine_age" -> Map(1 -> 6, 6 -> 13, 13 -> 19, 19 -> 25, 25 -> 37, 37 -> 50, 50 -> 75, 75 -> Int.MaxValue),

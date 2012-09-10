@@ -9,7 +9,7 @@ import com.sonar.dossier.dto.{ServiceType, Priorities}
 import cascading.tuple.Fields
 
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
-    val PlaceCorrelationSectorSize = 10
+    val PlaceCorrelationSectorSize = 30
 
     def placeClassification(newCheckins: RichPipe, bayesmodel: String, placesData: String) = {
         val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
@@ -31,10 +31,10 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 if (lat == null || lng == null || geometryLatitude == null || geometryLongitude == null) Some(-1)
                 else {
                     val distance = Haversine.haversineInMeters(lat, lng, geometryLatitude, geometryLongitude)
-                    if (distance > 250) None else Some(distance)
+                    if (distance > 500) None else Some(distance)
                 }
         }.groupBy('venueId) {
-            _.sortedTake[Int]('distance -> 'top, 1).head('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng, 'classifiersCategory, 'propertiesAddress, 'venuePhone)
+            _.sortBy('distance).head('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng, 'classifiersCategory, 'propertiesAddress, 'venuePhone)
         }.map(('venTypeFromModel, 'classifiersCategory) -> ('venueType)) {
 
             in: (String, List[String]) =>
