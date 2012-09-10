@@ -63,12 +63,12 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             .flatMap(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
         in: (String, Double, Double) =>
             val (url, lat, lng) = in
-            val dealId = url.split('/').last.split('-').head
+            val dealId = url.split('/').last.split(Array('-', '?')).head
             for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
             yield (dealId, "x?", geosector, "?")
     }.project(('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone).append(DealAnalysis.LsCrawlSpecialTuple))
     val combined = (deals ++ ls).groupBy('dealId) {
-        _.sortedTake[String]('successfulDeal -> 'top, 1).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+        _.sortBy('successfulDeal).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
     }
 
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
@@ -101,7 +101,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
                 Some(score)
             }
     }.groupBy('dealId) {
-        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head(DealAnalysis.DealsDataTuple -> DealAnalysis.DealsDataTuple)
+        _.sortBy('levenshtein).head(DealAnalysis.DealsDataTuple -> DealAnalysis.DealsDataTuple)
 
     }.map(('venueLat, 'venueLng) -> 'venueSector) {
         in: (Double, Double) => GeoHash.withCharacterPrecision(in._1, in._2, 8).toBase32

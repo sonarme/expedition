@@ -83,7 +83,7 @@ class DealMatch(args: Args) extends Job(args) with PlacesCorrelation with Checki
                 Some(score)
             }
     }.groupBy('dealId) {
-        _.sortedTake[Int](('levenshtein) -> 'topVenueMatch, 1).head(DealMatch.DealsOutputTupleWithoutId -> DealMatch.DealsOutputTupleWithoutId)
+        _.sortBy('levenshtein).head(DealMatch.DealsOutputTupleWithoutId -> DealMatch.DealsOutputTupleWithoutId)
 
     }.write(Tsv(dealsOutput, DealMatch.DealsOutputTuple))
 
