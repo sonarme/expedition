@@ -94,9 +94,9 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
                     val realValues = Set("distance" -> minDistance, "loyalty" -> loyalty)
                     val buckets = bucketedRealValues(realValues)
-                    (userFeatures ++ buckets).flatten.toSet[String]
-                /*val powersetFeatures = combine(userFeatures ++ buckets)
-                powersetFeatures*/
+                    //(userFeatures ++ buckets).flatten.toSet[String]
+                    val powersetFeatures = combine(userFeatures ++ buckets)
+                    powersetFeatures
             }.write(SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)))
         case 2 =>
             SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)).read.groupBy('goldenId) {
