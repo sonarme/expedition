@@ -44,8 +44,10 @@ class YelpCrawl(args: Args) extends Job(args) {
                 val rnd = new Random()
                 val range = 1000 to 3000 // randomly sleep btw 1s to 3s
                 Thread.sleep(range(rnd.nextInt(range length)))
-                println("getting: " + "http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc)
-                client.getresponse("http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc)
+                try {
+//                println("getting: " + "http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc)
+                    client.getresponse("http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc)
+                } catch { case e:Exception => ""}
         }
 
         results
@@ -84,7 +86,7 @@ class YelpCrawl(args: Args) extends Job(args) {
 
     rawTuples
         .write(rawSequence)
-
+    /*
     val parsedTuples = rawTuples
             .map(('url, 'content) -> ('ybusinessName, 'ycategory, 'yrating, 'ylatitude, 'ylongitude, 'yaddress, 'ycity, 'ystate, 'yzip, 'yphone, 'ypriceRange, 'yreviewCount, 'yreviews)) { in: (String, String) => {
                     val (url, content) = in
@@ -134,5 +136,5 @@ class YelpCrawl(args: Args) extends Job(args) {
 
     parsedTuples
         .write(parsedSequence)
-
+    */
 }
