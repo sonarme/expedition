@@ -397,13 +397,13 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
     }
 
     override def state() = try {
-        fullAddress(2).split(" ")(0).trim
+        fullAddress(2).split(" ")(1).trim
     } catch {
         case e: Exception => ""
     }
 
     override def zip() = try {
-        fullAddress(2).split(" ")(1).trim
+        fullAddress(2).split(" ")(2).trim
     } catch {
         case e: Exception => ""
     }
