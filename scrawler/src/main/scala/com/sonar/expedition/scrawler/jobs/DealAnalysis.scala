@@ -137,7 +137,7 @@ object DealAnalysis extends FieldConversions {
 
     val DealSheetTuple2 = doubleFields(DealSheetTuple)
     val LsCrawlSpecialTuple = ('dealRegion, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
-    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint, 'checkins) append LsCrawlSpecialTuple
+    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venueType, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint, 'checkins) append LsCrawlSpecialTuple
     val DealsOutputTupleWithoutId = DealsOutputTuple.subtract('dealId)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
