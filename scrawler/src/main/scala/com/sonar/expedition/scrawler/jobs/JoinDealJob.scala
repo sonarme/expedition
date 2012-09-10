@@ -38,7 +38,6 @@ class JoinDealJob(args: Args) extends Job(args) {
     })*/
 
 
-    List().scanLeft()
     input.leftJoinWithLarger('dealId -> 'dealId1, lsWithStats).write(Tsv(args("output"), Fields.ALL, true, true))
 }
 
