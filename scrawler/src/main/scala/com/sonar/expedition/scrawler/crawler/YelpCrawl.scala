@@ -34,7 +34,7 @@ class YelpCrawl(args: Args) extends Job(args) {
     val parsed = Tsv(outputDir + "/parsed_tsv")
     val parsedSequence = SequenceFile(outputDir + "/parsed", Fields.ALL)
 
-    val results = dealsSample
+    val results = deals
                 .map(('merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip) -> 'html) {
             in: (String, String, String, String, String) =>
                 val (merchantName, address, city, state, zip) = in
