@@ -23,7 +23,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
                 // NY 2 char
                 // 7331860193359167488L
                 // NY 4 char
-                    GeoHash.withCharacterPrecision(in._1, in._2, 2).longValue() == 7335079563405295616L
+                    GeoHash.withCharacterPrecision(in._1, in._2, 4).longValue() == 7335079563405295616L
             }
 
             val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
@@ -94,9 +94,9 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
                     val realValues = Set("distance" -> minDistance, "loyalty" -> loyalty)
                     val buckets = bucketedRealValues(realValues)
-                    (userFeatures ++ buckets).flatten.toSet[String]
-                /*val powersetFeatures = combine(userFeatures ++ buckets)
-                powersetFeatures*/
+                    //(userFeatures ++ buckets).flatten.toSet[String]
+                    val powersetFeatures = combine(userFeatures ++ buckets)
+                    powersetFeatures
             }.write(SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)))
         case 2 =>
             SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)).read.groupBy('goldenId) {
