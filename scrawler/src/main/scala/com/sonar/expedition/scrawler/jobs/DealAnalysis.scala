@@ -49,9 +49,8 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             } catch {
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
-            for (dealLocation <- dealLocations;
-                 geosector <- dealMatchGeosectorsAdjacent(dealLocation.latitude, dealLocation.longitude))
-            yield (dealLocation.latitude, dealLocation.longitude, geosector, dealLocation.address, dealLocation.city, dealLocation.state, dealLocation.zip, dealLocation.phone)
+            for (dealLocation <- dealLocations)
+            yield (dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude), dealLocation.address, dealLocation.city, dealLocation.state, dealLocation.zip, dealLocation.phone)
     }.discard('locationJSON).map(() -> DealAnalysis.LsCrawlSpecialTuple) {
         u: Unit => (null, null, null, null, null, null)
     }
@@ -60,15 +59,18 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             .filter('minPricepoint) {
         price: Int => price > 0
     }
-            .flatMap(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
+            .map(('url, 'merchantLat, 'merchantLng) ->('dealId, 'successfulDeal, 'merchantGeosector, 'minorCategory)) {
         in: (String, Double, Double) =>
             val (url, lat, lng) = in
             val dealId = url.split('/').last.split(Array('-', '?')).head
-            for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
-            yield (dealId, "x?", geosector, "?")
+            (dealId, "x?", dealMatchGeosector(lat, lng), "?")
     }.project(('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone).append(DealAnalysis.LsCrawlSpecialTuple))
-    val combined = (deals ++ ls).groupBy('dealId) {
-        _.sortBy('successfulDeal).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+    val combined = (deals ++ ls).groupBy('dealId, 'merchantGeosector) {
+        _.sortBy('successfulDeal).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+    }.discard('merchantGeosector).flatMap(('merchantLat, 'merchantLng) -> 'merchantGeosector) {
+        in: (Double, Double) =>
+            val (lat, lng) = in
+            dealMatchGeosectorsAdjacent(lat, lng)
     }
 
     val dealVenues = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).map(('venueLat, 'venueLng) -> 'geosector) {
