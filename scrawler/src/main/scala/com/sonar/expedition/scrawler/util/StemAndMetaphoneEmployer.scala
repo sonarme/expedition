@@ -4,6 +4,10 @@ import org.apache.commons.codec.language._
 import scala.transient
 import com.sonar.expedition.scrawler.pipes.JobImplicits
 import com.twitter.scalding.{FieldConversions, TupleConversions}
+import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.util.{Attribute, ReaderUtil, Version}
+import org.apache.commons.io.IOUtils
+import java.io.StringReader
 
 object StemAndMetaphoneEmployer extends Serializable {
     @transient
@@ -26,13 +30,35 @@ object StemAndMetaphoneEmployer extends Serializable {
     def removeStopWords(employer: String) =
         if (employer == null)
             ""
-        else employer
-                .replaceAll( """\.[a-zA-Z][a-zA-Z][a-zA-Z]?(?= |$)""", "")
-                .replaceAll( """\p{P}""", "")
-                .replaceAll( """(^|(?<= ))(?i)(a|an|and|are|as|at|be|but|by|for|if|in|into|is|it|no|not|of|on|or|such|that|the|their|then|there|these|they|this|to|was|will|with|inc|incorporated|co|ltd|llc|group|corp|corporation|company|limited|hq)(?= |$)""", "")
-                .replaceAll( """\s+""", " ")
-                .trim
-                .toLowerCase
+        else {
+            employer
+                    .replaceAll( """\.[a-zA-Z][a-zA-Z][a-zA-Z]?(?= |$)""", "")
+                    .replaceAll( """\p{P}""", "")
+                    .replaceAll( """(^|(?<= ))(?i)(a|an|and|are|as|at|be|but|by|for|if|in|into|is|it|no|not|of|on|or|such|that|the|their|then|there|these|they|this|to|was|will|with|inc|incorporated|co|ltd|llc|group|corp|corporation|company|limited|hq)(?= |$)""", "")
+                    .replaceAll( """\s+""", " ")
+                    .trim
+                    .toLowerCase
+        }
+
+
+    def extractTokens(tokenString: String) = {
+        val standardAnalyzer = new StandardAnalyzer(Version.LUCENE_36)
+        val tokenStream = standardAnalyzer.tokenStream("textField", new StringReader(tokenString))
+        var tokens: Seq[String] = Seq[String]()
+        try {
+            while (tokenStream.incrementToken()) {
+                // getting tokens
+            }
+            val tokenIterator = tokenStream.getAttributeImplsIterator
+            /*tokens = for (token: Attribute <- tokenIterator) yield {
+                token.toString
+            }*/
+        } finally {
+            tokenStream.end()
+            tokenStream.close()
+        }
+        tokens
+    }
 
     /* outputs the metaphone encoding of an employer string */
 

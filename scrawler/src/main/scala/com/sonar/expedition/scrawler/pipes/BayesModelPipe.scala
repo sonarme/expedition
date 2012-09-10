@@ -215,7 +215,7 @@ trait BayesModelPipe extends ScaldingImplicits {
     def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
         data.flatMap('data -> 'token) {
             line: String => {
-                StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
+                StemAndMetaphoneEmployer.extractTokens(line)
             }
         }
                 .joinWithSmaller(('token -> 'token), model)

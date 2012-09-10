@@ -9,7 +9,7 @@ import com.sonar.dossier.dto.{ServiceType, Priorities}
 import cascading.tuple.Fields
 
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
-    val PlaceCorrelationSectorSize = 30
+    val PlaceCorrelationSectorSize = 10
 
     def placeClassification(newCheckins: RichPipe, bayesmodel: String, placesData: String) = {
         val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
