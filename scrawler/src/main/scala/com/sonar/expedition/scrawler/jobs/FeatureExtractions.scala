@@ -20,9 +20,10 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
             val selectedCheckins = allCheckinsWithGoldenId.filter('lat, 'lng) {
                 in: (Double, Double) =>
-                // NY
-                    GeoHash.withCharacterPrecision(in._1, in._2, 2).longValue() == 7331860193359167488L
-
+                // NY 2 char
+                // 7331860193359167488L
+                // NY 4 char
+                    GeoHash.withCharacterPrecision(in._1, in._2, 2).longValue() == 7335079563405295616L
             }
 
             val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
