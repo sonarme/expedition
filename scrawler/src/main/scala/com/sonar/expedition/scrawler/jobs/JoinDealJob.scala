@@ -22,9 +22,9 @@ class JoinDealJob(args: Args) extends Job(args) {
             (revenue, dealSuccess)
         }
     }
-    val reveneAnalysisPipe = ls.groupAll(_.sizeAveStdev('revenue ->('revenueCount, 'revenueAverage, 'revenueStdDev))
+    val reveneAnalysisPipe = ls.groupAll(_.sizeAveStdev('revenue -> ('revenueCount, 'revenueAverage, 'revenueStdDev))
             .max('revenue -> 'maxRevenue)
-            .min('revenue, 'minRevenue))
+            .min('revenue -> 'minRevenue))
 
     val lsWithStats = ls.crossWithTiny(reveneAnalysisPipe).map(('revenue, 'revenueAverage, 'revenueStdDev) -> 'revenueBucket) {
         in: (Double, Double, Double) =>
@@ -32,6 +32,8 @@ class JoinDealJob(args: Args) extends Job(args) {
             val offset = revenueAverage / revenueStdDev
             offset + math.round((revenue - revenueAverage) / revenueStdDev)
     }
+
+//    val lsSample = lsWithStats.limit(1000).groupAll(_.sortBy('revenue).mapStream())
 
     input.leftJoinWithLarger('dealId -> 'dealId1, lsWithStats).write(Tsv(args("output"), Fields.ALL))
 }
