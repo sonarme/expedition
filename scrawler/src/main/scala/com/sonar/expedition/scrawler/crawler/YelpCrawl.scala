@@ -18,12 +18,11 @@ import util.Random
 class YelpCrawl(args: Args) extends Job(args) {
 
     val outputDir = args("output")
+    val src = args("src")
 
-    val deals = SequenceFile(outputDir + "/dealsOutput0909", YelpCrawl.DealsOutputTuple.append('venueSector))
-
+    val deals = SequenceFile(src, DealAnalysis.DealsOutputTuple)
 
 //    val dealsSample = Tsv(outputDir + "/deals-sample.tsv", ('dealId, 'merchantName, 'address, 'city, 'state, 'zip, 'lat, 'lng))
-    val dealsSample = Tsv(outputDir + "/deals-sample.tsv", YelpCrawl.DealsOutputTuple.append('venueSector))
 
 //    val dealsWithSearchHtmlSeq = Tsv(outputDir + "/dealsWithSearchHtml", ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'address, 'city, 'state, 'zip, 'lat, 'lng, 'html))
     val dealsWithSearchHtmlSeq = SequenceFile(outputDir + "/dealsWithSearchHtml")
@@ -136,9 +135,4 @@ class YelpCrawl(args: Args) extends Job(args) {
     parsedTuples
         .write(parsedSequence)
 
-}
-
-object YelpCrawl extends FieldConversions {
-    val LsCrawlSpecialTuple = ('rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
-    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
 }
