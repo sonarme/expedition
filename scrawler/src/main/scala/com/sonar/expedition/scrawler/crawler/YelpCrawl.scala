@@ -17,7 +17,7 @@ import util.Random
 
 class YelpCrawl(args: Args) extends Job(args) {
 
-    val outputDir = "/Users/rogchang/Desktop/yelp/venuesCrawl"
+    val outputDir = args("output")
 
 //    val dealsTsv = Tsv(outputDir + "/dealsOutput0909_tsv", DealAnalysis.DealsOutputTuple.append('venueSector))
 
