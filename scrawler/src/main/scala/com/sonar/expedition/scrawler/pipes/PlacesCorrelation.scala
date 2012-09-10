@@ -34,8 +34,8 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     if (distance > 1000) None else Some(distance)
                 }
         }.groupBy('venueId) {
-            _.min('distance).head('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng, 'classifiersCategory, 'propertiesAddress, 'venuePhone)
-        }.discard('distance).map(('venTypeFromModel, 'classifiersCategory) -> ('venueType)) {
+            _.sortedTake[Int]('distance -> 'top, 1).head('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng, 'classifiersCategory, 'propertiesAddress, 'venuePhone)
+        }.map(('venTypeFromModel, 'classifiersCategory) -> ('venueType)) {
 
             in: (String, List[String]) =>
                 val (venTypeFromModel, venTypeFromPlacesData) = in
