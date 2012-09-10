@@ -86,9 +86,13 @@ result.mkString(",")         */
             powersetFeatures
     }
             .groupBy('goldenId) {
-        _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
-            (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
+
+        _.foldLeft('features -> 'featuresCount)(new java.util.HashMap[String, Int]) {
+            (agg: java.util.Map[String, Int], features: Set[String]) =>
+                import collection.JavaConversions._
+                new java.util.HashMap[String, Int](agg.toMap ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1)))
         }
+
     }.joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
             .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
             .write(SequenceFile(args("output"), FeatureExtractions.OutputTuple))
