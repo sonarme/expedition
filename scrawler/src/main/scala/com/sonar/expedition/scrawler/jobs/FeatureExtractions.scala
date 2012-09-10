@@ -102,6 +102,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
                     val powersetFeatures = combine(userFeatures ++ buckets)
                     raw ++ powersetFeatures
             }.write(SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple))
+                    .write(Tsv(args("rawoutput") + "_tsv", FeatureExtractions.RawTuple))
         case 2 =>
             val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read
             SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple).read.groupBy('dealId, 'goldenId) {
@@ -138,9 +139,12 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
         val greaterEquals = FeatureExtractions.bucketMap(name).filter {
             case (low, _) => low <= value
         }
-        if (greaterEquals.isEmpty) Set(kind + "_unknown")
+        val matchBuckets = greaterEquals.filter {
+            case (_, high) => value < high
+        }
+        if (greaterEquals.isEmpty || matchBuckets.isEmpty) Set(kind + "_unknown")
         else {
-            val (low, high) = greaterEquals.maxBy(_._1)
+            val (low, high) = matchBuckets.maxBy(_._1)
             val highName = if (high == Int.MaxValue) "+" else "-" + high
             greaterEquals.keySet.map(name + ">=" + _) + (name + "=" + low + highName)
         }
