@@ -19,11 +19,11 @@ class YelpCrawl(args: Args) extends Job(args) {
 
     val outputDir = args("output")
 
-//    val dealsTsv = Tsv(outputDir + "/dealsOutput0909_tsv", DealAnalysis.DealsOutputTuple.append('venueSector))
+    val deals = SequenceFile(outputDir + "/dealsOutput0909", DealAnalysis.DealsOutputTuple.append('venueSector))
 
 
 //    val dealsSample = Tsv(outputDir + "/deals-sample.tsv", ('dealId, 'merchantName, 'address, 'city, 'state, 'zip, 'lat, 'lng))
-    val dealsSample = SequenceFile(outputDir + "/dealsOutput0909", DealAnalysis.DealsOutputTuple.append('venueSector))
+    val dealsSample = Tsv(outputDir + "/deals-sample.tsv", DealAnalysis.DealsOutputTuple.append('venueSector))
 
 //    val dealsWithSearchHtmlSeq = Tsv(outputDir + "/dealsWithSearchHtml", ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'address, 'city, 'state, 'zip, 'lat, 'lng, 'html))
     val dealsWithSearchHtmlSeq = SequenceFile(outputDir + "/dealsWithSearchHtml")
@@ -34,7 +34,7 @@ class YelpCrawl(args: Args) extends Job(args) {
     val parsed = Tsv(outputDir + "/parsed_tsv")
     val parsedSequence = SequenceFile(outputDir + "/parsed", Fields.ALL)
 
-    val results = dealsSample
+    val results = deals
                 .map(('merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip) -> 'html) {
             in: (String, String, String, String, String) =>
                 val (merchantName, address, city, state, zip) = in
@@ -73,8 +73,8 @@ class YelpCrawl(args: Args) extends Job(args) {
         .discard('html)
         .filter('url) {url: String => url.nonEmpty}
 
-    linkOut
-        .write(dealsWithFirstLinkFromHtml)
+//    linkOut
+//        .write(dealsWithFirstLinkFromHtml)
 
     val rawTuples = linkOut
         .map('url -> ('status, 'content, 'links)) { url: String => {
