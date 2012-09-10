@@ -6,9 +6,14 @@ import cascading.tuple.Fields
 
 class CheckinSamplerJob(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe {
     val venues = args("venues").split(',').toSet[String]
-    val (_, checkins) = checkinSource(args, false, true)
-    val profiles = serviceProfiles(args)
-    checkins.filter('goldenId) {
+    val (checkins, checkinsWithVenue) = checkinSource(args, false, true)
+    val profiles = serviceProfiles(args).write(Tsv("s3n://scrawler/sampleCheckins/profiles", Fields.ALL, true, true))
+    checkins.filter('venId) {
         goldenId: String => venues(goldenId)
-    }.joinWithLarger('keyid -> 'key, profiles).write(Tsv(args("output"), Fields.ALL, true, true))
+    }.write(Tsv("s3n://scrawler/sampleCheckins/raw", Fields.ALL, true, true))
+    checkinsWithVenue.filter('goldenId) {
+        goldenId: String => venues(goldenId)
+    }.write(Tsv("s3n://scrawler/sampleCheckins/withVenue", Fields.ALL, true, true))
+            .joinWithLarger('keyid -> 'key, profiles)
+            .write(Tsv("s3n://scrawler/sampleCheckins/final", Fields.ALL, true, true))
 }
