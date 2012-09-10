@@ -53,7 +53,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
                  geosector <- dealMatchGeosectorsAdjacent(dealLocation.latitude, dealLocation.longitude))
             yield (dealLocation.latitude, dealLocation.longitude, geosector, dealLocation.address, dealLocation.city, dealLocation.state, dealLocation.zip, dealLocation.phone)
     }.discard('locationJSON).map(() -> DealAnalysis.LsCrawlSpecialTuple) {
-        u: Unit => (null, null, null, null, null, null)
+        u: Unit => (null, null, null, null, null, null, null)
     }
 
     val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
