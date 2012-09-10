@@ -65,7 +65,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val (url, lat, lng) = in
             val dealId = url.split('/').last.split('-').head
             for (geosector <- dealMatchGeosectorsAdjacent(lat, lng))
-            yield (dealId, " ", geosector, "?")
+            yield (dealId, "x?", geosector, "?")
     }.project(('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone).append(DealAnalysis.LsCrawlSpecialTuple))
     val combined = (deals ++ ls).groupBy('dealId) {
         _.sortedTake[String]('successfulDeal -> 'top, 1).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
