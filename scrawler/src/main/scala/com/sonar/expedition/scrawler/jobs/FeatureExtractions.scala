@@ -98,9 +98,9 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
                     val realValues = Set("distance" -> minDistance, "loyalty" -> loyalty)
                     val buckets = bucketedRealValues(realValues)
-                    //(userFeatures ++ buckets).flatten.toSet[String]
+                    val raw = (userFeatures ++ buckets).flatten.toSet[String]
                     val powersetFeatures = combine(userFeatures ++ buckets)
-                    powersetFeatures
+                    raw ++ powersetFeatures
             }.write(SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple))
         case 2 =>
             val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read
