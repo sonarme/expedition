@@ -93,7 +93,7 @@ result.mkString(",")         */
             (userFeatures ++ buckets).flatten.toSet[String]
         /*val powersetFeatures = combine(userFeatures ++ buckets)
         powersetFeatures*/
-    }
+    }.write(SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)))
             .groupBy('goldenId) {
         // count the features for the venue
         // using java map because of kryo problems
