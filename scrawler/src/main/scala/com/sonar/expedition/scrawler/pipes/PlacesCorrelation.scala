@@ -9,11 +9,14 @@ import com.sonar.dossier.dto.{ServiceType, Priorities}
 import cascading.tuple.Fields
 
 trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAnalysePipe {
-    val PlaceCorrelationSectorSize = 10
+    val PlaceCorrelationSectorSize = 30
 
     def placeClassification(newCheckins: RichPipe, bayesmodel: String, placesData: String) = {
         val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
-
+        placesVenueGoldenIdValues.map(() ->('venuePhone, 'venueType)) {
+            u: Unit => ("", "")
+        }
+        /*
         val placesClassified = classifyPlaceType(bayesmodel, placesVenueGoldenIdValues)
 
         val geoPlaces = placesPipe(TextLine(placesData).read)
@@ -24,6 +27,11 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         }
 
         placesClassified
+                .map(('venueLat, 'venueLng) -> 'geosector) {
+                        in: (Double, Double) =>
+                            val (lat, lng) = in
+                            dealMatchGeosector(lat, lng)
+                    }
                 .leftJoinWithSmaller('stemmedVenName -> 'stemmedVenNameFromPlaces, geoPlaces)
                 .flatMap(('venueLat, 'venueLng, 'geometryLatitude, 'geometryLongitude) -> 'distance) {
             in: (java.lang.Double, java.lang.Double, java.lang.Double, java.lang.Double) =>
@@ -31,7 +39,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 if (lat == null || lng == null || geometryLatitude == null || geometryLongitude == null) Some(-1)
                 else {
                     val distance = Haversine.haversineInMeters(lat, lng, geometryLatitude, geometryLongitude)
-                    if (distance > 250) None else Some(distance)
+                    if (distance > 500) None else Some(distance)
                 }
         }.groupBy('venueId) {
             _.sortBy('distance).head('venName, 'stemmedVenName, 'geosector, 'goldenId, 'venAddress, 'venTypeFromModel, 'venueLat, 'venueLng, 'classifiersCategory, 'propertiesAddress, 'venuePhone)
@@ -42,7 +50,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 // TODO: allow multiple venue types
                 if (venTypeFromPlacesData == null || venTypeFromPlacesData.isEmpty) venTypeFromModel else venTypeFromPlacesData.head
 
-        }
+        }*/
     }
 
     def addVenueIdToCheckins(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
