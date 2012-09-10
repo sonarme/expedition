@@ -101,14 +101,14 @@ result.mkString(",")         */
             // join numCheckinsWithProfile
             .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
             // write to output
-            .map(('goldenId, 'featuresCount, 'numCheckins, 'numCheckinsWithProfile) -> 'json) {
+            .mapTo(FeatureExtractions.OutputTuple -> 'json) {
         in: (String, Map[String, Int], Int, Int) =>
             val (goldenId, featuresCount, numCheckins, numCheckinsWithProfile) = in
             import collection.JavaConversions._
 
             NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("goldenId" -> goldenId, "numCheckins" -> numCheckins, "numCheckinsWithProfile" -> numCheckinsWithProfile): java.util.Map[String, Any])
     }
-            .write(SequenceFile(args("output"), FeatureExtractions.OutputTuple))
+            .write(SequenceFile(args("output"), 'json))
 
     def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
         case (acc, set) =>
