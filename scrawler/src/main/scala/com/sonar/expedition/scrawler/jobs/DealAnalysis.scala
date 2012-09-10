@@ -108,6 +108,9 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
     }.map(('venueLat, 'venueLng) -> 'venueSector) {
         in: (Double, Double) => GeoHash.withCharacterPrecision(in._1, in._2, 8).toBase32
+    }.map('merchantAddress -> 'merchantAddress) {
+        merchantAddress: String =>
+            if (merchantAddress == null) null else merchantAddress.replaceAll("\\s", " ")
     }
             .write(SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple.append('venueSector)))
             .write(Tsv(dealsOutput + "_tsv", DealAnalysis.DealsOutputTuple.append('venueSector)))
