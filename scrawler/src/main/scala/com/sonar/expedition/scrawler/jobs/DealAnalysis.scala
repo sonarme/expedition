@@ -36,7 +36,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
     def stripPhone(s: String) = if (s == null || s == "") None else Some(s.replaceAllLiterally("+1", "").replaceAllLiterally("-", "").replaceAllLiterally(" ", ""))
 
-    val crawls = SequenceFile(args("crawl"), CrawlAggregationJob.CrawlOutTuple).read.project('venueId, 'phone).rename(('venueId, 'phone) ->('crawlVenueId, 'crawlPhone))
+    val crawls = SequenceFile(args("crawl"), CrawlAggregationJob.CrawlOutTuple).read.project('venueId, 'phone, 'checkins).rename('phone -> 'crawlPhone)
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
@@ -88,7 +88,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     }.filter('distance) {
         distance: Int => distance <= distanceArg
     }
-            .leftJoinWithSmaller('venueId -> 'crawlVenueId, crawls).discard('crawlVenueId)
+            .leftJoinWithSmaller('venueId -> 'crawlVenueId, crawls.rename('venueId -> 'crawlVenueId)).discard('crawlVenueId)
             .flatMap(('venName, 'venAddress, 'crawlPhone, 'merchantName, 'merchantAddress, 'merchantPhone) -> 'levenshtein) {
         in: (String, String, String, String, String, String) =>
             val (venName, venAddress, venuePhone, merchantName, merchantAddress, merchantPhone) = in
@@ -137,7 +137,7 @@ object DealAnalysis extends FieldConversions {
 
     val DealSheetTuple2 = doubleFields(DealSheetTuple)
     val LsCrawlSpecialTuple = ('dealRegion, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
-    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
+    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint, 'checkins) append LsCrawlSpecialTuple
     val DealsOutputTupleWithoutId = DealsOutputTuple.subtract('dealId)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
