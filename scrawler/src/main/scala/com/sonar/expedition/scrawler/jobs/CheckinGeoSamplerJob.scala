@@ -23,7 +23,7 @@ class CheckinGeoSamplerJob(args: Args) extends Job(args) with CheckinSource with
             GeoHash.withCharacterPrecision(in._1, in._2, 4).longValue() == 7335079563405295616L
     }
     */
-    val selectedCheckins = allCheckinsWithGoldenId.limit(1000)
+    val selectedCheckins = allCheckinsWithGoldenId.limit(100000)
 
     val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
 
@@ -35,7 +35,7 @@ class CheckinGeoSamplerJob(args: Args) extends Job(args) with CheckinSource with
         _.size('loyalty)
     }
     peopleCheckins.joinWithSmaller(('goldenId, 'keyid) ->('goldenId1, 'keyid1), loyalty.rename(('goldenId, 'keyid) ->('goldenId1, 'keyid1))).discard('goldenId1, 'keyid1)
-            .joinWithSmaller('keyid -> 'key, serviceProfiles(args)).discard('key)
+            .joinWithSmaller('keyid -> 'key, serviceProfiles(args)).discard('key).limit(1000)
             .map('degree -> 'degreeCat) {
         degree: String =>
             degree match {
