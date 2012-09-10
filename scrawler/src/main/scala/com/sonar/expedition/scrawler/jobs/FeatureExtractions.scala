@@ -94,26 +94,27 @@ result.mkString(",")         */
         /*val powersetFeatures = combine(userFeatures ++ buckets)
         powersetFeatures*/
     }.write(SequenceFile(args("rawoutput"), ('goldenId, 'keyid, 'features)))
-            .groupBy('goldenId) {
-        // count the features for the venue
-        // using java map because of kryo problems
-        _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
-            (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
-        }
 
-    } /*// join numCheckins
-            .joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
-            // join numCheckinsWithProfile
-            .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
-            // write to output*/
-            .mapTo(FeatureExtractions.OutputTuple -> 'json) {
-        in: (String, Map[String, Int] /*, Int, Int*/ ) =>
-            val (goldenId, featuresCount /*, numCheckins, numCheckinsWithProfile*/ ) = in
-            import collection.JavaConversions._
+    /*    .groupBy('goldenId) {
+// count the features for the venue
+// using java map because of kryo problems
+_.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
+   (agg: Map[String, Int], features: Set[String]) => agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
+}
 
-            NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("goldenId" -> goldenId /*, "numCheckins" -> numCheckins, "numCheckinsWithProfile" -> numCheckinsWithProfile*/): java.util.Map[String, Any])
-    }
-            .write(SequenceFile(args("output"), 'json))
+} /*// join numCheckins
+   .joinWithLarger('goldenId -> 'goldenId2, numCheckins.rename('goldenId -> 'goldenId2)).discard('goldenId2)
+   // join numCheckinsWithProfile
+   .joinWithLarger('goldenId -> 'goldenId2, numCheckinsWithProfile.rename('goldenId -> 'goldenId2)).discard('goldenId2)
+   // write to output*/
+   .mapTo(FeatureExtractions.OutputTuple -> 'json) {
+in: (String, Map[String, Int] /*, Int, Int*/ ) =>
+   val (goldenId, featuresCount /*, numCheckins, numCheckinsWithProfile*/ ) = in
+   import collection.JavaConversions._
+
+   NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("goldenId" -> goldenId /*, "numCheckins" -> numCheckins, "numCheckinsWithProfile" -> numCheckinsWithProfile*/): java.util.Map[String, Any])
+}
+   .write(SequenceFile(args("output"), 'json))*/
 
     def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
         case (acc, set) =>
