@@ -117,7 +117,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
 
                     NewAggregateMetricsJob.ObjectMapper.writeValueAsString(featuresCount ++ List("goldenId" -> goldenId /*, "numCheckins" -> numCheckins, "numCheckinsWithProfile" -> numCheckinsWithProfile*/): java.util.Map[String, Any])
             }
-                    .write(SequenceFile(args("output"), 'json))
+                    .write(TextLine(args("output"), 'json))
     }
 
     def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
