@@ -32,12 +32,12 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                 val propertiesProvince = getPropertiesProvince(placesJson)
                 val propertiesCity = getPropertiesCity(placesJson)
                 val propertiesName = getPropertiesName(placesJson)
-                val propertiesTags = getPropertiesTags(placesJson).mkString("", ",", "")
+                val propertiesTags = getPropertiesTags(placesJson)
                 val propertiesCountry = getPropertiesCountry(placesJson)
-                // TODO: allow multiple venue types
-                val classifiersCategory = getClassifiers(placesJson).map(_.getCategory()).mkString("", ",", "")
-                val classifiersType = getClassifiers(placesJson).map(_.classifierType).mkString("", ",", "")
-                val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory()).mkString("", ",", "")
+
+                val classifiersCategory = getClassifiers(placesJson).map(_.getCategory())
+                val classifiersType = getClassifiers(placesJson).map(_.classifierType)
+                val classifiersSubcategory = getClassifiers(placesJson).map(_.getSubcategory())
                 val propertiesPhone = getPropertiesPhone(placesJson)
                 val propertiesHref = getPropertiesHref(placesJson)
                 val propertiesAddress = getPropertiesAddress(placesJson)
