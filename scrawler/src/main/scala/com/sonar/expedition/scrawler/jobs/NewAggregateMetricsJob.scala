@@ -36,13 +36,13 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
             val dealMetrics = fieldnames.zip(in.tail) map {
                 case (name, value) =>
                     name ->
-                            (if (name == "rating") "rating" -> null
+                            (if (value == null || name == "rating") name -> null
                             else if (name == "yrating") try {
                                 value.toString.toDouble
                             } catch {
                                 case _: NumberFormatException => null
                             }
-                            else if (value != null && (name.startsWith("num") || NewAggregateMetricsJob.IntValues(name))) try {
+                            else if (name.startsWith("num") || NewAggregateMetricsJob.IntValues(name)) try {
                                 value.toString.toInt
                             } catch {
                                 case _: NumberFormatException => null
