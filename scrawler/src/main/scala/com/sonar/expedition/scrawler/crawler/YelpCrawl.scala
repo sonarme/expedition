@@ -21,7 +21,7 @@ class YelpCrawl(args: Args) extends Job(args) {
     val outputDir = args("output")
     val src = args("src")
 
-    val deals = Tsv(src, DealAnalysis.DealsOutputTuple)
+    val deals = SequenceFile(src, DealAnalysis.DealsOutputTuple)
 
     //    val dealsSample = Tsv(outputDir + "/deals-sample.tsv", ('dealId, 'merchantName, 'address, 'city, 'state, 'zip, 'lat, 'lng))
 
@@ -30,9 +30,10 @@ class YelpCrawl(args: Args) extends Job(args) {
     val dealsWithFirstLinkFromHtml = Tsv(outputDir + "/dealsWithFirstLinkFromHtml_tsv")
     val dealsWithFirstLinkFromHtmlSeq = SequenceFile(outputDir + "/dealsWithFirstLinkFromHtml")
 
-    val rawSequence = SequenceFile(outputDir + "/raw2", YelpCrawl.DealsOutputTuple append('url, 'status, 'content, 'links))
+    val rawSequence = SequenceFile(outputDir + "/raw3", YelpCrawl.DealsOutputTuple append('url, 'status, 'content, 'links))
     val parsed = Tsv(outputDir + "/parsed3_tsv", YelpCrawl.DealsOutputTuple append('url, 'ybusinessName, 'ycategory, 'yrating, 'ylatitude, 'ylongitude, 'yaddress, 'ycity, 'ystate, 'yzip, 'yphone, 'ypriceRange, 'yreviewCount, 'yreviews))
     val parsedSequence = SequenceFile(outputDir + "/parsed3", YelpCrawl.DealsOutputTuple append('url, 'ybusinessName, 'ycategory, 'yrating, 'ylatitude, 'ylongitude, 'yaddress, 'ycity, 'ystate, 'yzip, 'yphone, 'ypriceRange, 'yreviewCount, 'yreviews))
+    val venuesToCrawl = Tsv(outputDir + "/dealsToCrawl", YelpCrawl.DealsOutputTuple append ('url))
 
     /*
     val results = deals
@@ -74,8 +75,8 @@ class YelpCrawl(args: Args) extends Job(args) {
 
 //    linkOut
 //        .write(dealsWithFirstLinkFromHtml)
-
-    val rawTuples = linkOut
+    */
+    val rawTuples = venuesToCrawl
         .map('url -> ('status, 'content, 'links)) { url: String => {
                 Crawler.fetchToTuple(url)
             }
@@ -83,17 +84,19 @@ class YelpCrawl(args: Args) extends Job(args) {
 
     rawTuples
         .write(rawSequence)
-    */
 
+
+    /*
     rawSequence
             .filter('content) {
         content: String => content.contains("Sorry, you're not allowed to access this page")
     }
             .discard('status, 'content, 'links)
             .write(Tsv(outputDir + "/dealsToCrawl"))
+    */
 
-    /*
-    val parsedTuples = rawSequence
+
+    val parsedTuples = rawTuples
             .map(('url, 'content) -> ('ybusinessName, 'ycategory, 'yrating, 'ylatitude, 'ylongitude, 'yaddress, 'ycity, 'ystate, 'yzip, 'yphone, 'ypriceRange, 'yreviewCount, 'yreviews)) { in: (String, String) => {
                     val (url, content) = in
                     val extractor = ExtractorFactory.getExtractor(url, content)
@@ -142,7 +145,7 @@ class YelpCrawl(args: Args) extends Job(args) {
 
     parsedTuples
         .write(parsedSequence)
-    */
+
 }
 
 object YelpCrawl extends FieldConversions {
