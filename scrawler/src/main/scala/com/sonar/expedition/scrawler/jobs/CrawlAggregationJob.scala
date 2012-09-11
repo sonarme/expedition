@@ -17,7 +17,7 @@ class CrawlAggregationJob(args: Args) extends Job(args) {
                 serviceType + ":" + id
             }
     }.reduce(_ ++ _).groupBy('venueId) {
-        _.head(CrawlTuple)
+        _.head(CrawlTuple -> CrawlTuple)
     }.write(SequenceFile(args("output"), CrawlOutTuple))
 }
 
