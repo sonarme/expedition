@@ -141,17 +141,17 @@ object FeatureExtractions extends TupleConversions {
             6 -> 12,
             10 -> Int.MaxValue),
         "income" -> Set(
-            0 -> 30,
-            15 -> 40,
-            30 -> 50,
-            40 -> 62,
-            50 -> 75,
-            62 -> 87,
-            75 -> 100,
-            87 -> 125,
-            100 -> 150,
-            125 -> 200,
-            150 -> Int.MaxValue)
+            0 -> 30000,
+            15000 -> 40000,
+            30000 -> 50000,
+            40000 -> 62000,
+            50000 -> 75000,
+            62000 -> 87000,
+            75000 -> 100000,
+            87000 -> 125000,
+            100000 -> 150000,
+            125000 -> 200000,
+            150000 -> Int.MaxValue)
     )
 
     def combine(sets: Iterable[Set[String]]) = sets.toSeq.combinations(2).flatMap {

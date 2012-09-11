@@ -13,7 +13,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 class NewAggregateMetricsJob(args: Args) extends Job(args) {
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")
-    val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read
+    //val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read
     val features = SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple).read
             .groupBy('dealId, 'goldenId) {
         // count the features for the venue
@@ -23,7 +23,7 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
                 agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
         }
 
-    }.joinWithSmaller('goldenId -> 'goldenId1, numCheckins.rename('goldenId -> 'goldenId1)).discard('goldenId1)
+    } /*.joinWithSmaller('goldenId -> 'goldenId1, numCheckins.rename('goldenId -> 'goldenId1)).discard('goldenId1)*/
 
     val yelp = SequenceFile(args("yelp"), NewAggregateMetricsJob.Reviews).read.project('dealId, 'yrating, 'yreviewCount)
     val deals = SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).read
@@ -53,9 +53,9 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
 import collection.JavaConversions._
 
 object NewAggregateMetricsJob extends FieldConversions {
-    val IntValues = Set("reviewCount", "rating", "purchased", "yreviewCount", "yrating", "likes")
+    val IntValues = Set("reviewCount", "rating", "purchased", "yreviewCount", "yrating", "likes", "checkins")
     val AggregateDealTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint)
-    val NonFeatureTuple = ('numCheckins, 'numPeople).append(DealAnalysis.DealsOutputTuple)
+    val NonFeatureTuple = /*('numCheckins, 'numPeople).append(*/ DealAnalysis.DealsOutputTuple /*)*/
 
     val ObjectMapper = new ObjectMapper
     ObjectMapper.disable(SerializationFeature.WRITE_NULL_MAP_VALUES)
