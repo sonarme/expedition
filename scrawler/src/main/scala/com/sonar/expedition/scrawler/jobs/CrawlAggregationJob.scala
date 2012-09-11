@@ -16,11 +16,13 @@ class CrawlAggregationJob(args: Args) extends Job(args) {
                 url: String => val id = url.stripSuffix("/").split('/').last.stripSuffix(".json")
                 serviceType + ":" + id
             }
-    }.reduce(_ ++ _).write(SequenceFile(args("output"), CrawlOutTuple))
+    }.reduce(_ ++ _).groupBy('venueId) {
+        _.head(CrawlTuple)
+    }.write(SequenceFile(args("output"), CrawlOutTuple))
 }
 
 object CrawlAggregationJob {
     val CrawlTuple = ('url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
-    val CrawlOutTuple = ('venueId, 'url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
+    val CrawlOutTuple = ('venueId).append(CrawlTuple)
 }
 
