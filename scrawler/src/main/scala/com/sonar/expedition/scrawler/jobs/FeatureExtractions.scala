@@ -92,19 +92,10 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
             val realValues = Set("distance" -> minDistance, "loyalty" -> loyalty)
             val buckets = FeatureExtractions.bucketedRealValues(realValues)
             val raw = (userFeatures ++ buckets).flatten.toSet[String]
-            val powersetFeatures = combine(userFeatures ++ buckets)
+            val powersetFeatures = FeatureExtractions.combine(userFeatures ++ buckets)
             raw ++ powersetFeatures
     }.write(SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple))
             .write(Tsv(args("rawoutput") + "_tsv", FeatureExtractions.RawTuple))
-
-
-    def combine(sets: Iterable[Set[String]]) = sets.reduceLeft[Set[String]] {
-        case (acc, set) =>
-            for (a <- acc;
-                 s <- set) yield {
-                a + "_and_" + s
-            }
-    }
 
 
 }
@@ -162,6 +153,19 @@ object FeatureExtractions extends TupleConversions {
             125 -> 200,
             150 -> Int.MaxValue)
     )
+
+    def combine(sets: Iterable[Set[String]]) = sets.toSeq.combinations(2).flatMap {
+        case Seq(a, b) => for (a1 <- a; b1 <- b) yield a1 + "_and_" + b1
+        case _ => Iterable.empty
+    }
+
+    /*sets.reduceLeft[Set[String]] {
+        case (acc, set) =>
+            for (a <- acc;
+                 s <- set) yield {
+                a + "_and_" + s
+            }
+    }*/
 
 
     def bucketedRealValues(features: Iterable[(String, Int)]) = for ((kind, value) <- features;
