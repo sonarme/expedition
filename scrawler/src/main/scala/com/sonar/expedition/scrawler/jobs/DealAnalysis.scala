@@ -42,7 +42,7 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
 
     val deals = Tsv(dealsInput, ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'locationJSON))
             // match multiple locations
-            .flatMap('locationJSON ->('merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone)) {
+            .flatMap('locationJSON ->('merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone)) {
         locationJSON: String =>
             val dealLocations = try {
                 DealAnalysis.DealObjectMapper.readValue[util.List[DealLocation]](locationJSON, DealAnalysis.DealLocationsTypeReference)
@@ -50,12 +50,12 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
                 case e => throw new RuntimeException("JSON error:" + locationJSON, e)
             }
             for (dealLocation <- dealLocations)
-            yield (dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude), dealLocation.address, dealLocation.city, dealLocation.state, dealLocation.zip, dealLocation.phone)
+            yield (dealLocation.latitude, dealLocation.longitude, dealMatchGeosector(dealLocation.latitude, dealLocation.longitude), dealLocation.address, dealLocation.city, dealLocation.zip, dealLocation.state, dealLocation.phone)
     }.discard('locationJSON).map(() -> DealAnalysis.LsCrawlSpecialTuple) {
         u: Unit => (null, null, null, null, null, null)
     }
 
-    val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
+    val ls = SequenceFile(args("livingsocial"), ('url, 'timestamp, 'merchantName, 'majorCategory, 'rating, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone, 'priceRange, 'reviewCount, 'likes, 'dealDescription, 'dealImage, 'minPricepoint, 'purchased, 'savingsPercent)).read
             .filter('minPricepoint) {
         price: Int => price > 0
     }
@@ -64,9 +64,9 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
             val (url, lat, lng) = in
             val dealId = url.split('/').last.split(Array('-', '?')).head
             (dealId, "x?", dealMatchGeosector(lat, lng), "?")
-    }.project(('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone).append(DealAnalysis.LsCrawlSpecialTuple))
+    }.project(('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone).append(DealAnalysis.LsCrawlSpecialTuple))
     val combined = (deals ++ ls).groupBy('dealId, 'merchantGeosector) {
-        _.sortBy('successfulDeal).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+        _.sortBy('successfulDeal).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
     }.discard('merchantGeosector).flatMap(('merchantLat, 'merchantLng) -> 'merchantGeosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
@@ -120,7 +120,7 @@ import collection.JavaConversions._
 
 object DealAnalysis extends FieldConversions {
     val LsCrawlSpecialTuple = ('rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
-    val DealsDataTuple = ('successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
+    val DealsDataTuple = ('successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint, 'checkins, 'foursquareCategory) append LsCrawlSpecialTuple
     val DealsOutputTuple = ('dealId).append(DealsDataTuple).append('venueSector)
     val DealObjectMapper = new ObjectMapper
     DealObjectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
