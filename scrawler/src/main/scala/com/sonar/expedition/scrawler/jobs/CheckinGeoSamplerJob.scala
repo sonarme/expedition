@@ -108,7 +108,7 @@ result.mkString(",")         */
         else {
             val (low, high) = greaterEquals.maxBy(_._1)
             val highName = if (high == Int.MaxValue) "+" else "-" + high
-            greaterEquals.keySet.map(name + ">=" + _) + (name + "=" + low + highName)
+            greaterEquals.map(x => name + ">=" + x._1).toSet[String] + (name + "=" + low + highName)
         }
     }
 

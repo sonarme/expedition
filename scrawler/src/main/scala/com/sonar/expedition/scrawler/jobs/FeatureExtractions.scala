@@ -105,7 +105,7 @@ object FeatureExtractions extends TupleConversions {
     val OutputTuple = ('dealId, 'goldenId, 'featuresCount, 'numCheckins, 'numPeople)
     val bucketMap = Map(
         //  "coarse_age" -> Map(0 -> 13, 13 -> 25, 25 -> 50, 50 -> 100),
-        "age" -> Map(
+        "age" -> Set(
             0 -> 13,
             8 -> 16,
             13 -> 19,
@@ -119,7 +119,7 @@ object FeatureExtractions extends TupleConversions {
             37 -> 50,
             41 -> 60,
             50 -> Int.MaxValue),
-        "distance" -> Map(
+        "distance" -> Set(
             0 -> 1000,
             320 -> 1500,
             1000 -> 2000,
@@ -130,7 +130,7 @@ object FeatureExtractions extends TupleConversions {
             6000 -> 10000,
             8000 -> 12000,
             12000 -> Int.MaxValue),
-        "loyalty" -> Map(
+        "loyalty" -> Set(
             1 -> 2,
             1 -> 3,
             2 -> 3,
@@ -140,7 +140,7 @@ object FeatureExtractions extends TupleConversions {
             4 -> 10,
             6 -> 12,
             10 -> Int.MaxValue),
-        "income" -> Map(
+        "income" -> Set(
             0 -> 30,
             15 -> 40,
             30 -> 50,
@@ -177,7 +177,8 @@ object FeatureExtractions extends TupleConversions {
             case (low, _) => low <= value
         }*/
         val matchBuckets = bucketMap(name).filter {
-            case (low, high) => low <= value && value < high
+            case (low, high) =>
+                low <= value && value < high
         }
         if ( /*greaterEquals.isEmpty ||*/ matchBuckets.isEmpty) Set(kind + "_unknown")
         else {
