@@ -47,7 +47,16 @@ class CrawlerJob(args: Args) extends Job(args) {
     val links = venues
         .read
         .filter('goldenId) { goldenId: String => goldenId.startsWith("foursquare")}
-        .mapTo('goldenId -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("https://foursquare.com/v/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)}
+        .mapTo('goldenId -> ('url, 'timestamp, 'referer)) { goldenId: String =>  {
+                try {
+                        ("https://foursquare.com/v/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)
+                } catch {
+                    case e:Exception => println(goldenId); println(e); ("", "", goldenId)
+                }
+            }
+        }
+        .filter('url) { url: String => url.nonEmpty }
+
 
 //    foursquareVenues
 //        .write(Tsv("/Users/rogchang/Desktop/foursquareLinks2_tsv"))
