@@ -58,7 +58,7 @@ object Crawler {
         val (status, content) = try {
             println("fetching: " + url)
             val rnd = new Random()
-            val range = 1000 to 3000 // randomly sleep btw 1s to 3s
+            val range = 2000 to 4000 // randomly sleep btw 1s to 3s
             Thread.sleep(range(rnd.nextInt(range length)))
             val response = httpclient.execute(method)
             val fetchedResult = EntityUtils.toString(response.getEntity)
