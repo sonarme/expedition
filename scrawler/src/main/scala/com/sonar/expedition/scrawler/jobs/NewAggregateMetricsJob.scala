@@ -13,16 +13,35 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 class NewAggregateMetricsJob(args: Args) extends Job(args) {
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")
-    val features = SequenceFile(args("features"), FeatureExtractions.OutputTuple).read
+    val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read
+    val features = SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple).read
+            .map('features -> 'features) {
+        in: Set[String] =>
+            val raw = in.filterNot(_.contains("_and_"))
+            val groups = raw.groupBy(_.split("[=_]", 2).head).values
+            raw ++ FeatureExtractions.combine(groups)
+    }
+            .groupBy('dealId, 'goldenId) {
+        // count the features for the venue
+        // using java map because of kryo problems
+        _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
+            (agg: Map[String, Int], features: Set[String]) =>
+                agg ++ features.map(feature => feature -> (agg.getOrElse(feature, 0) + 1))
+        }
 
-    val deals = Tsv(dealsOutput, DealAnalysis.DealsOutputTuple).read
+    }.joinWithSmaller('goldenId -> 'goldenId1, numCheckins.rename('goldenId -> 'goldenId1)).discard('goldenId1)
+
+    val deals = SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).read
             .leftJoinWithSmaller('dealId -> '_dealId, reviews("yelp", args("yelp"))).discard('_dealId)
-    val fields = NewAggregateMetricsJob.NonFeatureTuple.append((List("yelp") map NewAggregateMetricsJob.reviewTuple) reduce (_ append _))
+    val fields = NewAggregateMetricsJob.NonFeatureTuple.append(('yrating, 'yreviewCount))
     val fieldnames = fields.iterator().toList.map(_.toString)
-    val results = features.leftJoinWithSmaller('goldenId -> 'goldenId1, deals.rename('goldenId -> 'goldenId1)).mapTo(('featuresCount).append(fields) -> 'json) {
+    val results = features.discard('goldenId).leftJoinWithSmaller('dealId -> 'dealId1, deals.rename('dealId -> 'dealId1)).mapTo(('featuresCount).append(fields) -> 'json) {
         in: Tuple =>
             val features = in.getObject(0).asInstanceOf[Map[String, Int]]
-            val dealMetrics = fieldnames.zip(in.tail)
+            val dealMetrics = fieldnames.zip(in.tail) map {
+                case (name, value) =>
+                    name -> (if (name.startsWith("num") || Set("reviewCount", "purchased", "yreviewCount", "yrating")(name)) value.toString.toInt else value)
+            }
             import collection.JavaConversions._
 
             val result = NewAggregateMetricsJob.ObjectMapper.writeValueAsString(features ++ dealMetrics: java.util.Map[String, Any])
@@ -30,20 +49,24 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
     }
     results.write(TextLine(metricsOut))
 
-    def reviews(name: String, file: String) = SequenceFile(file, NewAggregateMetricsJob.Reviews).read.project('dealId, 'rating, 'reviewCount).rename('dealId -> '_dealId).rename(('rating, 'reviewCount) -> NewAggregateMetricsJob.reviewTuple(name))
+    def reviews(name: String, file: String) = SequenceFile(file, NewAggregateMetricsJob.Reviews).read.project('dealId, 'yrating, 'yreviewCount).rename('dealId -> '_dealId)
 }
 
 import collection.JavaConversions._
 
 object NewAggregateMetricsJob extends FieldConversions {
     val AggregateDealTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint)
-    val NonFeatureTuple = ('numCheckins, 'numCheckinsWithProfile).append(DealAnalysis.DealsOutputTuple)
+    val NonFeatureTuple = ('numCheckins, 'numPeople).append(DealAnalysis.DealsOutputTuple)
 
     val ObjectMapper = new ObjectMapper
     ObjectMapper.disable(SerializationFeature.WRITE_NULL_MAP_VALUES)
     val DealMetrics = NonFeatureTuple.iterator().toIterable.map(_.toString)
     val Reviews =
-        new Fields("dealId", "successfulDeal", "merchantName", "majorCategory", "minorCategory", "minPricepoint", "address", "city", "state", "zip", "lat", "lng", "link", "ybusinessName", "ycategory", "rating", "ylatitude", "ylongitude", "yaddress", "ycity", "ystate", "yzip", "yphone", "ypriceRange", "reviewCount", "yreviews")
+        new Fields("dealId", "successfulDeal", "goldenId", "venName", "venueLat", "venueLng", "merchantName", "merchantAddress", "merchantCity", "merchantState", "merchantZip", "merchantPhone", "majorCategory", "minorCategory", "minPricepoint", "rating", "priceRange", "reviewCount", "likes", "purchased", "savingsPercent", "venueSector", "yurl", "ybusinessName", "ycategory", "yrating", "ylatitude", "ylongitude", "yaddress", "ycity", "ystate", "yzip", "yphone", "ypriceRange", "yreviewCount", "yreviews")
+    /*
+
+            new Fields("dealId", "successfulDeal", "merchantName", "majorCategory", "minorCategory", "minPricepoint", "address", "city", "state", "zip", "lat", "lng", "link", "ybusinessName", "ycategory", "rating", "ylatitude", "ylongitude", "yaddress", "ycity", "ystate", "yzip", "yphone", "ypriceRange", "reviewCount", "yreviews")
+    */
 
     def reviewTuple(name: String) = new Fields(name + "_rating", name + "_reviewCount")
 

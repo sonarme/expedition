@@ -14,16 +14,16 @@ import ch.hsr.geohash.util.VincentyGeodesy
 import com.sonar.expedition.scrawler.util.{VenueMatcher, Venue}
 import cascading.tuple.Fields
 import util.Random
+import com.sonar.expedition.scrawler.crawler.Crawler
 
 class YelpCrawl(args: Args) extends Job(args) {
 
     val outputDir = args("output")
+    val src = args("src")
 
-    val deals = SequenceFile(outputDir + "/dealsOutput0909", YelpCrawl.DealsOutputTuple.append('venueSector))
-
+    val deals = SequenceFile(src, DealAnalysis.DealsOutputTuple)
 
 //    val dealsSample = Tsv(outputDir + "/deals-sample.tsv", ('dealId, 'merchantName, 'address, 'city, 'state, 'zip, 'lat, 'lng))
-    val dealsSample = Tsv(outputDir + "/deals-sample.tsv", YelpCrawl.DealsOutputTuple.append('venueSector))
 
 //    val dealsWithSearchHtmlSeq = Tsv(outputDir + "/dealsWithSearchHtml", ('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'address, 'city, 'state, 'zip, 'lat, 'lng, 'html))
     val dealsWithSearchHtmlSeq = SequenceFile(outputDir + "/dealsWithSearchHtml")
@@ -38,19 +38,16 @@ class YelpCrawl(args: Args) extends Job(args) {
                 .map(('merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip) -> 'html) {
             in: (String, String, String, String, String) =>
                 val (merchantName, address, city, state, zip) = in
-                val client = new HttpClientRest
-                val addressStr = if(address.indexOf(" ") > -1) address.substring(0, address.indexOf(" ")) else address
-                val query = URLEncoder.encode((merchantName + " " + addressStr + " " + city + " " + zip), "UTF-8")   //tsv file has incorrect zip and state
-                val loc = URLEncoder.encode(city + " " + zip, "UTF-8")
-                val rnd = new Random()
-                val range = 1000 to 3000 // randomly sleep btw 1s to 3s
-                Thread.sleep(range(rnd.nextInt(range length)))
-                println("getting: " + "http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc)
-                client.getresponse("http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc)
+                try {
+                    val loc = URLEncoder.encode(city + " " + zip, "UTF-8")
+                    val url = "http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc
+                    val (status, content) = Crawler.fetchContent(url)
+                    content
+                } catch { case e:Exception => println(e); ""}
         }
 
         results
-                .write(dealsWithSearchHtmlSeq)
+           .write(dealsWithSearchHtmlSeq)
 
 
     val linkOut = results
@@ -78,8 +75,7 @@ class YelpCrawl(args: Args) extends Job(args) {
 
     val rawTuples = linkOut
         .map('url -> ('status, 'content, 'links)) { url: String => {
-                val crawler = new Crawler
-                crawler.fetchToTuple(url)
+                Crawler.fetchToTuple(url)
             }
         }
 
@@ -136,9 +132,4 @@ class YelpCrawl(args: Args) extends Job(args) {
     parsedTuples
         .write(parsedSequence)
 
-}
-
-object YelpCrawl extends FieldConversions {
-    val LsCrawlSpecialTuple = ('rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
-    val DealsOutputTuple = ('dealId, 'successfulDeal, 'goldenId, 'venName, 'venueLat, 'venueLng, 'merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip, 'merchantPhone, 'majorCategory, 'minorCategory, 'minPricepoint) append LsCrawlSpecialTuple
 }
