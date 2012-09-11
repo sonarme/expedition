@@ -14,7 +14,14 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")
     val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read
-    val features = SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple).read.groupBy('dealId, 'goldenId) {
+    val features = SequenceFile(args("rawoutput"), FeatureExtractions.RawTuple).read
+            .map('features -> 'features) {
+        in: Set[String] =>
+            val raw = in.filterNot(_.contains("_and_"))
+            val groups = raw.groupBy(_.split("[=_]", 2).head).values
+            raw ++ FeatureExtractions.combine(groups)
+    }
+            .groupBy('dealId, 'goldenId) {
         // count the features for the venue
         // using java map because of kryo problems
         _.foldLeft('features -> 'featuresCount)(Map.empty[String, Int]) {
@@ -26,12 +33,15 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
 
     val deals = SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).read
             .leftJoinWithSmaller('dealId -> '_dealId, reviews("yelp", args("yelp"))).discard('_dealId)
-    val fields = NewAggregateMetricsJob.NonFeatureTuple.append((List("yelp") map NewAggregateMetricsJob.reviewTuple) reduce (_ append _))
+    val fields = NewAggregateMetricsJob.NonFeatureTuple.append(('yrating, 'yreviewCount))
     val fieldnames = fields.iterator().toList.map(_.toString)
-    val results = features.discard('dealId).leftJoinWithSmaller('goldenId -> 'goldenId1, deals.rename('goldenId -> 'goldenId1)).mapTo(('featuresCount).append(fields) -> 'json) {
+    val results = features.discard('goldenId).leftJoinWithSmaller('dealId -> 'dealId1, deals.rename('dealId -> 'dealId1)).mapTo(('featuresCount).append(fields) -> 'json) {
         in: Tuple =>
             val features = in.getObject(0).asInstanceOf[Map[String, Int]]
-            val dealMetrics = fieldnames.zip(in.tail)
+            val dealMetrics = fieldnames.zip(in.tail) map {
+                case (name, value) =>
+                    name -> (if (name.startsWith("num") || Set("reviewCount", "purchased", "yreviewCount", "yrating")(name)) value.toString.toInt else value)
+            }
             import collection.JavaConversions._
 
             val result = NewAggregateMetricsJob.ObjectMapper.writeValueAsString(features ++ dealMetrics: java.util.Map[String, Any])
@@ -39,7 +49,7 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
     }
     results.write(TextLine(metricsOut))
 
-    def reviews(name: String, file: String) = SequenceFile(file, NewAggregateMetricsJob.Reviews).read.project('dealId, 'rating, 'reviewCount).rename('dealId -> '_dealId).rename(('rating, 'reviewCount) -> NewAggregateMetricsJob.reviewTuple(name))
+    def reviews(name: String, file: String) = SequenceFile(file, NewAggregateMetricsJob.Reviews).read.project('dealId, 'yrating, 'yreviewCount).rename('dealId -> '_dealId)
 }
 
 import collection.JavaConversions._
