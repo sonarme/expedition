@@ -38,17 +38,16 @@ class YelpCrawl(args: Args) extends Job(args) {
                 .map(('merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip) -> 'html) {
             in: (String, String, String, String, String) =>
                 val (merchantName, address, city, state, zip) = in
-                val client = new HttpClientRest
                 try {
                     val loc = URLEncoder.encode(city + " " + zip, "UTF-8")
                     val url = "http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc
                     val (status, content) = Crawler.fetchContent(url)
                     content
-                } catch { case e:Exception => ""}
+                } catch { case e:Exception => println(e); ""}
         }
 
-//        results
-//                .write(dealsWithSearchHtmlSeq)
+        results
+           .write(dealsWithSearchHtmlSeq)
 
 
     val linkOut = results
