@@ -40,7 +40,7 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
             val features = in.getObject(0).asInstanceOf[Map[String, Int]]
             val dealMetrics = fieldnames.zip(in.tail) map {
                 case (name, value) =>
-                    name -> (if (name.startsWith("num") || NewAggregateMetricsJob.IntValues(name)) try {
+                    name -> (if (value != null && (name.startsWith("num") || NewAggregateMetricsJob.IntValues(name))) try {
                         value.toString.toInt
                     } catch {
                         case _: NumberFormatException => -1
