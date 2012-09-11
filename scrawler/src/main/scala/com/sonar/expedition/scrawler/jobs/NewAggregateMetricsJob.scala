@@ -40,11 +40,18 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
             val features = in.getObject(0).asInstanceOf[Map[String, Int]]
             val dealMetrics = fieldnames.zip(in.tail) map {
                 case (name, value) =>
-                    name -> (if (value != null && (name.startsWith("num") || NewAggregateMetricsJob.IntValues(name))) try {
-                        value.toString.toInt
-                    } catch {
-                        case _: NumberFormatException => -1
-                    } else value)
+                    name ->
+                            (if (name == "rating ") "rating" -> null
+                            else if (name == "yrating") try {
+                                value.toString.toDouble
+                            } catch {
+                                case _: NumberFormatException => null
+                            }
+                            else if (value != null && (name.startsWith("num") || NewAggregateMetricsJob.IntValues(name))) try {
+                                value.toString.toInt
+                            } catch {
+                                case _: NumberFormatException => null
+                            } else value)
             }
             import collection.JavaConversions._
 
@@ -58,7 +65,7 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
 import collection.JavaConversions._
 
 object NewAggregateMetricsJob extends FieldConversions {
-    val IntValues = Set("reviewCount", "rating", "purchased", "yreviewCount", "yrating", "likes", "checkins")
+    val IntValues = Set("reviewCount", "purchased", "yreviewCount", "likes", "checkins")
     val AggregateDealTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint)
     val NonFeatureTuple = /*('numCheckins, 'numPeople).append(*/ DealAnalysis.DealsOutputTuple /*)*/
 
