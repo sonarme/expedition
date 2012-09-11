@@ -22,6 +22,6 @@ class CrawlAggregationJob(args: Args) extends Job(args) {
 
 object CrawlAggregationJob extends TupleConversions {
     val CrawlTuple = ('url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
-    val CrawlOutTuple = new Fields("venueId").append(CrawlTuple)
+    val CrawlOutTuple = ('venueId, 'url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
 }
 
