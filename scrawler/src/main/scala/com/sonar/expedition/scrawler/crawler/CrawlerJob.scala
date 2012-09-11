@@ -15,6 +15,7 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.util.EntityUtils
 import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
 import util.Random
+import com.sonar.expedition.scrawler.jobs.DealAnalysis
 
 class CrawlerJob(args: Args) extends Job(args) {
 
@@ -22,16 +23,14 @@ class CrawlerJob(args: Args) extends Job(args) {
     val levelUp: Int = level + 1
     val outputDir = args("output")
     val domains = args("domains")
+    val src = args("src")
 
-    val links = Tsv(outputDir+"/crawl_"+level+"/links.tsv", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
+//    val links = Tsv(outputDir+"/crawl_"+level+"/links.tsv", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
     val linksOutput = Tsv(outputDir+"/crawl_"+levelUp+"/links.tsv", ('url, 'timestamp, 'referer))
     val status = Tsv(outputDir+"/crawl_"+level+"/status.tsv", ('url, 'status, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
-    val statusOutput = Tsv(outputDir+"/crawl_"+levelUp+"/status.tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
-    val parsed = Tsv(outputDir+"/crawl_"+level+"/parsed.tsv") //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
-    val raw = Tsv(outputDir+"/crawl_"+level+"/raw.tsv") //('url, 'timestamp, 'status, 'content, 'links)
-    val dummy = Tsv(outputDir+"/crawl_"+level+"/dummy.tsv")
-    val dummy2 = Tsv(outputDir+"/crawl_"+level+"/dummy2.tsv")
-    val dummy3 = Tsv(outputDir+"/crawl_"+level+"/dummy3.tsv")
+    val statusOutput = Tsv(outputDir+"/crawl_"+levelUp+"/status_tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
+    val parsed = Tsv(outputDir+"/crawl_"+level+"/parsed_tsv") //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
+    val raw = Tsv(outputDir+"/crawl_"+level+"/raw_tsv") //('url, 'timestamp, 'status, 'content, 'links)
 
     //Sequence files
     val linksSequence = SequenceFile(outputDir+"/crawl_"+level+"/links", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
@@ -41,17 +40,18 @@ class CrawlerJob(args: Args) extends Job(args) {
     val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL)
     val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", CrawlerJob.RawTuple)
 
-    val venues = TextLine("/Users/rogchang/Desktop/venuessorted.txt")
+//    val venues = Tsv("/Users/rogchang/Desktop/venuessorted.txt")
+    val venues = Tsv(src, YelpCrawl.DealsOutputTuple)
 
-    /*
-    val foursquareVenues = venues
+
+    val links = venues
         .read
-        .filter('line) { goldenId: String => goldenId.startsWith("foursquare")}
-        .mapTo('line -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("https://foursquare.com/v/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)}
+        .filter('goldenId) { goldenId: String => goldenId.startsWith("foursquare")}
+        .mapTo('goldenId -> ('url, 'timestamp, 'referer)) { goldenId: String =>  ("https://foursquare.com/v/" + goldenId.split(":").tail.head, new DateTime().getMillis, goldenId)}
 
-    foursquareVenues
-        .write(Tsv("/Users/rogchang/Desktop/foursquareLinks.tsv"))
-
+//    foursquareVenues
+//        .write(Tsv("/Users/rogchang/Desktop/foursquareLinks2_tsv"))
+    /*
     val facebookVenues = venues
         .read
         .filter('line) { goldenId: String => goldenId.startsWith("facebook")}
@@ -86,15 +86,11 @@ class CrawlerJob(args: Args) extends Job(args) {
 
     //get unique unfetched links by joining links and status
     val unfetchedLinks = links
-                .read
 //                .discard('timestamp)
                 .rename('url -> 'unfetchedUrl)
                 .joinWithSmaller('unfetchedUrl -> 'url, fetched, joiner = new LeftJoin)
                 .filter('status) {status: String => status != "fetched"}
                 .project('unfetchedUrl, 'timestamp)
-
-//    unfetchedLinks
-//        .write(dummy)
 
 
     //get all unfetched links
@@ -107,10 +103,6 @@ class CrawlerJob(args: Args) extends Job(args) {
             else
                 (unfetchedUrl, timestamp)
         }
-
-//    allUnfetched
-//        .write(dummy2)
-
 
     //foreach allUnfetched -> fetch content and write to raw and parsed
     val rawTuples = allUnfetched
@@ -139,7 +131,7 @@ class CrawlerJob(args: Args) extends Job(args) {
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
             .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
-            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
+            .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)) { in: (String, String) => {
                     val (url, content) = in
                     val extractor = ExtractorFactory.getExtractor(url, content)
                     val business = extractor.businessName()
@@ -167,7 +159,8 @@ class CrawlerJob(args: Args) extends Job(args) {
                     val dealImage = extractor.dealImage()
                     val dealRegion = extractor.dealRegion()
 
-                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, likes, dealRegion, dealPrice, purchased, savingsPercent, dealDescription, dealImage)
+        //('url, 'timestamp, 'business, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)
+                    (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, reviews, peopleCount, checkins, wereHereCount, talkingAboutCount, likes)
                 }
             }
             .discard('content, 'links, 'status)

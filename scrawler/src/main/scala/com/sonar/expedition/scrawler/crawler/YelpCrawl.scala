@@ -39,7 +39,7 @@ class YelpCrawl(args: Args) extends Job(args) {
 //    val parsedSequenceAll = SequenceFile(outputDir + "/parsed-all", YelpCrawl.DealsOutputTuple append('url, 'ybusinessName, 'ycategory, 'yrating, 'ylatitude, 'ylongitude, 'yaddress, 'ycity, 'ystate, 'yzip, 'yphone, 'ypriceRange, 'yreviewCount, 'yreviews))
     val venuesToCrawl = Tsv(venuesToCrawlDir, YelpCrawl.DealsOutputTuple append ('url))
 
-    /*
+
     val results = deals
                 .map(('merchantName, 'merchantAddress, 'merchantCity, 'merchantState, 'merchantZip) -> 'html) {
             in: (String, String, String, String, String) =>
@@ -79,9 +79,9 @@ class YelpCrawl(args: Args) extends Job(args) {
 
 //    linkOut
 //        .write(dealsWithFirstLinkFromHtml)
-    */
 
-    val rawTuples = venuesToCrawl
+
+    val rawTuples = linkOut
         .map('url -> ('status, 'content, 'links)) { url: String => {
                 Crawler.fetchToTuple(url)
             }
