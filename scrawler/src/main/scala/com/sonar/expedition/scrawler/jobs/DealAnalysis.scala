@@ -14,6 +14,7 @@ import cascading.tuple.{Tuple, Fields}
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
+import scala.Option
 
 class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")
@@ -63,10 +64,32 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
         in: (String, Double, Double) =>
             val (url, lat, lng) = in
             val dealId = url.split('/').last.split(Array('-', '?')).head
-            (dealId, "x?", dealMatchGeosector(lat, lng), "?")
+            (dealId, null, dealMatchGeosector(lat, lng), null)
     }.project(('dealId, 'successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantGeosector, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone).append(DealAnalysis.LsCrawlSpecialTuple))
     val combined = (deals ++ ls).groupBy('dealId, 'merchantGeosector) {
-        _.sortBy('successfulDeal).head('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+        _.reduce(('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)
+                ->('successfulDeal, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint, 'merchantLat, 'merchantLng, 'merchantAddress, 'merchantCity, 'merchantZip, 'merchantState, 'merchantPhone, 'rating, 'priceRange, 'reviewCount, 'likes, 'purchased, 'savingsPercent)) {
+            (left: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String), right: (String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String)) =>
+                (Option(left._1).getOrElse(right._1),
+                        Option(left._2).getOrElse(right._2),
+                        Option(left._3).getOrElse(right._3),
+                        Option(left._4).getOrElse(right._4),
+                        Option(left._5).getOrElse(right._5),
+                        Option(left._6).getOrElse(right._6),
+                        Option(left._7).getOrElse(right._7),
+                        Option(left._8).getOrElse(right._8),
+                        Option(left._9).getOrElse(right._9),
+                        Option(left._10).getOrElse(right._10),
+                        Option(left._11).getOrElse(right._11),
+                        Option(left._12).getOrElse(right._12),
+                        Option(left._13).getOrElse(right._13),
+                        Option(left._14).getOrElse(right._14),
+                        Option(left._15).getOrElse(right._15),
+                        Option(left._16).getOrElse(right._16),
+                        Option(left._17).getOrElse(right._17),
+                        Option(left._18).getOrElse(right._18))
+
+        }
     }.discard('merchantGeosector).flatMap(('merchantLat, 'merchantLng) -> 'merchantGeosector) {
         in: (Double, Double) =>
             val (lat, lng) = in
