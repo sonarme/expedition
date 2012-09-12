@@ -28,9 +28,12 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
     val yelp = SequenceFile(args("yelp"), NewAggregateMetricsJob.Reviews).read.project('dealId, 'yrating, 'yreviewCount)
     val deals = SequenceFile(dealsOutput, DealAnalysis.DealsOutputTuple).read
             .leftJoinWithSmaller('dealId -> '_dealId, yelp.rename('dealId -> '_dealId)).discard('_dealId)
-    val fields = NewAggregateMetricsJob.NonFeatureTuple.append(('yrating, 'yreviewCount))
+            .groupBy('dealId) {
+        _.head(NewAggregateMetricsJob.DealDedupe -> NewAggregateMetricsJob.DealDedupe)
+    }
+    val fields = ('numCheckins, 'numPeople).append(NewAggregateMetricsJob.DealJoinFields)
     val fieldnames = fields.iterator().toList.map(_.toString)
-    val results = features.leftJoinWithSmaller(('dealId, 'goldenId) ->('dealId1, 'goldenId1), deals.rename(('dealId, 'goldenId) ->('dealId1, 'goldenId1))).mapTo(('featuresCount).append(fields) -> 'json) {
+    val results = features.discard('goldenId).leftJoinWithSmaller('dealId -> 'dealId1, deals.rename('dealId -> 'dealId1)).mapTo(('featuresCount).append(fields) -> 'json) {
         in: Tuple =>
             val features = in.getObject(0).asInstanceOf[Map[String, Int]]
             val dealMetrics = fieldnames.zip(in.tail) map {
@@ -46,7 +49,10 @@ class NewAggregateMetricsJob(args: Args) extends Job(args) {
                                 value.toString.toInt
                             } catch {
                                 case _: NumberFormatException => null
-                            } else value)
+                            } else value match {
+                                case s: String => s.replaceAll("[\\s,`'\"/]", " ")
+                                case x => x
+                            })
             }
             import collection.JavaConversions._
 
@@ -62,11 +68,10 @@ import collection.JavaConversions._
 object NewAggregateMetricsJob extends FieldConversions {
     val IntValues = Set("reviewCount", "purchased", "yreviewCount", "likes", "checkins")
     val AggregateDealTuple = ('enabled, 'dealId, 'successfulDeal, 'goldenId, 'venName, 'merchantName, 'majorCategory, 'minorCategory, 'minPricepoint)
-    val NonFeatureTuple = ('numCheckins, 'numPeople).append(DealAnalysis.DealsOutputTuple)
-
+    val DealJoinFields = DealAnalysis.DealsOutputTuple.append(('yrating, 'yreviewCount))
+    val DealDedupe = DealJoinFields.subtract('dealId)
     val ObjectMapper = new ObjectMapper
     ObjectMapper.disable(SerializationFeature.WRITE_NULL_MAP_VALUES)
-    val DealMetrics = NonFeatureTuple.iterator().toIterable.map(_.toString)
     val Reviews =
         new Fields("dealId", "successfulDeal", "goldenId", "venName", "venueLat", "venueLng", "merchantName", "merchantAddress", "merchantCity", "merchantState", "merchantZip", "merchantPhone", "majorCategory", "minorCategory", "minPricepoint", "rating", "priceRange", "reviewCount", "likes", "purchased", "savingsPercent", "venueSector", "yurl", "ybusinessName", "ycategory", "yrating", "ylatitude", "ylongitude", "yaddress", "ycity", "ystate", "yzip", "yphone", "ypriceRange", "yreviewCount", "yreviews")
 
