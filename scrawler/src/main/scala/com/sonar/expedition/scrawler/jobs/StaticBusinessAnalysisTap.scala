@@ -21,8 +21,6 @@ import com.sonar.expedition.scrawler.util.CommonFunctions
 class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
 
-    val friendinput = args("friendInput")
-    //  val bayesmodel = args("bayesmodelforsalary")
     val sequenceOutputStaticOption = args.optional("staticOutput")
     val sequenceOutputTimeOption = args.optional("timeOutput")
 
