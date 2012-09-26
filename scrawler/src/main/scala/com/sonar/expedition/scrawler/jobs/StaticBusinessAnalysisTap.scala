@@ -22,7 +22,7 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
 
 
     val friendinput = args("friendInput")
-    val bayesmodel = args("bayesmodelforsalary")
+    //  val bayesmodel = args("bayesmodelforsalary")
     val sequenceOutputStaticOption = args.optional("staticOutput")
     val sequenceOutputTimeOption = args.optional("timeOutput")
 
@@ -33,24 +33,10 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
         fields: (String, String) =>
             val (lat, lng) = fields
             lat + ":" + lng
+    }.map('goldenId -> 'venueKey) {
+        goldenId: String => goldenId
     }
-
-    val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
-        name: String =>
-            val (gender, prob) = GenderFromNameProbability.gender(name)
-            (gender, prob)
-    }
-
-    val profiles = ageEducationPipe(total)
-            .discard('key)
-            .flatMap(('fbid, 'lnid, 'fsid, 'twid) -> 'key) {
-        in: (String, String, String, String) =>
-            val (fbid, lnid, fsid, twid) = in
-            //nned not handle linked in because there ar no checkins from linked in and sonar checkins dont have id , so key comes as sonar: empty, need to fix it, ask Paul, todo.
-            List("facebook:" + fbid, "twitter:" + twid, "foursquare:" + fsid)
-    }.groupBy('key) {
-        _.head('uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)
-    }
+    val profiles = serviceProfiles(args)
 
     /*
 val joinedProfiles = profiles.rename('key->'rowkey)
@@ -70,38 +56,12 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
  .rename('rowkey -> 'key) */
 
 
-    val combined = combineCheckinsProfiles(checkinsWithGoldenIdAndLoc, profiles)
+    val combined = checkinsWithGoldenIdAndLoc.joinWithSmaller('keyid -> 'key, profiles).discard('key)
 
     sequenceOutputStaticOption foreach {
         sequenceOutputStatic =>
-            val chkindata = groupCheckins(newCheckins)
 
-            val friendsForCoworker = SequenceFile(friendinput, FriendTuple).read
-
-            val profilesAndCheckins = combined.project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
-
-            val employerGroupedServiceProfiles = total.project('key, 'worked)
-
-            val serviceIds = total.project('key, 'fbid, 'lnid).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
-
-            val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
-
-            val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
-
-            val homeCheckins = groupHomeCheckins(newCheckins)
-
-            val homeProfilesAndCheckins = profiles
-                    .joinWithLarger('key -> 'keyid, homeCheckins)
-                    .project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
-
-            val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
-
-            val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
-                    .map('centroid -> 'workCentroid) {
-                centroid: String => centroid
-            }.discard(('key1, 'centroid)).joinWithSmaller('key -> 'key1, findhomefromchkins).map('centroid -> 'homeCentroid) {
-                centroid: String => centroid
-            }
+            val withHomeWork = combined.leftJoinWithSmaller('keyid -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid))).discard('key1)
 
 
             val ageGenderDegreeCheckins = ageGenderDegree(combined)
@@ -161,6 +121,8 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     List((venueKey + "_loyalty_customerCount", customerType, customers.toDouble), (venueKey + "_loyalty_visitCount", customerType, loyaltyVisitCount.toDouble))
             }
 
+
+
             val reach = findReach(withHomeWork)
 
             val reachMean = reach
@@ -176,22 +138,24 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     val (venueKey, stdev) = in
                     (venueKey + "_reach_distance", "stdevDist", stdev)
             }
-            /*
 
-                        val reachLat = reach
-                                .mapTo(('venueKey, 'lat) ->('rowKey, 'columnName, 'columnValue)) {
-                            in: (String, Double) =>
-                                val (venueKey, lat) = in
-                                (venueKey + "_reach_distance", "latitude", lat)
-                        }
+            val latLng = checkinsWithGoldenIdAndLoc.groupBy('venueKey) {
+                _.head('lat, 'lng)
+            }
+            val reachLat = latLng
+                    .mapTo(('venueKey, 'lat) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Double) =>
+                    val (venueKey, lat) = in
+                    (venueKey + "_reach_distance", "latitude", lat)
+            }
 
-                        val reachLong = reach
-                                .mapTo(('venueKey, 'lng) ->('rowKey, 'columnName, 'columnValue)) {
-                            in: (String, Double) =>
-                                val (venueKey, lng) = in
-                                (venueKey + "_reach_distance", "longitude", lng)
-                        }
-            */
+            val reachLong = latLng
+                    .mapTo(('venueKey, 'lng) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, Double) =>
+                    val (venueKey, lng) = in
+                    (venueKey + "_reach_distance", "longitude", lng)
+            }
+
 
             val reachHome = reach
                     .mapTo(('venueKey, 'numHome) ->('rowKey, 'columnName, 'columnValue)) {
@@ -221,7 +185,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
        .project(('rowKey, 'columnName, 'columnValue))   */
 
             val staticOutput =
-                (ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork /* ++ reachLat ++ reachLong*/ ++ reachMean ++ reachStdev ++ loyalty ++ visitsStats)
+                (ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyalty ++ visitsStats)
 
             staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
                     .write(Tsv(sequenceOutputStatic + "_tsv", Fields.ALL))
@@ -281,25 +245,24 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                 (venueKey + "_education" + postfix, degreeCat, frequency.toDouble)
 
         }
-        /*
-val totalDegree = byDegree.groupBy('columnName) {
-   _.sum('columnValue)
-}.map(() -> 'rowKey) {
-   u: Unit => "totalAll_education" + "_" + postfix
-}
+        val totalDegree = byDegree.groupBy('columnName) {
+            _.sum('columnValue)
+        }.map(() -> 'rowKey) {
+            u: Unit => "totalAll_education" + "_" + postfix
+        }
 
-val totalAge = byAge.groupBy('columnName) {
-   _.sum('columnValue)
-}.map(() -> 'rowKey) {
-   u: Unit => "totalAll_age" + "_" + postfix
-}
+        val totalAge = byAge.groupBy('columnName) {
+            _.sum('columnValue)
+        }.map(() -> 'rowKey) {
+            u: Unit => "totalAll_age" + "_" + postfix
+        }
 
-val totalGender = byGender.groupBy('columnName) {
-   _.sum('columnValue)
-}.map(() -> 'rowKey) {
-   u: Unit => "totalAll_gender" + "_" + postfix
-}
-val totalStatic = (totalAge ++ totalDegree ++ totalGender).project('rowKey, 'columnName, 'columnValue)*/
-        byAge ++ byDegree ++ byGender ++ ageMetrics /*++ totalStatic*/
+        val totalGender = byGender.groupBy('columnName) {
+            _.sum('columnValue)
+        }.map(() -> 'rowKey) {
+            u: Unit => "totalAll_gender" + "_" + postfix
+        }
+        val totalStatic = (totalAge ++ totalDegree ++ totalGender).project('rowKey, 'columnName, 'columnValue)
+        byAge ++ byDegree ++ byGender ++ ageMetrics ++ totalStatic
     }
 }

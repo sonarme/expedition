@@ -36,6 +36,7 @@
             <artifactId>opencsv</artifactId>
             <version>2.3</version>
         </dependency>
+
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_2.9.1</artifactId>
@@ -49,8 +50,8 @@
         </dependency>
         <dependency>
             <groupId>com.twitter</groupId>
-            <artifactId>scalding_2.9.1</artifactId>
-            <version>0.7.3</version>
+            <artifactId>scalding_2.9.2</artifactId>
+            <version>0.8.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.esotericsoftware.kryo</groupId>
