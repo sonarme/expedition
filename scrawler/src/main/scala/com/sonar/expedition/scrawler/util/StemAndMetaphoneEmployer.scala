@@ -19,6 +19,7 @@ object StemAndMetaphoneEmployer extends Serializable {
     @transient
     val metaphoneWithCodeLength = new DoubleMetaphone
     metaphoneWithCodeLength.setMaxCodeLen(6)
+    val StopWords = StandardAnalyzer.STOP_WORDS_SET ++ Set("inc", "incorporated", "co", "ltd", "llc", "group", "corp", "corporation", "company", "limited", "hq")
 
     @transient
     def metaphoner(maxCodeLength: Option[Int] = None) = {
@@ -30,33 +31,23 @@ object StemAndMetaphoneEmployer extends Serializable {
 
     /* removes stop words, punctuation and extra whitespace from a employer string */
 
-    def removeStopWords(employer: String) =
-        if (employer == null)
-            ""
+    def removeStopWords(employer: String) = extractTokens(employer).mkString(" ")
+
+    def extractTokens(tokenString: String): Seq[String] =
+        if (tokenString == null) Seq.empty[String]
         else {
-            employer
-                    .replaceAll( """\.[a-zA-Z][a-zA-Z][a-zA-Z]?(?= |$)""", "")
-                    .replaceAll( """\p{P}""", "")
-                    .replaceAll( """(^|(?<= ))(?i)(a|an|and|are|as|at|be|but|by|for|if|in|into|is|it|no|not|of|on|or|such|that|the|their|then|there|these|they|this|to|was|will|with|inc|incorporated|co|ltd|llc|group|corp|corporation|company|limited|hq)(?= |$)""", "")
-                    .replaceAll( """\s+""", " ")
-                    .trim
-                    .toLowerCase
-        }
-
-
-    def extractTokens(tokenString: String): Seq[String] = {
-        val tokenStream = new StandardAnalyzer(Version.LUCENE_36).tokenStream("textField", new StringReader(tokenString))
-        try {
-            val tokens = mutable.ListBuffer[String]()
-            while (tokenStream.incrementToken()) {
-                tokens += tokenStream.getAttribute(classOf[CharTermAttribute]).toString
+            val tokenStream = new StandardAnalyzer(Version.LUCENE_36, StopWords).tokenStream("textField", new StringReader(tokenString))
+            try {
+                val tokens = mutable.ListBuffer[String]()
+                while (tokenStream.incrementToken()) {
+                    tokens += tokenStream.getAttribute(classOf[CharTermAttribute]).toString
+                }
+                tokens
+            } finally {
+                tokenStream.end()
+                tokenStream.close()
             }
-            tokens
-        } finally {
-            tokenStream.end()
-            tokenStream.close()
         }
-    }
 
     /* outputs the metaphone encoding of an employer string */
 
