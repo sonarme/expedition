@@ -96,12 +96,12 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         }
         val checkins2 = checkins1.filter('serType) {
             serType: String => serType != "foursquare"
-        }.discard('venName, 'lat, 'lng).rename(('venId, 'serType, 'venAddress, 'geosector, 'stemmedVenName) ->('venId2, 'serType2, 'venAddress2, 'geosector2, 'stemmedVenName2))
+        }.discard('venName, 'lat, 'lng).rename(('venId, 'serType, 'venAddress, 'stemmedVenName) ->('venId2, 'serType2, 'venAddress2, 'stemmedVenName2))
 
         checkins1.filter('serType) {
             serType: String => serType == "foursquare"
         }
-                .joinWithLarger('geosector -> 'geosector2, checkins2).discard('geosector2)
+                .joinWithLarger('geosector -> 'geosector, checkins2)
                 /*.filter('serType, 'serType2) {
             in: (String, String) =>
                 in._1 > in._2
