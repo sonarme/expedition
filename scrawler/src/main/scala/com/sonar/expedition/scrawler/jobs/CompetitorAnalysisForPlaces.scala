@@ -92,7 +92,7 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                         .max('numRaters) // Just an easy way to make sure the numRaters field stays.
                         .max('numRaters2)
         }
-    val placesNames = places.project('goldenId, 'venName, 'venueTypes).rename('goldenId -> 'goldenIdForName)
+    val placesNames = places.project('goldenId, 'venName, 'venueType).rename('goldenId -> 'goldenIdForName)
     val similarities =
         vectorCalcs
                 .map(('size, 'dotProduct, 'ratingSum, 'rating2Sum, 'ratingNormSq, 'rating2NormSq, 'numRaters, 'numRaters2) ->
@@ -115,8 +115,8 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                 // join venue name and type back in
                 .joinWithLarger('goldenId -> 'goldenIdForName, placesNames)
                 .discard('goldenIdForName)
-                .joinWithLarger('goldenId2 -> 'goldenIdForName, placesNames.rename(('venName, 'venueTypes) ->('venName2, 'venueTypes2)))
-                .project(('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity))
+                .joinWithLarger('goldenId2 -> 'goldenIdForName, placesNames.rename(('venName, 'venueType) ->('venName2, 'venueType2)))
+                .project(('venName, 'venueType, 'goldenId, 'venName2, 'venueType2, 'goldenId2, 'jaccardSimilarity))
                 .write(SequenceFile(competitiveAnalysisOutput, Fields.ALL))
                 .write(Tsv(competitiveAnalysisOutput + "_tsv", Fields.ALL))
 
