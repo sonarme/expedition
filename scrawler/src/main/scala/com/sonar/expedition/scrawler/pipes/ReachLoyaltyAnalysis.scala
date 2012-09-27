@@ -7,17 +7,20 @@ import com.sonar.expedition.scrawler.util.Haversine
 trait ReachLoyaltyAnalysis extends ScaldingImplicits {
 
     def findReach(combinedInput: RichPipe) =
-        combinedInput.map(('loc, 'homeCentroid, 'workCentroid) ->('distanceTraveled, 'isHome)) {
-            fields: (String, String, String) => {
-                val (loc, home, work) = fields
-                val loclat = loc.split(":").head.toDouble
-                val loclong = loc.split(":").last.toDouble
-                val homelat = home.split(":").head.toDouble
-                val homelong = home.split(":").last.toDouble
-                val worklat = work.split(":").head.toDouble
-                val worklong = work.split(":").last.toDouble
-                val homedist = Haversine.haversineInKm(loclat, loclong, homelat, homelong)
-                val workdist = Haversine.haversineInKm(loclat, loclong, worklat, worklong)
+        combinedInput.map(('lat, 'lng, 'workCentroid, 'homeCentroid) ->('distanceTraveled, 'isHome)) {
+            fields: (Double, Double, String, String) => {
+                val (lat, lng, workCentroid, homeCentroid) = fields
+                //distance calculation
+                val workdist = if (workCentroid == null) -1
+                else {
+                    val Array(otherLat, otherLng) = workCentroid.split(':')
+                    Haversine.haversineInKm(lat, lng, otherLat.toDouble, otherLng.toDouble)
+                }
+                val homedist = if (homeCentroid == null) -1
+                else {
+                    val Array(otherLat, otherLng) = homeCentroid.split(':')
+                    Haversine.haversineInKm(lat, lng, otherLat.toDouble, otherLng.toDouble)
+                }
                 (math.min(homedist, workdist), homedist < workdist)
 
             }
