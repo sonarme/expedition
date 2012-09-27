@@ -7,7 +7,8 @@ import PlaceClassification._
 class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation with CheckinSource {
 
     val bayesmodel = args("bayesmodelforvenuetype")
-    val placesData = args("placesData")
+    val placesData = null
+    //args("placesData")
     val output = args("placeClassification")
 
     val (checkinsInputPipe, _) = checkinSource(args, true, false)
