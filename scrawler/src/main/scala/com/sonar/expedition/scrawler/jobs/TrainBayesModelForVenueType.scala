@@ -23,7 +23,7 @@ class TrainBayesModelForVenueType(args: Args) extends Job(args) with LocationBeh
             val (propertiesName, propertiesTags, classifiersCategory, classifiersType, classifiersSubcategory, docid) = fields
             val tokens = propertiesName :: (propertiesTags ++ classifiersCategory ++ classifiersType ++ classifiersSubcategory)
             for (key <- classifiersCategory;
-                 (token, idx) <- tokens.zipWithIndex) yield (key.toLowerCase, token, docid + "_" + idx)
+                 token <- tokens) yield (key.toLowerCase, token, docid)
 
     }.project(('key, 'token, 'doc))
 
