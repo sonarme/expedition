@@ -44,10 +44,10 @@ object StemAndMetaphoneEmployer extends Serializable {
         }
 
 
-    def extractTokens(tokenString: String): Iterable[String] = {
+    def extractTokens(tokenString: String): Seq[String] = {
         val tokenStream = new StandardAnalyzer(Version.LUCENE_36).tokenStream("textField", new StringReader(tokenString))
         try {
-            val tokens = mutable.Set[String]()
+            val tokens = mutable.ListBuffer[String]()
             while (tokenStream.incrementToken()) {
                 tokens += tokenStream.getAttribute(classOf[CharTermAttribute]).toString
             }

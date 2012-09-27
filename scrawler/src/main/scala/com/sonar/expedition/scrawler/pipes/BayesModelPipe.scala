@@ -212,27 +212,15 @@ trait BayesModelPipe extends ScaldingImplicits {
         }
     */
 
-    def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
+    def calcProb(model: RichPipe, data: RichPipe) =
         data.flatMap('data -> 'token) {
-            line: String => {
-                StemAndMetaphoneEmployer.extractTokens(line)
-            }
-        }
-                .joinWithSmaller(('token -> 'token), model)
-                .groupBy(('data, 'key)) {
+            line: String => StemAndMetaphoneEmployer.extractTokens(line).toSet
+        }.joinWithSmaller('token -> 'token, model).groupBy('data, 'key) {
             _.sum('normTFIDF -> 'weight)
-        }
-
-                .groupBy('data) {
+        }.groupBy('data) {
             _.max('weight, 'key)
-        }
-                .filter('data) {
-            data: String =>
-                (data != null)
-        }
-                .project(('data, 'key, 'weight))
-
-    }
-
+        }.filter('data) {
+            data: String => data != null // TODO: is this necessary?
+        }.project('data, 'key, 'weight)
 
 }
