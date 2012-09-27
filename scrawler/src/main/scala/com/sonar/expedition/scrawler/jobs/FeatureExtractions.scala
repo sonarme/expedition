@@ -56,12 +56,7 @@ class FeatureExtractions(args: Args) extends Job(args) with CheckinSource with D
             .map(('impliedGender, 'degreeCat, 'income, 'age) -> 'features) {
         in: (String, String, String, Int) =>
             val (gender, degreeCat, incomeStr, age) = in
-            // income parsing
-            val income = if (incomeStr == null) -1
-            else {
-                val clean = incomeStr.replaceAll("\\D", "")
-                if (clean.isEmpty) -1 else clean.toInt
-            }
+            val income = parseIncome(incomeStr)
 
             val categoricalValues = Set("gender_" + gender, "education_" + degreeCat)
             val realValues = Set("age" -> age, "income" -> income)

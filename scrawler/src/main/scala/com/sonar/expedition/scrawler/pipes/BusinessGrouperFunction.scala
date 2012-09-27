@@ -7,6 +7,12 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 
 trait BusinessGrouperFunction extends ScaldingImplicits {
+    def parseIncome(incomeStr: String) =
+        if (incomeStr == null) -1
+        else {
+            val clean = incomeStr.replaceAll("\\D", "")
+            if (clean.isEmpty) -1 else clean.toInt
+        }
 
     def chunkTime(checkinInput: RichPipe) =
         checkinInput.map('chknTime ->('hourChunk, 'dayChunk)) {
@@ -82,19 +88,21 @@ trait BusinessGrouperFunction extends ScaldingImplicits {
 
     def groupByIncome(combinedInput: RichPipe) =
         combinedInput
-                .filter('worktitle) {
-            worktitle: String => !isNullOrEmpty(worktitle)
-        }.map('income -> 'incomeBracket) {
-            income: String => {
-                val incomeInt = income.replaceAll("\\D", "").toInt
-                if (incomeInt < 50000)
-                    "$0-50k"
-                else if (incomeInt < 100000)
-                    "$50-100k"
-                else if (incomeInt < 150000)
-                    "$100-150k"
-                else
-                    "$150k+"
+                .flatMap('income -> 'incomeBracket) {
+            incomeStr: String => {
+                val income = parseIncome(incomeStr)
+                if (income >= 0) {
+                    Some(
+                        if (income < 50000)
+                            "$0-50k"
+                        else if (income < 100000)
+                            "$50-100k"
+                        else if (income < 150000)
+                            "$100-150k"
+                        else
+                            "$150k+")
+                } else None
+
             }
         }.groupBy('incomeBracket, 'venueKey) {
             _.size

@@ -36,6 +36,8 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     }
     val profiles = serviceProfiles(args)
 
+
+    val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
     /*
 val joinedProfiles = profiles.rename('key->'rowkey)
 val trainer = new BayesModelPipe(args)
@@ -169,21 +171,16 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     (venueKey + "_reach_originCount", "numWork", count.toDouble)
             }
 
-            /* val byIncome = byIncome(combined)
-       .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-    in: (String, String, Int) =>
-       val (venueKey, income, frequency) = in
-
-       val targetVenueGoldenId = venueKey + "_income"
-       val column = income
-       val value = frequency.toDouble
-
-       (targetVenueGoldenId, column, value)
-    }
-       .project(('rowKey, 'columnName, 'columnValue))   */
+            val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
+            val byIncome = groupByIncome(combined.joinWithSmaller('worktitle -> 'worktitle1, income.rename('worktitle -> 'worktitle1)).discard('worktitle1))
+                    .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                in: (String, String, Int) =>
+                    val (venueKey, income, frequency) = in
+                    (venueKey + "_income", income, frequency.toDouble)
+            }.project(('rowKey, 'columnName, 'columnValue))
 
             val staticOutput =
-                (ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyalty ++ visitsStats)
+                (byIncome ++ ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyalty ++ visitsStats)
 
             staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
                     .write(Tsv(sequenceOutputStatic + "_tsv", Fields.ALL))
