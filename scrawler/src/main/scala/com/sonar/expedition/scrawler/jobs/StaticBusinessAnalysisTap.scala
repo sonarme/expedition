@@ -194,12 +194,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     .mapTo(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
                 in: (String, Int, String, Int) =>
                     val (venueKey, hour, serviceType, frequency) = in
-
-                    val targetVenueGoldenId = venueKey + "_checkinFrequencyPerHour_" + serviceType
-                    val column = hour.toLong * 3600000
-                    val value = frequency * 1.0
-
-                    (targetVenueGoldenId, column, value)
+                    (venueKey + "_checkinFrequencyPerHour_" + serviceType, hour.toLong * 3600000, frequency.toDouble)
 
             }
 
