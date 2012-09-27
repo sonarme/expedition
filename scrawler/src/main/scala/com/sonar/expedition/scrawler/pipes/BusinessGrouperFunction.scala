@@ -8,9 +8,8 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 trait BusinessGrouperFunction extends ScaldingImplicits {
 
-    def combineCheckinsProfiles(checkinInput: RichPipe, serviceProfileInput: RichPipe) =
-        checkinInput.joinWithSmaller('keyid -> 'key, serviceProfileInput)
-                .map('chknTime ->('hourChunk, 'dayChunk)) {
+    def chunkTime(checkinInput: RichPipe) =
+        checkinInput.map('chknTime ->('hourChunk, 'dayChunk)) {
             checkinTime: Date =>
                 val timeFilter = Calendar.getInstance()
                 val checkinDate = checkinTime
@@ -18,7 +17,12 @@ trait BusinessGrouperFunction extends ScaldingImplicits {
                 val hour = (timeFilter.getTimeInMillis / 3600000) // 1000 * 60 * 60  = for hour chunks
                 val day = (timeFilter.getTimeInMillis / 86400000) // 1000 * 60 * 60 * 24 = for 24 hour chunks
                 (hour, day)
-        }.map('goldenId -> 'venueKey) {
+        }
+
+    def combineCheckinsProfiles(checkinInput: RichPipe, serviceProfileInput: RichPipe) =
+        checkinInput
+                .joinWithSmaller('keyid -> 'key, serviceProfileInput)
+                .map('goldenId -> 'venueKey) {
             goldenId: String => goldenId
         }
 

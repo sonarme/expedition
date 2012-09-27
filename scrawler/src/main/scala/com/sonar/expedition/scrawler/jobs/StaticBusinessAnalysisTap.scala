@@ -190,7 +190,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
     }
     sequenceOutputTimeOption foreach {
         sequenceOutputTime =>
-            val byTime = timeSeries(combined)
+            val byTime = timeSeries(chunkTime(combined))
                     .mapTo(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
                 in: (String, Int, String, Int) =>
                     val (venueKey, hour, serviceType, frequency) = in
