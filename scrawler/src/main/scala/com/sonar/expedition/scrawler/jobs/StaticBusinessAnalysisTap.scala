@@ -59,7 +59,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
     sequenceOutputStaticOption foreach {
         sequenceOutputStatic =>
 
-            val withHomeWork = combined.leftJoinWithSmaller('keyid -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid))).discard('key1)
+            val withHomeWork = combined.joinWithSmaller('keyid -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid))).discard('key1)
 
 
             val ageGenderDegreeCheckins = ageGenderDegree(combined)
