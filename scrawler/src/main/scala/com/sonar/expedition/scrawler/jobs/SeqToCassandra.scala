@@ -12,45 +12,45 @@ import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.WideRowScheme
 import com.sonar.scalding.cassandra.CassandraSource
 
-// Use args:
-// STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
-// STAG deploy: --rpcHost 10.4.103.222
-
 class SeqToCassandra(args: Args) extends Job(args) {
 
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
-    val sequenceInputStatic = args("sequenceInputStatic")
-    val sequenceInputTime = args("sequenceInputTime")
+    val sequenceInputStaticOpt = args.optional("inputStatics")
+    val sequenceInputTimeOpt = args.optional("inputTime")
 
-    val seqStatic = SequenceFile(sequenceInputStatic, Fields.ALL).read.mapTo((0, 1, 2) ->('rowKey, 'columnName, 'columnValue)) {
-        fields: (String, String, Double) => fields
+    sequenceInputStaticOpt foreach {
+        sequenceInputStatic =>
+            val seqStatic =
+                sequenceInputStatic.split(',').map {
+                    file => SequenceFile(file, ('rowKey, 'columnName, 'columnValue)).read
+                }.reduce(_ ++ _)
+            seqStatic
+                    .write(
+                CassandraSource(
+                    rpcHost = rpcHostArg,
+                    privatePublicIpMap = ppmap,
+                    keyspaceName = "dossier",
+                    columnFamilyName = "MetricsVenueStatic",
+                    scheme = WideRowScheme(keyField = 'rowKey)
+                )
+            )
     }
 
-    val staticCassandra = seqStatic
-            .write(
-        CassandraSource(
-            rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
-            keyspaceName = "dossier",
-            columnFamilyName = "MetricsVenueStatic",
-            scheme = WideRowScheme(keyField = 'rowKey)
-        )
-    )
+    sequenceInputTimeOpt foreach {
+        sequenceInputTime =>
+            val seqTime = SequenceFile(sequenceInputTime, ('rowKey, 'columnName, 'columnValue)).read
 
-    val seqTime = SequenceFile(sequenceInputTime, Fields.ALL).read.mapTo((0, 1, 2) ->('rowKey, 'columnName, 'columnValue)) {
-        fields: (String, Long, Double) => fields
+            seqTime
+                    .write(
+                CassandraSource(
+                    rpcHost = rpcHostArg,
+                    privatePublicIpMap = ppmap,
+                    keyspaceName = "dossier",
+                    columnFamilyName = "MetricsVenueTimeseries",
+                    scheme = WideRowScheme(keyField = 'rowKey)
+                )
+            )
     }
-
-    val timeSeriesCassandra = seqTime
-            .write(
-        CassandraSource(
-            rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
-            keyspaceName = "dossier",
-            columnFamilyName = "MetricsVenueTimeseries",
-            scheme = WideRowScheme(keyField = 'rowKey)
-        )
-    )
 
 }
