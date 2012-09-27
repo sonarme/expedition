@@ -33,16 +33,24 @@ com.sonar.expedition.scrawler.jobs.CompetitorAnalysisForPlaces --hdfs --checkinD
 class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinSource {
 
     val competitiveAnalysisOutput = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
-    val placeClassification = args("placeClassification")
+    val placeClassificationOpt = args.optional("placeClassification")
 
-    val (checkins, _) = checkinSource(args, true, false)
-    val allCheckins = checkins.project('keyid, 'venId)
-    val places = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).read
-    val placesVenueGoldenId =
-        places
-                .unique('goldenId, 'venueId)
-                .joinWithLarger('venueId -> 'venId, allCheckins)
-                .project('keyid, 'goldenId)
+    val (checkins, placesVenueGoldenId) = checkinSource(args, true, true)
+
+    val placesNames =
+        placeClassificationOpt match {
+            case Some(placeClassification) =>
+                val places = SequenceFile(placeClassification, PlaceClassification.PlaceClassificationOutputTuple).read
+
+                places.project('goldenId, 'venName, 'venueType).rename('goldenId -> 'goldenIdForName)
+            case _ =>
+                checkins.groupBy('venId) {
+                    _.head('venName)
+                }.rename('venId -> 'goldenIdForName).map(() -> 'venueType) {
+                    u: Unit => ""
+                }
+
+        }
 
     //module: end of detrmining places type from venue name
     // keyid is servicetype:serviceprofileid
@@ -92,7 +100,6 @@ class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBeh
                         .max('numRaters) // Just an easy way to make sure the numRaters field stays.
                         .max('numRaters2)
         }
-    val placesNames = places.project('goldenId, 'venName, 'venueType).rename('goldenId -> 'goldenIdForName)
     val similarities =
         vectorCalcs
                 .map(('size, 'dotProduct, 'ratingSum, 'rating2Sum, 'ratingNormSq, 'rating2NormSq, 'numRaters, 'numRaters2) ->
