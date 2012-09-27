@@ -22,18 +22,11 @@ class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with Che
     val dealsOutput = args("dealsOutput")
     val distanceArg = args.getOrElse("distance", "250").toInt
     val levenshteinFactor = args.getOrElse("levenshteinFactor", "0.33").toDouble
-    val firstNumber = """\s*(\d+)[^\d]*""".r
 
     def distanceCalc(in: (Double, Double, Double, Double)) = {
         val (levenshtein, maxLevenshtein, distance, maxDistance) = in
         (levenshtein / maxLevenshtein) * (distance / maxDistance)
     }
-
-    def extractFirstNumber(s: String) = s match {
-        case firstNumber(numStr) => Some(numStr)
-        case _ => None
-    }
-
 
     def stripPhone(s: String) = if (s == null || s == "") None else Some(s.replaceAllLiterally("+1", "").replaceAllLiterally("-", "").replaceAllLiterally(" ", ""))
 
