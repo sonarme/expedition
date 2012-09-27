@@ -72,6 +72,13 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         oldCheckinPipe
     }
 
+    def correlatedPlacesSimple(checkins: RichPipe): RichPipe = {
+        checkins /*.groupBy('venId) {
+              _.head('venAddress, 'serType, 'venName, 'lat, 'lng)
+          }*/ .map('venId -> 'goldenId)(identity[String]).rename(('venId, 'lat, 'lng) ->('venueId, 'venueLat, 'venueLng))
+                .project('goldenId, 'venueId, 'venAddress, 'venName, 'venueLat, 'venueLng)
+    }
+
     def correlatedPlaces(checkins: RichPipe): RichPipe = {
         val checkins1 = checkins.groupBy('venId) {
             // dedupe

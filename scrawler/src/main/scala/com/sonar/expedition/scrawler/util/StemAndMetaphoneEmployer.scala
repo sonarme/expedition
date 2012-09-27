@@ -8,6 +8,9 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.util.{Attribute, ReaderUtil, Version}
 import org.apache.commons.io.IOUtils
 import java.io.StringReader
+import collection._
+import collection.JavaConversions._
+import org.apache.lucene.analysis.tokenattributes.{CharTermAttribute, TermAttribute}
 
 object StemAndMetaphoneEmployer extends Serializable {
     @transient
@@ -41,23 +44,18 @@ object StemAndMetaphoneEmployer extends Serializable {
         }
 
 
-    def extractTokens(tokenString: String) = {
-        val standardAnalyzer = new StandardAnalyzer(Version.LUCENE_36)
-        val tokenStream = standardAnalyzer.tokenStream("textField", new StringReader(tokenString))
-        var tokens: Seq[String] = Seq[String]()
+    def extractTokens(tokenString: String): Iterable[String] = {
+        val tokenStream = new StandardAnalyzer(Version.LUCENE_36).tokenStream("textField", new StringReader(tokenString))
         try {
+            val tokens = mutable.Set[String]()
             while (tokenStream.incrementToken()) {
-                // getting tokens
+                tokens += tokenStream.getAttribute(classOf[CharTermAttribute]).toString
             }
-            val tokenIterator = tokenStream.getAttributeImplsIterator
-            /*tokens = for (token: Attribute <- tokenIterator) yield {
-                token.toString
-            }*/
+            tokens
         } finally {
             tokenStream.end()
             tokenStream.close()
         }
-        tokens
     }
 
     /* outputs the metaphone encoding of an employer string */
