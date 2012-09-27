@@ -12,12 +12,10 @@ class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation w
 
     val (checkinsInputPipe, _) = checkinSource(args, true, false)
 
-    val placesVenueGoldenId = //placeClassification(checkinsInputPipe, bayesmodel, placesData)
-        checkinsInputPipe.rename(('lat, 'lng) ->('venueLat, 'venueLng)).map('venId ->('goldenId, 'venueId, 'venuePhone, 'venueType)) {
-            in: String => (in, in, null, "")
-        }.unique(PlaceClassificationOutputTuple)
-                .write(SequenceFile(output, PlaceClassificationOutputTuple))
-                .write(Tsv(output + "_tsv", PlaceClassificationOutputTuple))
+    val placesVenueGoldenId = placeClassification(checkinsInputPipe, bayesmodel, placesData)
+    placesVenueGoldenId.unique(PlaceClassificationOutputTuple)
+            .write(SequenceFile(output, PlaceClassificationOutputTuple))
+            .write(Tsv(output + "_tsv", PlaceClassificationOutputTuple))
 
 
 }

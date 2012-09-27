@@ -15,7 +15,10 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
 
         val placesClassified = classifyPlaceType(bayesmodel, placesVenueGoldenIdValues)
-
+        placesClassified.rename('venTypeFromModel -> 'venueType).map(() -> 'venuePhone) {
+            u: Unit => ""
+        }
+        /*
         val geoPlaces = placesPipe(TextLine(placesData).read)
                 .project('geometryLatitude, 'geometryLongitude, 'propertiesName, 'propertiesAddress, 'propertiesPhone, 'classifiersCategory)
                 .rename('propertiesPhone -> 'venuePhone)
@@ -42,7 +45,7 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 // TODO: allow multiple venue types
                 if (venTypeFromPlacesData == null || venTypeFromPlacesData.isEmpty) venTypeFromModel else venTypeFromPlacesData.head
 
-        }
+        }*/
     }
 
     def addVenueIdToCheckins(oldCheckins: RichPipe, newCheckins: RichPipe): RichPipe = {
@@ -60,46 +63,50 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         oldCheckinPipe
     }
 
-    def correlatedPlaces(checkins: RichPipe): RichPipe =
-        checkins.groupBy('venId, 'venAddress) {
-            // dedupe
-            _.head('serType, 'venName, 'lat, 'lng)
+    def correlatedPlaces(checkins: RichPipe): RichPipe = {
+        checkins.groupBy('venId) {
+            _.head('venAddress, 'serType, 'venName, 'lat, 'lng)
+        }.map('venId -> 'goldenId)(identity[String]).rename(('venId, 'lat, 'lng) ->('venueId, 'venueLat, 'venueLng))
+                .project('goldenId, 'venueId, 'venAddress, 'venName, 'venueLat, 'venueLng)
+        /* checkins.groupBy('venId, 'venAddress) {
+     // dedupe
+     _.head('serType, 'venName, 'lat, 'lng)
 
-        }.flatMap(('lat, 'lng, 'venName) ->('geosector, 'stemmedVenName)) {
-            // add geosector and stemmed venue name
-            fields: (Double, Double, String) =>
-                val (lat, lng, venName) = fields
-                val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
-                if (CommonFunctions.isNullOrEmpty(venName) && CommonFunctions.isNullOrEmpty(stemmedVenName)) None
-                else {
-                    val geosector = GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize).longValue()
-                    Some((geosector, stemmedVenName))
-                }
+ }.flatMap(('lat, 'lng, 'venName) ->('geosector, 'stemmedVenName)) {
+     // add geosector and stemmed venue name
+     fields: (Double, Double, String) =>
+         val (lat, lng, venName) = fields
+         val stemmedVenName = StemAndMetaphoneEmployer.removeStopWords(venName)
+         if (CommonFunctions.isNullOrEmpty(venName) && CommonFunctions.isNullOrEmpty(stemmedVenName)) None
+         else {
+             val geosector = GeoHash.withBitPrecision(lat, lng, PlaceCorrelationSectorSize).longValue()
+             Some((geosector, stemmedVenName))
+         }
 
-        }.groupBy('stemmedVenName, 'venAddress, 'geosector) {
-            // correlate
-            _.sortWithTake(('venId, 'serType, 'venName, 'lat, 'lng) -> 'groupData, 4) {
-                (in1: (String, String, String, Double, Double), in2: (String, String, String, Double, Double)) =>
-                    val venueId1 = in1._1
-                    val venueId2 = in2._1
-                    val serviceType1 = ServiceType.valueOf(in1._2)
-                    val serviceType2 = ServiceType.valueOf(in2._2)
-                    CommonFunctions.venueGoldenIdPriorities(serviceType1) > CommonFunctions.venueGoldenIdPriorities(serviceType2) ||
-                            serviceType1 == serviceType2 && venueId1.compareTo(venueId2) > 0
-            }
+ }.groupBy('stemmedVenName, 'venAddress, 'geosector) {
+     // correlate
+     _.sortWithTake(('venId, 'serType, 'venName, 'lat, 'lng) -> 'groupData, 4) {
+         (in1: (String, String, String, Double, Double), in2: (String, String, String, Double, Double)) =>
+             val venueId1 = in1._1
+             val venueId2 = in2._1
+             val serviceType1 = ServiceType.valueOf(in1._2)
+             val serviceType2 = ServiceType.valueOf(in2._2)
+             CommonFunctions.venueGoldenIdPriorities(serviceType1) > CommonFunctions.venueGoldenIdPriorities(serviceType2) ||
+                     serviceType1 == serviceType2 && venueId1.compareTo(venueId2) > 0
+     }
 
-        }.flatMap('groupData ->('goldenId, 'venueId, 'venName, 'venueLat, 'venueLng)) {
-            // flatten
-            groupData: List[(String, String, String, Double, Double)] =>
-            // create golden id
-                val goldenId = groupData.head._1
-                // create data for flattening
-                groupData map {
-                    case (venueId, _, venName, lat, lng) => (goldenId, venueId, venName, lat, lng)
-                }
+ }.flatMap('groupData ->('goldenId, 'venueId, 'venName, 'venueLat, 'venueLng)) {
+     // flatten
+     groupData: List[(String, String, String, Double, Double)] =>
+     // create golden id
+         val goldenId = groupData.head._1
+         // create data for flattening
+         groupData map {
+             case (venueId, _, venName, lat, lng) => (goldenId, venueId, venName, lat, lng)
+         }
 
-        }.project('stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venAddress, 'venName, 'venueLat, 'venueLng)
-
+ }.project('stemmedVenName, 'geosector, 'goldenId, 'venueId, 'venAddress, 'venName, 'venueLat, 'venueLng)*/
+    }
 
 }
 
