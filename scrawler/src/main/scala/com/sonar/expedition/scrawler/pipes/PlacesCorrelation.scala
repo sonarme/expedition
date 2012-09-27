@@ -21,10 +21,13 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
     val PlaceCorrelationSectorSize = 30
 
     def placeClassification(newCheckins: RichPipe, bayesmodel: String, placesData: String) = {
-        val placesVenueGoldenIdValues = correlatedPlaces(newCheckins)
+        val places = newCheckins.groupBy('venId) {
+            // dedupe
+            _.head('serType, 'venName, 'venAddress, 'lat, 'lng)
 
-        val placesClassified = classifyPlaceType(bayesmodel, placesVenueGoldenIdValues)
-        placesClassified.rename('venTypeFromModel -> 'venueType).map(() -> 'venuePhone) {
+        }
+        val placesClassified = classifyPlaceType(bayesmodel, places)
+        correlatedPlaces(placesClassified).map(() -> 'venuePhone) {
             u: Unit => ""
         }
         /*
@@ -79,12 +82,8 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                 .project('goldenId, 'venueId, 'venAddress, 'venName, 'venueLat, 'venueLng)
     }
 
-    def correlatedPlaces(checkins: RichPipe): RichPipe = {
-        val checkins1 = checkins.groupBy('venId) {
-            // dedupe
-            _.head('serType, 'venName, 'venAddress, 'lat, 'lng)
-
-        }.flatMap(('lat, 'lng, 'venName) ->('geosector, 'stemmedVenName)) {
+    def correlatedPlaces(places: RichPipe): RichPipe = {
+        val checkins1 = places.flatMap(('lat, 'lng, 'venName) ->('geosector, 'stemmedVenName)) {
             // add geosector and stemmed venue name
             fields: (Double, Double, String) =>
                 val (lat, lng, venName) = fields
@@ -96,11 +95,12 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
         }
         val checkins2 = checkins1.filter('serType) {
             serType: String => serType != "foursquare"
-        }.discard('venName, 'lat, 'lng).rename(('venId, 'serType, 'venAddress, 'stemmedVenName) ->('venId2, 'serType2, 'venAddress2, 'stemmedVenName2))
+        }.discard('venName, 'venueType, 'lat, 'lng).rename(('venId, 'serType, 'venAddress, 'stemmedVenName) ->('venId2, 'serType2, 'venAddress2, 'stemmedVenName2))
 
-        checkins1.filter('serType) {
+        val foursquareOnly = checkins1.filter('serType) {
             serType: String => serType == "foursquare"
         }
+        val correlated = foursquareOnly
                 .joinWithLarger('geosector -> 'geosector, checkins2)
                 /*.filter('serType, 'serType2) {
             in: (String, String) =>
@@ -117,9 +117,13 @@ trait PlacesCorrelation extends CheckinGrouperFunction with LocationBehaviourAna
                     else levenshtein
                     Some(score)
                 }
-        }.groupBy('venId) {
-            _.sortBy('score).head('serType, 'venName, 'venAddress, 'lat, 'lng, 'venId2)
-        }.rename(('venId, 'venId2, 'lat, 'lng) ->('goldenId, 'venueId, 'venueLat, 'venueLng)).project('goldenId, 'venueId, 'venAddress, 'venName, 'venueLat, 'venueLng)
+        }.groupBy('venId, 'serType2) {
+            _.sortBy('score).head('venName, 'venueType, 'venAddress, 'lat, 'lng, 'venId2)
+        }.rename(('venId, 'venId2, 'lat, 'lng) ->('goldenId, 'venueId, 'venueLat, 'venueLng)).project('goldenId, 'venueId, 'venAddress, 'venName, 'venueType, 'venueLat, 'venueLng)
+
+        foursquareOnly.rename(('venId, 'lat, 'lng) ->('venueId, 'venueLat, 'venueLng)).map('venueId -> 'goldenId) {
+            identity[String]
+        }.project('goldenId, 'venueId, 'venAddress, 'venName, 'venueType, 'venueLat, 'venueLng) ++ correlated
         /*
 
          }.groupBy('stemmedVenName, 'venAddress, 'geosector) {
