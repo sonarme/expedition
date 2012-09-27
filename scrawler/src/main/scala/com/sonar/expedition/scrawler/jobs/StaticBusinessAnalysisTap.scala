@@ -172,8 +172,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
             }.project('rowKey, 'columnName, 'columnValue)
             val totalIncome = byIncome.groupBy('columnName) {
                 _.sum('columnValue)
-            }
-                    .map(() -> 'rowKey) {
+            }.map(() -> 'rowKey) {
                 u: Unit => "totalAll_income"
             }.project('rowKey, 'columnName, 'columnValue)
 
@@ -206,7 +205,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
         }.flatMapTo(('venueKey, 'ageSize, 'ageAve, 'ageStdev) ->('rowKey, 'columnName, 'columnValue)) {
             in: (String, Int, Double, Double) =>
                 val (venueKey, ageSize, ageAve, ageStdev) = in
-                List("ageSize" -> ageSize, "ageAve" -> ageAve, "ageStdev" -> ageStdev) map {
+                List("ageSize" -> ageSize.toDouble, "ageAve" -> ageAve, "ageStdev" -> ageStdev) map {
                     case (metricName, metricValue) => (venueKey + "_" + metricName, "metric", metricValue)
                 }
         }
@@ -236,19 +235,19 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
         val totalDegree = byDegree.groupBy('columnName) {
             _.sum('columnValue)
         }.map(() -> 'rowKey) {
-            u: Unit => "totalAll_education" + "_"
+            u: Unit => "totalAll_education"
         }
 
         val totalAge = byAge.groupBy('columnName) {
             _.sum('columnValue)
         }.map(() -> 'rowKey) {
-            u: Unit => "totalAll_age" + "_"
+            u: Unit => "totalAll_age"
         }
 
         val totalGender = byGender.groupBy('columnName) {
             _.sum('columnValue)
         }.map(() -> 'rowKey) {
-            u: Unit => "totalAll_gender" + "_"
+            u: Unit => "totalAll_gender"
         }
         val totalStatic = (totalAge ++ totalDegree ++ totalGender).project('rowKey, 'columnName, 'columnValue)
         byAge ++ byDegree ++ byGender ++ ageMetrics ++ totalStatic

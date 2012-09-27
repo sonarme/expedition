@@ -23,7 +23,9 @@ class SeqToCassandra(args: Args) extends Job(args) {
         sequenceInputStatic =>
             val seqStatic =
                 sequenceInputStatic.split(',').map {
-                    file => SequenceFile(file, ('rowKey, 'columnName, 'columnValue)).read
+                    file => SequenceFile(file, ('rowKey, 'columnName, 'columnValue)).read.mapTo(('rowKey, 'columnName, 'columnValue) ->('rowKey, 'columnName, 'columnValue)) {
+                        in: (String, String, Double) => in
+                    }
                 }.reduce(_ ++ _)
             seqStatic
                     .write(
