@@ -5,7 +5,7 @@ import com.twitter.scalding.{RichPipe, Args}
 import util.matching.Regex
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
-import com.sonar.expedition.scrawler.clustering.KMeans
+import com.sonar.expedition.scrawler.clustering._
 import org.joda.time.DateTime
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
@@ -51,26 +51,7 @@ trait CheckinInfoPipe extends ScaldingImplicits {
         }
 
 
-    def findCityFromChkins(chkinlist: List[String]): String = {
-        var centroid = Array(0.toDouble, 0.toDouble)
-        chkinlist foreach {
-            chkin =>
-                centroid(0) += chkin.split(":").headOption.mkString.toDouble
-                centroid(1) += chkin.split(":").lastOption.mkString.toDouble
-        }
-
-        val totalPoints = chkinlist.length
-        if (totalPoints == 0) {
-            return centroid(0) + ":" + centroid(1)
-        }
-        centroid(0) = centroid(0) / totalPoints
-        centroid(1) = centroid(1) / totalPoints
-        val km = new KMeans()
-        val clusters = 3
-        // chnage no of clustures required
-        val chkins: java.util.List[String] = ListBuffer(chkinlist: _*)
-        km.clusterKMeans(chkins, clusters)
-
-    }
-
+    def findCityFromChkins(chkinlist: List[String]): String =
+        if (chkinlist.isEmpty) "0.0:0.0" // TODO: hack
+        else KMeansClustering.clusterAsString(chkinlist, 3)
 }
