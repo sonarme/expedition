@@ -156,7 +156,6 @@ trait BayesModelPipe extends ScaldingImplicits {
             word
         }
         // special cases
-
         else if (specialWordSet1(word)) {
             word
         }
@@ -175,42 +174,6 @@ trait BayesModelPipe extends ScaldingImplicits {
             word
         }
     }
-
-    /* def calcProb(model: RichPipe, data: RichPipe): RichPipe = {
-            data.map('data -> 'value) {
-                line: String => {
-                    StemAndMetaphoneEmployer.removeStopWords(line).split("\\s+")
-                }
-            }
-                    .flatMap('value -> 'token) {
-                value: Array[String] =>
-                    value
-            }
-                    .joinWithLarger(('token -> 'token), model)
-                    .groupBy(('data, 'key)) {
-                _.toList[Double]('normTFIDF -> 'weightList)
-            }
-                    .map('weightList -> 'weight) {
-                list: List[Double] => {
-                    list.foldLeft[Double](0.0)((a, b) => a + b)
-                }
-            }.groupBy('data) {
-                _.toList[(Double, String)](('weight, 'key) -> 'weightKeyList)
-            }
-                    .map(('weightKeyList) ->('weight, 'key)) {
-                fields: (List[(Double, String)]) =>
-                    val (weightKeyList) = fields
-                    val weightKey = weightKeyList.max
-                    (weightKey._1, weightKey._2)
-
-            }.filter('data) {
-                data: String =>
-                    (data != null)
-            }
-                    .project(('data, 'key, 'weight))
-
-        }
-    */
 
     def calcProb(model: RichPipe, data: RichPipe) =
         data.flatMap('data -> 'token) {
