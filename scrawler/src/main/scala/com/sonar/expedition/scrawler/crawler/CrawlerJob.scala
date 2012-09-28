@@ -40,7 +40,6 @@ class CrawlerJob(args: Args) extends Job(args) {
     val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL)
     val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", CrawlerJob.RawTuple)
 
-//    val venues = Tsv("/Users/rogchang/Desktop/venuessorted.txt")
     val venues = SequenceFile(src, YelpCrawl.DealsOutputTuple)
 
 
