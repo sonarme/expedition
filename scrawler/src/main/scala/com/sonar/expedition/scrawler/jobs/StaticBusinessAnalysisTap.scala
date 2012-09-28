@@ -37,7 +37,6 @@ class StaticBusinessAnalysisTap(args: Args) extends Job(args) with CheckinSource
     val profiles = serviceProfiles(args)
 
 
-    val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
     /*
 val joinedProfiles = profiles.rename('key->'rowkey)
 val trainer = new BayesModelPipe(args)
