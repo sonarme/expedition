@@ -53,5 +53,5 @@ trait CheckinInfoPipe extends ScaldingImplicits {
 
     def findCityFromChkins(chkinlist: List[String]): String =
         if (chkinlist.isEmpty) "0.0:0.0" // TODO: hack
-        else KMeansClustering.clusterAsString(chkinlist, 3)
+        else KMeansClustering.clusterCenterAsString(chkinlist, 3)
 }

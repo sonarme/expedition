@@ -6,14 +6,21 @@ import org.apache.mahout.common.distance.EuclideanDistanceMeasure
 import collection.JavaConversions._
 
 object KMeansClustering {
-    def clusterAsString(points: Iterable[String], k: Int) = {
-        val (lat, lng) = cluster(points.map {
+
+    def clusterCenterAsString(points: Iterable[String], k: Int) = {
+        val (lat, lng) = clusterCenter(points.map {
             point =>
                 val Array(pointLat, pointLng) = point.split(':')
                 (pointLat.toDouble, pointLng.toDouble)
         }, k)
         lat + ":" + lng
     }
+
+    def clusterCenter(points: Iterable[(Double, Double)], k: Int) = {
+        val highest = cluster(points, k)
+        (highest.getCenter.get(0), highest.getCenter.get(1))
+    }
+
 
     def cluster(points: Iterable[(Double, Double)], k: Int) = {
         require(k > 0)
@@ -24,7 +31,7 @@ object KMeansClustering {
             case (vector, idx) => new Cluster(vector, idx)
         }
         val finalClusters = KMeansClusterer.clusterPoints(pointsAsVectors.toSeq, initialClusters.toSeq, new EuclideanDistanceMeasure, 5, 0.01)
-        val highest = finalClusters.last.maxBy(_.getNumPoints)
-        (highest.getCenter.get(0), highest.getCenter.get(1))
+        finalClusters.last.maxBy(_.getNumPoints)
+
     }
 }
