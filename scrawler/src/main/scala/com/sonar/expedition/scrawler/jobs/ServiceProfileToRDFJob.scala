@@ -75,15 +75,14 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
         in: (String, String, ServiceProfileDTO) =>
             val (userProfileId, serviceType, serviceProfile) = in
-            try {
-                val model = ModelFactory.createDefaultModel()
-                //todo: find SIOC library
-                model.setNsPrefixes(Map[String, String](
-                    "foaf" -> foaf,
-                    "sioc" -> sioc,
-                    "opo" -> opo,
-                    "sonar" -> sonar)
-                )
+            val model = ModelFactory.createDefaultModel()
+            //todo: find SIOC library
+            model.setNsPrefixes(Map[String, String](
+                "foaf" -> foaf,
+                "sioc" -> sioc,
+                "opo" -> opo,
+                "sonar" -> sonar)
+            )
 
 
 
@@ -105,7 +104,7 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                 strWriter.toString
             } catch {
                 case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + serviceProfile, cece)
-            }finally {
+            } finally {
                 strWriter.close()
             }
 
