@@ -17,6 +17,7 @@ import com.sonar.dossier.dto.ServiceProfileDTO
 import com.hp.hpl.jena.sparql.vocabulary.FOAF
 import thewebsemantic.vocabulary.Sioc
 import com.sonar.dossier.ScalaGoodies._
+import com.hp.hpl.jena.shared.CannotEncodeCharacterException
 
 //import org.apache.clerezza.rdf.ontologies.FOAF
 
@@ -74,15 +75,16 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
         in: (String, String, ServiceProfileDTO) =>
             val (userProfileId, serviceType, serviceProfile) = in
+            try {
+                val model = ModelFactory.createDefaultModel()
+                //todo: find SIOC library
+                model.setNsPrefixes(Map[String, String](
+                    "foaf" -> foaf,
+                    "sioc" -> sioc,
+                    "opo" -> opo,
+                    "sonar" -> sonar)
+                )
 
-            val model = ModelFactory.createDefaultModel()
-            //todo: find SIOC library
-            model.setNsPrefixes(Map[String, String](
-                "foaf" -> foaf,
-                "sioc" -> sioc,
-                "opo" -> opo,
-                "sonar" -> sonar)
-            )
 
 
             model.createResource()
@@ -102,7 +104,7 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                 model.write(strWriter, "RDF/XML-ABBREV")
                 strWriter.toString
             } catch {
-                case e: Exception => ""
+                case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + serviceProfile, cece)
             }finally {
                 strWriter.close()
             }
