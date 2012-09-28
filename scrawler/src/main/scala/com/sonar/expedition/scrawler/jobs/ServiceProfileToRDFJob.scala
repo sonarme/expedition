@@ -38,7 +38,7 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     val testOutput = Tsv(outputDir + "/test.tsv")
     val testOutput2 = Tsv(outputDir + "/test2.tsv")
 
-    val profileRdf = Tsv(outputDir + "/profileRdf.tsv")
+    val profileRdf = Tsv(outputDir + "/profileRdfTsv")
     val profileRdfSequence = SequenceFile(outputDir + "/profileRdfSequence")
     val profilesSmall = Tsv(outputDir + "/profilesSmall.tsv")
 
@@ -119,7 +119,10 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     }.discard('userProfileIdHashMod)
 
     models
-            .write(profileRdfSequence)
+        .write(profileRdf)
+
+    models
+        .write(profileRdfSequence)
 
 }
 
