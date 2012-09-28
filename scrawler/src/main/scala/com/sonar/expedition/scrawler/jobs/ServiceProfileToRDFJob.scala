@@ -92,14 +92,14 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                                                 .addProperty(RDF.`type`, FOAF.Person)
                                                 .addProperty(ResourceFactory.createProperty(foaf + "account"), model.createResource(sioc + serviceType + ":" + serviceProfile.userId)
                                                                                                                     .addProperty(RDF.`type`, ResourceFactory.createProperty(sioc + "UserAccount"))
-                                                                                                                    .addProperty(FOAF.name, serviceProfile.fullName)
+                                                                                                                    .addProperty(FOAF.name, ??(serviceProfile.fullName).getOrElse(""))
                                                                                                                     .addProperty(FOAF.gender, ??(serviceProfile.gender).getOrElse("").toString)
                                                                                                                     .addProperty(FOAF.birthday, ??(serviceProfile.birthday).getOrElse("").toString)
-                                                                                                                    .addProperty(FOAF.accountName, serviceProfile.userId)
+                                                                                                                    .addProperty(FOAF.accountName, ??(serviceProfile.userId).getOrElse(""))
                                                                                                                     .addProperty(FOAF.mbox, ??(serviceProfile.aliases.email).getOrElse(""))
                                                                                                                     .addProperty(model.createProperty(foaf + "twitterId"), ??(serviceProfile.aliases.twitter).getOrElse(""))
                                                                                                                     .addProperty(model.createProperty(foaf + "facebookId"), ??(serviceProfile.aliases.facebook).getOrElse(""))
-                                                                                                                    .addProperty(FOAF.homepage, serviceProfile.url))
+                                                                                                                    .addProperty(FOAF.homepage, ??(serviceProfile.url).getOrElse("")))
 
                                   model
 
