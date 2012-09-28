@@ -101,7 +101,9 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
             try {
                 model.write(strWriter, "RDF/XML-ABBREV")
                 strWriter.toString
-            } finally {
+            } catch {
+                case e: Exception => ""
+            }finally {
                 strWriter.close()
             }
 
