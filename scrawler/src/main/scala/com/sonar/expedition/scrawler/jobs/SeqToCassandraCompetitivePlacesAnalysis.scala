@@ -18,19 +18,18 @@ import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 class SeqToCassandraCompetitivePlacesAnalysis(args: Args) extends Job(args) {
     val analysisType = CompetitiveAnalysisType.competitor
 
-    //184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
     val rpcHostArg = args("rpcHost")
     val ppmap = args.getOrElse("ppmap", "")
-    val sequenceInputCompetitiveAnalysis = args.getOrElse("competitiveAnalysisOutput", "s3n://scrawler/competitiveAnalysisOutput")
+    val sequenceInputCompetitiveAnalysis = args("competitiveAnalysisOutput")
 
     val seqCompetitiveAnalysis = SequenceFile(
         sequenceInputCompetitiveAnalysis,
         ('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity)
     )
             .read
-            .mapTo(('venName, 'venueTypes, 'goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
-        in: (String, String, String, String, String, String, Double) =>
-            val (_, _, goldenIdFrom, venueNameTo, venueTypesTo, goldenIdTo, similarityIndex) = in
+            .mapTo(('goldenId, 'venName2, 'venueTypes2, 'goldenId2, 'jaccardSimilarity) ->('rowKey, 'columnName, 'columnValue)) {
+        in: (String, String, String, String, Double) =>
+            val (goldenIdFrom, venueNameTo, venueTypesTo, goldenIdTo, similarityIndex) = in
 
 
             val targetVenueGoldenId = goldenIdFrom
