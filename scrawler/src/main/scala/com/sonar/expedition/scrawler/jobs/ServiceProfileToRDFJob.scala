@@ -28,21 +28,23 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     val outputDir = args("output")
     val input = args("input")
 
-    val profilesTsv = Tsv("/Users/rogchang/Desktop/rdf/serviceProfiles.tsv", ProfileTuple) //('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
+//    val profilesTsv = Tsv("/Users/rogchang/Desktop/rdf/serviceProfiles.tsv", ProfileTuple) //('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
     val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
     //    val friendships = SequenceFile("/Users/rogchang/Desktop/rdf/friendship_prod_0905_small", FriendTuple)
 
 
     //    val input = SequenceFile(src, ProfileTuple)
+/*
 
     val testOutput = Tsv(outputDir + "/test.tsv")
     val testOutput2 = Tsv(outputDir + "/test2.tsv")
+*/
 
     val profileRdf = Tsv(outputDir + "/profileRdfTsv")
     val profileRdfSequence = SequenceFile(outputDir + "/profileRdfSequence")
-    val profilesSmall = Tsv(outputDir + "/profilesSmall.tsv")
+  //  val profilesSmall = Tsv(outputDir + "/profilesSmall.tsv")
 
-    val profilesSmall2 = Tsv(input, ('userProfileId, 'serviceType, 'json))
+ //   val profilesSmall2 = Tsv(input, ('userProfileId, 'serviceType, 'json))
 
     val foaf = "http://xmlns.com/foaf/0.1/"
     val sioc = "http://rdfs.org/sioc/ns#"
@@ -53,26 +55,27 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     val serviceProfiles = profiles
         .read
         .unique('userProfileId, 'serviceType, 'json)
-        .map('json -> 'serviceProfileDTO) {
+        .flatMap('json -> 'serviceProfileDTO) {
             json: String => {
-                val serviceProfileDTO = try { ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](json, classOf[ServiceProfileDTO]) } catch {
-                    case e: Exception => println(json); null
+                try {
+                    Some(ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](json, classOf[ServiceProfileDTO])) }
+                catch {
+                    case e: Exception => None
                 }
-                serviceProfileDTO
             }
-        }.filter('serviceProfileDTO){sp: ServiceProfileDTO => sp != null && sp.viewingUser == null}
-        .discard('json)
+        }.discard('json).filter('serviceProfileDTO){sp: ServiceProfileDTO => sp.viewingUser == null}
+
 
 //    serviceProfiles
 //        .write(profileRdf)
 
 
     val models = serviceProfiles
-            .map('userProfileId -> 'userProfileIdHashMod) {
+            .map('userProfileId -> 'userProfileIdBucket) {
         userProfileId: String => {
-            userProfileId.hashCode % NumGroupChunks
+            userProfileId.hashCode / NumGroupChunks
         }
-    }.groupBy('userProfileIdHashMod) {
+    }.groupBy('userProfileIdBucket) {
         groupBuilder => {
             groupBuilder.mapReduceMap(('userProfileId, 'serviceType, 'serviceProfileDTO) -> ('model)) { //map1
                 in: (String, String, ServiceProfileDTO) => {
@@ -109,14 +112,18 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
             } { //map2
                 (modelOut: Model) => {
                     val outputStream = new ByteArrayOutputStream()
+                    try {
                     modelOut.write(outputStream, "RDF/XML-ABBREV")
 //                    modelOut.write(outputStream, "TURTLE")
                     outputStream.toString
+                    } finally {
+                        outputStream.close()
+                    }
                 }
             }
 
         }
-    }.discard('userProfileIdHashMod)
+    }.discard('userProfileIdBucket)
 
     models
         .write(profileRdf)
