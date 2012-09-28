@@ -6,7 +6,6 @@ import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.StringSerializer
 import com.sonar.expedition.scrawler.pipes.{FriendGrouperFunction, DTOProfileInfoPipe}
 import com.hp.hpl.jena.rdf.model.{ResourceFactory, Model, ModelFactory}
-import ServiceProfileToRDFJob._
 import collection.JavaConversions._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.io.{StringWriter, ByteArrayOutputStream}
