@@ -63,7 +63,7 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
         _.head('json)
     }
             .flatMapTo('json -> 'model) {
-        json: String =>
+        json: String => {
             try {
                 val serviceProfile = ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](json, classOf[ServiceProfileDTO])
                 val model = ModelFactory.createDefaultModel()
@@ -90,17 +90,17 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                 val strWriter = new StringWriter
                 try {
                     model.write(strWriter, "RDF/XML-ABBREV")
-                    strWriter.toString
+                    Some(strWriter.toString)
                 } catch {
                     case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + json, cece)
                 } finally {
                     strWriter.close()
                 }
-                Some(serviceProfile)
             }
             catch {
                 case e: Exception => None
             }
+        }
     }
     models
             .write(profileRdf)
