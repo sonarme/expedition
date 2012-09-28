@@ -17,15 +17,17 @@ object KMeansClustering {
     }
 
     def clusterCenter(points: Iterable[(Double, Double)], k: Int) = {
-        val highest = cluster(points, k)
+        val highest = cluster(points map {
+            case (lat, lng) => Array(lat, lng)
+        }, k)
         (highest.getCenter.get(0), highest.getCenter.get(1))
     }
 
 
-    def cluster(points: Iterable[(Double, Double)], k: Int) = {
+    def cluster(points: Iterable[Array[Double]], k: Int) = {
         require(k > 0)
         val pointsAsVectors = points map {
-            case (lat, lng) => new DenseVector(Array(lat, lng))
+            arr => new DenseVector(arr)
         }
         val initialClusters = pointsAsVectors.take(k).zipWithIndex.map {
             case (vector, idx) => new Cluster(vector, idx)

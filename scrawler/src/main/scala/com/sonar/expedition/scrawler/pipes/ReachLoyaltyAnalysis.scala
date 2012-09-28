@@ -2,6 +2,7 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.Haversine
+import com.sonar.expedition.scrawler.clustering.KMeansClustering
 
 
 trait ReachLoyaltyAnalysis extends ScaldingImplicits {
@@ -25,8 +26,7 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
 
             }
         }.groupBy('venueKey) {
-
-            _.sizeAveStdev('distanceTraveled ->('count, 'meanDist, 'stdevDist))
+            _.toList[Double](('distanceTraveled) -> ('distancesTraveled))
                     .count('isHome -> 'numHome) {
                 x: Boolean => x
             }
@@ -34,9 +34,13 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
                 x: Boolean => !x
             }
 
-        }.map('stdevDist -> 'stdevDist) {
-            stdev: Double => if (stdev.isNaN) 0.0 else stdev
-        }
+        }.map('distancesTraveled ->('meanDist, 'stdevDist)) {
+            distancesTraveled: List[Double] =>
+                val last = KMeansClustering.cluster(distancesTraveled.map(d => Array(d)), 2)
+                val center = last.getCenter.get(0)
+                val stdev = last.getStd
+                (center, if (stdev.isNaN) 0.0 else stdev)
+        }.discard('distancesTraveled)
 
 
 }
