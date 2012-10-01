@@ -14,30 +14,20 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
     implicit lazy val tz = TimeZone.getTimeZone("America/New_York")
 
 
-    def groupCheckins(input: RichPipe): RichPipe = {
-
-        val data = unfilteredCheckinsFromCassandra(input)
-                .filter('dayOfWeek) {
-            dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
-        }.filter('hour) {
-            hour: Double => hour > 8 && hour < 22 //user may checkin in 9-10 p.m for dinner
-        }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    def groupCheckins(input: RichPipe) = input.filter('dayOfWeek) {
+        dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
+    }.filter('hour) {
+        hour: Double => hour > 8 && hour < 22 //user may checkin in 9-10 p.m for dinner
+    }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
 
-        data
-    }
+    def groupHomeCheckins(input: RichPipe) = input
+            .filter('dayOfWeek, 'hour) {
+        fields: (Int, Double) =>
+            val (dayOfWeek, hour) = fields
+            ((dayOfWeek == 1 || dayOfWeek == 7) || (dayOfWeek > 1 && dayOfWeek < 7 && (hour < 8.5 || hour > 18.5)))
+    }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
-    def groupHomeCheckins(input: RichPipe): RichPipe = {
-
-        val data = unfilteredCheckinsFromCassandra(input)
-                .filter('dayOfWeek, 'hour) {
-            fields: (Int, Double) =>
-                val (dayOfWeek, hour) = fields
-                ((dayOfWeek == 1 || dayOfWeek == 7) || (dayOfWeek > 1 && dayOfWeek < 7 && (hour < 8.5 || hour > 18.5)))
-        }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-
-        data
-    }
 
     def deriveCheckinFields(checkinTime: Date, serviceType: String, serviceProfileId: String) = {
         val timeFilter = RichDate(checkinTime).toCalendar
@@ -58,13 +48,6 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
         }
     }
 
-
-    def addTotalTimesCheckedIn(input: RichPipe): RichPipe = {
-        val counter = input.groupBy('loc) {
-            _.size
-        }.rename('size -> 'numberOfVenueVisits)
-        input.joinWithSmaller('loc -> 'loc, counter)
-    }
 
     def friendsAtSameVenue(friendsInput: RichPipe, checkinInput: RichPipe, serviceIdsInput: RichPipe): RichPipe = {
 
