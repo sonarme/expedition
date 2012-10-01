@@ -37,24 +37,6 @@ class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTO
         _.head('uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)
     }
 
-    /*
-val joinedProfiles = profiles.rename('key->'rowkey)
-val trainer = new BayesModelPipe(args)
-
-val seqModel = SequenceFile(bayesmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
-fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
-
-}
-
-
-val jobtypes = joinedProfiles.rename('worktitle -> 'data)
-
-val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
-
-val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
- .rename('rowkey -> 'key) */
-
-
     val combined = combineCheckinsProfiles(checkinsWithGoldenIdAndLoc, profiles)
 
     val chkindata = groupCheckins(newCheckins)
@@ -69,18 +51,16 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
-    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
+    val workCentroids = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
 
     val homeCheckins = groupHomeCheckins(newCheckins)
 
-    val homeProfilesAndCheckins = profiles
-            .joinWithLarger('key -> 'keyid, homeCheckins)
-            .project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    val homeCentroids = findClusteroidofUserFromChkins(homeCheckins.map('keyid -> 'key) {
+        identity[String]
+    })
 
-    val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
-
-    findcityfromchkins.rename(('key1, 'centroid) ->('key, 'workCentroid))
-            .leftJoinWithSmaller('key -> 'key1, findhomefromchkins.rename('centroid -> 'homeCentroid))
+    homeCentroids.rename('centroid -> 'homeCentroid)
+            .leftJoinWithSmaller('key -> 'key1, workCentroids.rename(('key, 'centroid) ->('key1, 'workCentroid))).discard('key1)
             .write(SequenceFile(args("output"), ('key, 'workCentroid, 'homeCentroid)))
 
 }

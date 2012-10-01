@@ -43,11 +43,11 @@ trait CheckinInfoPipe extends ScaldingImplicits {
 
                     .toList[String]('loc -> 'locList)
 
-        }.mapTo(('key, 'locList) ->('key1, 'centroid)) {
+        }.mapTo(('key, 'locList) ->('key, 'centroid)) {
             fields: (String, List[String]) =>
-                val (key, chkinlist) = fields
-                val chkcity = findCityFromChkins(chkinlist)
-                (key, chkcity)
+                val (key, locationList) = fields
+                val clusterCenter = findCityFromChkins(locationList)
+                (key, clusterCenter)
         }
 
 
