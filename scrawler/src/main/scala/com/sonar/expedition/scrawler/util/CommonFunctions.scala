@@ -38,18 +38,21 @@ object CommonFunctions {
     final val venueGoldenIdPriorities = List(ServiceType.foursquare, ServiceType.twitter, ServiceType.facebook).reverse.zipWithIndex.toMap
 
     def iqrOutlier(data: Iterable[Double]) = {
-        require(data.size > 0)
-        val dataSorted = data.toSeq.sorted
-        val half = dataSorted.length / 2
-        val quarter = half / 2
-        val (q1, q3) =
-            if (half % 2 == 1)
-                (dataSorted(quarter), dataSorted(dataSorted.length - quarter - 1))
-            else ((dataSorted(quarter) + dataSorted(quarter + 1)) / 2,
-                    (dataSorted(dataSorted.length - quarter - 1) + dataSorted(dataSorted.length - quarter)) / 2)
-        val iqr = q3 - q1
-        val outlierFactor = 3
-        (q1 - outlierFactor * iqr, q3 + outlierFactor * iqr)
+        if (data.size == 1) (data.head, data.head)
+        else {
+            val dataSorted = data.toSeq.sorted
+            val half = dataSorted.length / 2
+            val quarter = half / 2
+            val (q1, q3) =
+
+                if (half % 2 == 1)
+                    (dataSorted(quarter), dataSorted(dataSorted.length - quarter - 1))
+                else ((dataSorted(quarter) + dataSorted(quarter + 1)) / 2,
+                        (dataSorted(dataSorted.length - quarter - 1) + dataSorted(dataSorted.length - quarter)) / 2)
+            val iqr = q3 - q1
+            val outlierFactor = 3
+            (q1 - outlierFactor * iqr, q3 + outlierFactor * iqr)
+        }
     }
 
     def mean[T](item: Traversable[T])(implicit n: Numeric[T]) = {
