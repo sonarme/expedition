@@ -17,7 +17,7 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
         input.filter('dayOfWeek, 'hour) {
             fields: (Int, Int) =>
                 val (dayOfWeek, hour) = fields
-                dayOfWeek >= DateTimeConstants.MONDAY && dayOfWeek <= DateTimeConstants.FRIDAY && hour > 8 && hour < 22
+                dayOfWeek >= DateTimeConstants.MONDAY && dayOfWeek <= DateTimeConstants.FRIDAY && hour >= 9 && hour <= 21
         }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
 
@@ -33,7 +33,7 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
         val localTz = TimezoneLookup.getClosestTimeZone(lat, lng)
         val localDateTime = new LocalDateTime(checkinTime, localTz)
         val goldenId = serviceType + ":" + serviceProfileId
-        (localDateTime.dayOfYear(), localDateTime.dayOfWeek(), localDateTime.hourOfDay(), goldenId)
+        (localDateTime.getDayOfYear, localDateTime.getDayOfWeek, localDateTime.getHourOfDay, goldenId)
     }
 
     def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {
