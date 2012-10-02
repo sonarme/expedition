@@ -38,7 +38,7 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
             distancesTraveled: List[Double] =>
                 val (lower, upper) = CommonFunctions.iqrOutlier(distancesTraveled)
                 val filtered = distancesTraveled.filter {
-                    distance => lower <= distance && distance <= upper
+                    _ <= upper
                 }
                 val mean = CommonFunctions.mean(filtered)
                 val stdev = CommonFunctions.stddev(filtered)
