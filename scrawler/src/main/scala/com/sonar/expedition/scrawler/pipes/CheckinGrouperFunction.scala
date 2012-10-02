@@ -8,24 +8,25 @@ import ch.hsr.geohash.{GeoHash, WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.util.{Date, TimeZone, Calendar}
 import org.scalastuff.scalabeans.types.DateType
-import org.joda.time.{LocalDateTime, DateTimeFieldType, LocalDate, DateTime}
+import org.joda.time._
 import com.sonar.expedition.scrawler.util.TimezoneLookup
 
 
 trait CheckinGrouperFunction extends ScaldingImplicits {
-    def groupCheckins(input: RichPipe) = input.filter('dayOfWeek) {
-        dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
-    }.filter('hour) {
-        hour: Double => hour > 8 && hour < 22 //user may checkin in 9-10 p.m for dinner
-    }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
+    def groupCheckins(input: RichPipe) =
+        input.filter('dayOfWeek, 'hour) {
+            fields: (Int, Int) =>
+                val (dayOfWeek, hour) = fields
+                dayOfWeek >= DateTimeConstants.MONDAY && dayOfWeek <= DateTimeConstants.FRIDAY && hour > 8 && hour < 22
+        }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
 
-    def groupHomeCheckins(input: RichPipe) = input
-            .filter('dayOfWeek, 'hour) {
-        fields: (Int, Double) =>
-            val (dayOfWeek, hour) = fields
-            ((dayOfWeek == 1 || dayOfWeek == 7) || (dayOfWeek > 1 && dayOfWeek < 7 && (hour < 8.5 || hour > 18.5)))
-    }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+    def groupHomeCheckins(input: RichPipe) =
+        input.filter('dayOfWeek, 'hour) {
+            fields: (Int, Int) =>
+                val (dayOfWeek, hour) = fields
+                dayOfWeek == DateTimeConstants.SATURDAY || dayOfWeek == DateTimeConstants.SUNDAY || (hour <= 8 || hour > 18) // TODO: intentional overlap?
+        }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
 
     def deriveCheckinFields(lat: Double, lng: Double, checkinTime: Date, serviceType: String, serviceProfileId: String) = {

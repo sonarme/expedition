@@ -7,6 +7,10 @@ import org.joda.time.DateTimeZone
 object TimezoneLookup {
     val TimezoneRegex = """(.+)\s+(.+)\s+(.+)""".r
 
+    /**
+     * data from http://stackoverflow.com/questions/5584602/determine-timezone-from-latitude-longitude-without-using-web-services-like-geona#comment11570232_5584826
+     * and removed the few timezones that DateTimeZone can't handle
+     */
     private lazy val timezones = new java.util.TreeMap[Long, DateTimeZone](dataFileMap("/datafiles/timezones.txt"): java.util.Map[Long, DateTimeZone])
 
     def dataFileMap(file: String) = io.Source.fromInputStream(getClass.getResourceAsStream(file)).getLines().flatMap {
