@@ -4,8 +4,6 @@ import com.twitter.scalding.{SequenceFile, Tsv, Job, Args}
 
 class DashboardQualityJob(args: Args) extends Job(args) {
 
-    val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
     val sequenceInputStatic = args("inputStatic")
     val output = args("output")
     SequenceFile(sequenceInputStatic, ('rowKey, 'columnName, 'columnValue)).read.mapTo(('rowKey, 'columnName, 'columnValue) ->('venueId, 'numberOfCheckins)) {
