@@ -13,7 +13,7 @@ class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTO
 
     val (newCheckinsX, _) = checkinSource(args, false, false)
     val newCheckins = unfilteredCheckinsFromCassandra(newCheckinsX)
-    val total = getTotalProfileTuples(args)
+    val total = serviceProfiles(args)
     /*
 
         val profiles = ageEducationPipe(total)
