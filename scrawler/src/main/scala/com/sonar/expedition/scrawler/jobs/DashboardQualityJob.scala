@@ -6,7 +6,7 @@ class DashboardQualityJob(args: Args) extends Job(args) {
 
     val sequenceInputStatic = args("inputStatic")
     val output = args("output")
-    SequenceFile(sequenceInputStatic, ('rowKey, 'columnName, 'columnValue)).read.mapTo(('rowKey, 'columnName, 'columnValue) ->('venueId, 'numberOfCheckins)) {
+    SequenceFile(sequenceInputStatic, ('rowKey, 'columnName, 'columnValue)).read.flatMapTo(('rowKey, 'columnName, 'columnValue) ->('venueId, 'numberOfCheckins)) {
         in: (String, String, Double) =>
             val (rowKey, columnName, columnValue) = in
             val Array(venueId, metric) = rowKey.split("_", 2)
