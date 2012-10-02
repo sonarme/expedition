@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.pipes
 import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine}
 import com.sonar.expedition.scrawler.clustering.KMeansClustering
-
+import grizzled.math.stats._
 
 trait ReachLoyaltyAnalysis extends ScaldingImplicits {
 
@@ -36,13 +36,12 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
 
         }.map('distancesTraveled ->('meanDist, 'stdevDist)) {
             distancesTraveled: List[Double] =>
-                val (lower, upper) = CommonFunctions.iqrOutlier(distancesTraveled)
+                val (_, upper) = CommonFunctions.iqrOutlier(distancesTraveled)
                 val filtered = distancesTraveled.filter {
                     _ <= upper
                 }
-                val mean = CommonFunctions.mean(filtered)
-                val stdev = CommonFunctions.stddev(filtered)
-                (mean, if (stdev.isNaN) 0.0 else stdev)
+                val stdev = popStdDev(filtered: _*)
+                (mean(filtered: _*), if (stdev.isNaN) 0.0 else stdev)
         }.discard('distancesTraveled)
 
 
