@@ -86,7 +86,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                             val Some(lng) = lngOption
                             val hashedServiceProfileId = hashed(serviceProfileId)
 
-                            val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(checkinTime, serviceType, hashedServiceProfileId)
+                            val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(lat, lng, checkinTime, serviceType, hashedServiceProfileId)
                             Some((rowKeyDes, keyId, serviceType, hashedServiceProfileId, serCheckinID,
                                     venName, venAddress, serviceType + ":" + venId, checkinTime, ghash, lat, lng, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
                         }

@@ -7,13 +7,12 @@ import java.security.MessageDigest
 import ch.hsr.geohash.{GeoHash, WGS84Point, BoundingBox}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.util.{Date, TimeZone, Calendar}
+import org.scalastuff.scalabeans.types.DateType
+import org.joda.time.{LocalDateTime, DateTimeFieldType, LocalDate, DateTime}
+import com.sonar.expedition.scrawler.util.TimezoneLookup
 
 
 trait CheckinGrouperFunction extends ScaldingImplicits {
-
-    implicit lazy val tz = TimeZone.getTimeZone("America/New_York")
-
-
     def groupCheckins(input: RichPipe) = input.filter('dayOfWeek) {
         dayOfWeek: Int => dayOfWeek > 1 && dayOfWeek < 7
     }.filter('hour) {
@@ -29,14 +28,11 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
     }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
 
-    def deriveCheckinFields(checkinTime: Date, serviceType: String, serviceProfileId: String) = {
-        val timeFilter = RichDate(checkinTime).toCalendar
-        val dayOfYear = timeFilter.get(Calendar.DAY_OF_YEAR)
-        val dayOfWeek = timeFilter.get(Calendar.DAY_OF_WEEK)
-        val hourOfDay = timeFilter.get(Calendar.HOUR_OF_DAY)
-        //val time = timeFilter.get(Calendar.HOUR_OF_DAY) + timeFilter.get(Calendar.MINUTE) / 60.0 + timeFilter.get(Calendar.SECOND) / 3600.0
+    def deriveCheckinFields(lat: Double, lng: Double, checkinTime: Date, serviceType: String, serviceProfileId: String) = {
+        val localTz = TimezoneLookup.getClosestTimeZone(lat, lng)
+        val localDateTime = new LocalDateTime(checkinTime, localTz)
         val goldenId = serviceType + ":" + serviceProfileId
-        (dayOfYear, dayOfWeek, hourOfDay, goldenId)
+        (localDateTime.dayOfYear(), localDateTime.dayOfWeek(), localDateTime.hourOfDay(), goldenId)
     }
 
     def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {

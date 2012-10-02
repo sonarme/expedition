@@ -15,7 +15,6 @@ object CommonFunctions {
     val NoCollege: Regex = """(H)""".r
     val Grad: Regex = """(D|M|MBA|J|P)""".r
 
-    val DEFAULT_NO_DATE = RichDate(0L)
     val NONE_VALUE = "none"
 
     def md5SumString(bytes: Array[Byte]): String = {
