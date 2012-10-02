@@ -17,7 +17,7 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
         input.filter('dayOfWeek, 'hour) {
             fields: (Int, Int) =>
                 val (dayOfWeek, hour) = fields
-                dayOfWeek >= DateTimeConstants.MONDAY && dayOfWeek <= DateTimeConstants.FRIDAY && hour >= 9 && hour <= 21
+                dayOfWeek >= DateTimeConstants.MONDAY && dayOfWeek <= DateTimeConstants.FRIDAY && hour >= 10 && hour <= 16
         }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
 
@@ -25,7 +25,7 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
         input.filter('dayOfWeek, 'hour) {
             fields: (Int, Int) =>
                 val (dayOfWeek, hour) = fields
-                dayOfWeek == DateTimeConstants.SATURDAY || dayOfWeek == DateTimeConstants.SUNDAY || (hour <= 8 || hour > 18) // TODO: intentional overlap?
+                dayOfWeek == DateTimeConstants.SATURDAY || dayOfWeek == DateTimeConstants.SUNDAY || hour <= 7 || hour >= 20
         }.project(('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
 
