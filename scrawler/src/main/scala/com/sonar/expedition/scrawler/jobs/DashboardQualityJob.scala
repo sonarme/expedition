@@ -19,7 +19,7 @@ class DashboardQualityJob(args: Args) extends Job(args) {
             if (metric == "numCheckins" && columnName == "withProfile" && columnValue >= 500) Some(venueId)
             else None
     }
-    venueIds.joinWithSmaller('venueId -> 'venueId, placeClassification).unique('venueId, 'venName, 'venueLat, 'venueLng).map(('venueId, 'venName, 'venueLat, 'venueLng) ->('rowKey, 'columnName, 'columnValue)) {
+    venueIds.joinWithSmaller('venueId -> 'venueId, placeClassification).unique('venueId, 'venName, 'venueLat, 'venueLng).mapTo(('venueId, 'venName, 'venueLat, 'venueLng) ->('rowKey, 'columnName, 'columnValue)) {
         in: (String, String, Double, Double) =>
             val (venueId, venueName, venueLat, venueLng) = in
             (
@@ -29,12 +29,14 @@ class DashboardQualityJob(args: Args) extends Job(args) {
                     )
 
 
-    }.write(CassandraSource(
+    }.write(Tsv(output))
+
+    /*.write(CassandraSource(
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "MetricsVenues",
         scheme = WideRowScheme(keyField = 'rowKey)
-    ))
+    ))*/
 
 }
