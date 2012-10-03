@@ -12,11 +12,11 @@ class DashboardQualityExtractJob(args: Args) extends Job(args) {
     val placeClassification = SequenceFile(args("placeClassification"), PlaceClassification.PlaceClassificationOutputTuple)
     val sequenceInputStatic = args("inputStatic")
     val output = args("output")
-    val venueIds = SequenceFile(sequenceInputStatic, ('rowKey, 'columnName, 'columnValue)).read.flatMapTo(('rowKey, 'columnName, 'columnValue) -> ('venueId)) {
+    val venueIds = SequenceFile(sequenceInputStatic, ('rowKey, 'columnName, 'columnValue)).read.flatMapTo(('rowKey, 'columnName, 'columnValue) ->('venueId, 'checkinsWithProfile)) {
         in: (String, String, Double) =>
             val (rowKey, columnName, columnValue) = in
             val Array(venueId, metric) = rowKey.split("_", 2)
-            if (metric == "numCheckins" && columnName == "withProfile" && columnValue >= 500) Some(venueId)
+            if (metric == "numCheckins" && columnName == "withProfile" && columnValue >= 500) Some(venueId -> columnValue)
             else None
     }
     venueIds.joinWithSmaller('venueId -> 'venueId, placeClassification).map(('venueLat, 'venueLng) -> ('geosector)) {
