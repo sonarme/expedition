@@ -4,6 +4,7 @@ import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
 import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
+import java.util.Date
 
 
 class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
@@ -12,7 +13,13 @@ class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTO
     val friendinput = args("friendInput")
 
     val (newCheckinsX, _) = checkinSource(args, false, false)
-    val newCheckins = unfilteredCheckinsFromCassandra(newCheckinsX)
+    val newCheckins = unfilteredCheckinsFromCassandra(newCheckinsX.discard('dayOfYear, 'dayOfWeek, 'hour).
+            map(('lat, 'lng, 'chknTime) ->('dayOfYear, 'dayOfWeek, 'hour)) {
+        in: (Double, Double, Date) =>
+            val (lat, lng, checkinTime) = in
+            val (dayOfYear, dayOfWeek, hourOfDay, _) = deriveCheckinFields(lat, lng, checkinTime, "", "")
+            (dayOfYear, dayOfWeek, hourOfDay)
+    })
     val total = serviceProfiles(args)
     /*
 
