@@ -29,14 +29,12 @@ class DashboardQualityJob(args: Args) extends Job(args) {
                     )
 
 
-    }.write(Tsv(output))
-
-    /*.write(CassandraSource(
+    }.write(CassandraSource(
         rpcHost = rpcHostArg,
         privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "MetricsVenues",
         scheme = WideRowScheme(keyField = 'rowKey)
-    ))*/
+    ))
 
 }
