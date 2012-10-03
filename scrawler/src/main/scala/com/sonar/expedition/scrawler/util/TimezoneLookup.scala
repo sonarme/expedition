@@ -26,7 +26,7 @@ object TimezoneLookup {
         val geohashKey = geohash(lat, lng)
         val higher = timezones.higherEntry(geohashKey)
         val lower = timezones.lowerEntry(geohashKey)
-        val min = Seq(higher, lower).minBy(entry => math.abs(entry.getKey - geohashKey))
+        val min = Seq(higher, lower).filterNot(_ == null).minBy(entry => math.abs(entry.getKey - geohashKey))
         min.getValue
     }
 }
