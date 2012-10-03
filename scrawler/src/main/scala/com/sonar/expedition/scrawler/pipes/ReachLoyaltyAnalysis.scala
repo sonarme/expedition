@@ -40,7 +40,7 @@ trait ReachLoyaltyAnalysis extends ScaldingImplicits {
                 val filtered = distancesTraveled.filter {
                     _ <= upper
                 }
-                val stdev = popStdDev(filtered: _*)
+                val stdev = if (filtered.size > 1) sampleStdDev(filtered: _*) else 0
                 (mean(filtered: _*), if (stdev.isNaN) 0.0 else stdev)
         }.discard('distancesTraveled)
 
