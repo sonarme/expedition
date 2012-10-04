@@ -71,8 +71,8 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
     val serviceIds = total.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
     val findcityfromchkins = findClusterCenter(profilesAndCheckins ++ coworkerCheckins)
-    val homeCheckins = homeCheckins(checkins)
-    val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
+    val home = homeCheckins(checkins)
+    val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, home).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val findhomefromchkins = findClusterCenter(homeProfilesAndCheckins)
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
             .map('centroid -> 'workCentroid) {
