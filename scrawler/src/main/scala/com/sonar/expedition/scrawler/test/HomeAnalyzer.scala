@@ -19,11 +19,11 @@ class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with Ch
 
     val joinedProfiles = getTotalProfileTuples(args)
 
-    val chkindata = groupHomeCheckins(TextLine(chkininputData).read)
+    val chkindata = homeCheckins(TextLine(chkininputData).read)
 
     val profilesAndCheckins = joinedProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
-    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins)
+    val findcityfromchkins = findClusterCenter(profilesAndCheckins)
 
     joinedProfiles.joinWithSmaller('key -> 'key1, findcityfromchkins).project(('key, 'uname, 'fbid, 'lnid, 'worked, 'city, 'worktitle, 'centroid))
             .map('worked -> 'work) {

@@ -13,7 +13,7 @@ import com.sonar.expedition.scrawler.util.TimezoneLookup
 
 
 trait CheckinGrouperFunction extends ScaldingImplicits {
-    def groupCheckins(input: RichPipe) =
+    def workCheckins(input: RichPipe) =
         input.filter('dayOfWeek, 'hour) {
             fields: (Int, Int) =>
                 val (dayOfWeek, hour) = fields
@@ -21,7 +21,7 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
         }.project('keyid, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
 
-    def groupHomeCheckins(input: RichPipe) =
+    def homeCheckins(input: RichPipe) =
         input.filter('dayOfWeek, 'hour) {
             fields: (Int, Int) =>
                 val (dayOfWeek, hour) = fields

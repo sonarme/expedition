@@ -64,16 +64,16 @@ class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSour
             .write(TextLine(combinedOut))
 
 
-    val chkindata = groupCheckins(checkins)
+    val chkindata = workCheckins(checkins)
     val friendsForCoworker = SequenceFile(friendinput, FriendTuple).read
     val profilesAndCheckins = combined.project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
     val employerGroupedServiceProfiles = total.project(('key, 'worked))
     val serviceIds = total.project(('key, 'fbid, 'lnid)).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
-    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
-    val homeCheckins = groupHomeCheckins(checkins)
+    val findcityfromchkins = findClusterCenter(profilesAndCheckins ++ coworkerCheckins)
+    val homeCheckins = homeCheckins(checkins)
     val homeProfilesAndCheckins = profiles.joinWithLarger('key -> 'keyid, homeCheckins).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
-    val findhomefromchkins = findClusteroidofUserFromChkins(homeProfilesAndCheckins)
+    val findhomefromchkins = findClusterCenter(homeProfilesAndCheckins)
     val withHomeWork = combined.joinWithSmaller('key -> 'key1, findcityfromchkins)
             .map('centroid -> 'workCentroid) {
         centroid: String => centroid

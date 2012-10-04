@@ -14,7 +14,7 @@ import com.sonar.expedition.scrawler.util.LocationClusterer
 trait CheckinInfoPipe extends ScaldingImplicits {
 
     // todo: mr-dbscan
-    def findClusteroidofUserFromChkins(chkins: RichPipe) =
+    def findClusterCenter(chkins: RichPipe) =
         chkins.groupBy('key) {
             _.toList[String]('loc -> 'locList)
         }.flatMap('locList -> 'centroid) {
