@@ -37,29 +37,26 @@ trait CheckinInfoPipe extends ScaldingImplicits {
         citypipe
     }
 
+    // todo: mr-dbscan
     def findClusteroidofUserFromChkins(chkins: RichPipe) =
         chkins.groupBy('key) {
-            _
-                    //.mapReduceMap('key->'key1), todo understand mapreducemap api
-
-                    .toList[String]('loc -> 'locList)
-
-        }.mapTo(('key, 'locList) ->('key, 'centroid)) {
-            fields: (String, List[String]) =>
-                val (key, locationList) = fields
-                val clusterCenter = findCityFromChkins(locationList)
-                (key, clusterCenter)
-        }
+            _.toList[String]('loc -> 'locList)
+        }.flatMap('locList -> 'centroid) {
+            locationList: List[String] => findCityFromChkins(locationList)
+        }.discard('locList)
 
 
-    def findCityFromChkins(chkinlist: List[String]): String =
-        if (chkinlist.isEmpty) "0.0:0.0" // TODO: hack
+    def findCityFromChkins(chkinlist: List[String]) =
+        if (chkinlist.isEmpty) None
         else {
-            val (lat, lng) = LocationClusterer.maxClusterCenter(chkinlist.map {
+            val points = chkinlist.map {
                 s => val Array(lat, lng) = s.split(':')
                 (lat.toDouble, lng.toDouble)
-            })
-            lat + ":" + lng
+            }
+            LocationClusterer.maxClusterCenter(points) map {
+                case (lat, lng) => lat + ":" + lng
+            }
+
         }
 
 }
