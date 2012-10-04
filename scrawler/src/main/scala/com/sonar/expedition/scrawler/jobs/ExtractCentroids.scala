@@ -60,5 +60,6 @@ class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTO
     homeCentroids.rename('centroid -> 'homeCentroid)
             .leftJoinWithSmaller('key -> 'key1, workCentroids.rename(('key, 'centroid) ->('key1, 'workCentroid))).discard('key1)
             .write(SequenceFile(args("output"), ('key, 'workCentroid, 'homeCentroid)))
+            .write(Tsv(args("output" + "_tsv"), ('key, 'workCentroid, 'homeCentroid)))
 
 }

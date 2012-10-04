@@ -8,6 +8,7 @@ import scala.collection.mutable.ListBuffer
 import com.sonar.expedition.scrawler.clustering._
 import org.joda.time.DateTime
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.sonar.expedition.scrawler.util.LocationClusterer
 
 
 trait CheckinInfoPipe extends ScaldingImplicits {
@@ -53,5 +54,12 @@ trait CheckinInfoPipe extends ScaldingImplicits {
 
     def findCityFromChkins(chkinlist: List[String]): String =
         if (chkinlist.isEmpty) "0.0:0.0" // TODO: hack
-        else KMeansClustering.clusterCenterAsString(chkinlist, 3)
+        else {
+            val (lat, lng) = LocationClusterer.maxClusterCenter(chkinlist.map {
+                s => val Array(lat, lng) = s.split(':')
+                (lat.toDouble, lng.toDouble)
+            })
+            lat + ":" + lng
+        }
+
 }
