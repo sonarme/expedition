@@ -51,9 +51,9 @@ class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTO
 
     val workCentroids = findClusterCenter(profilesAndCheckins ++ coworkerCheckins)
 
-    val homeCheckins = homeCheckins(newCheckins)
+    val home = homeCheckins(newCheckins)
 
-    val homeCentroids = findClusterCenter(homeCheckins.map('keyid -> 'key) {
+    val homeCentroids = findClusterCenter(home.map('keyid -> 'key) {
         identity[String]
     })
 
