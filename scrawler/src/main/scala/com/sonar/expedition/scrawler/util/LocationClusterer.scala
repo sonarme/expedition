@@ -22,7 +22,7 @@ object LocationClusterer {
         val clusters = cluster(points)
         if (clusters.isEmpty) None
         else {
-            val max = cluster(points).maxBy(_.length)
+            val max = clusters.maxBy(_.length)
             val avg = average(max.map(instance => (instance.value(0), instance.value(1))))
             Some(avg)
         }
