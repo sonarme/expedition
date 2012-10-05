@@ -18,12 +18,12 @@ trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe
 
     def deltatime(chkintime1: String, chkintime2: String, timediff: String, prodtest: Int): Boolean = {
         val timeFilter1 = Calendar.getInstance()
-        val checkinDate1 = CheckinTimeFilter.parseDateTime(chkintime1)
+        val checkinDate1 = null //
         timeFilter1.setTime(checkinDate1)
         val date1 = timeFilter1.get(Calendar.DAY_OF_YEAR)
         val time1 = timeFilter1.get(Calendar.HOUR_OF_DAY) + timeFilter1.get(Calendar.MINUTE) / 60.0
         val timeFilter2 = Calendar.getInstance()
-        val checkinDate2 = CheckinTimeFilter.parseDateTime(chkintime2)
+        val checkinDate2 = null //
         timeFilter2.setTime(checkinDate2)
         val date2 = timeFilter2.get(Calendar.DAY_OF_YEAR)
         val time2 = timeFilter2.get(Calendar.HOUR_OF_DAY) + timeFilter2.get(Calendar.MINUTE) / 60.0
@@ -168,11 +168,11 @@ trait LocationBehaviourAnalysePipe extends DTOPlacesInfoPipe with BayesModelPipe
                 val ghash1 = GeoHash.withBitPrecision(latitude, longitude, geoHashSectorSize.toInt).longValue()
                 val ghash2 = GeoHash.withBitPrecision(latitude2, longitude2, geoHashSectorSize.toInt).longValue()
                 val timeFilter1 = Calendar.getInstance()
-                val checkinDate1 = CheckinTimeFilter.parseDateTime(chknTimeFrom)
+                val checkinDate1 = null //TODO:
                 timeFilter1.setTime(checkinDate1)
                 val timefrom = formatter.format((timeFilter1.get(Calendar.HOUR_OF_DAY) + timeFilter1.get(Calendar.MINUTE) / 60.0).toDouble) + " " + timeformat(timeFilter1.get(Calendar.AM_PM));
                 val timeFilter2 = Calendar.getInstance()
-                val checkinDate2 = CheckinTimeFilter.parseDateTime(chknTimeTo)
+                val checkinDate2 = null //TODO:
                 timeFilter2.setTime(checkinDate2)
                 val timeto = formatter.format((timeFilter2.get(Calendar.HOUR_OF_DAY) + timeFilter1.get(Calendar.MINUTE) / 60.0).toDouble) + " " + timeformat(timeFilter2.get(Calendar.AM_PM));
                 val datefrom = timeFilter1.get(Calendar.YEAR) + "/" + timeFilter1.get(Calendar.MONTH) + "/" + timeFilter1.get(Calendar.DAY_OF_MONTH) + " " + getWeekDay(timeFilter1.get(Calendar.DAY_OF_WEEK))

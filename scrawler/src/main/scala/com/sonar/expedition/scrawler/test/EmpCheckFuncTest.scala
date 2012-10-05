@@ -14,7 +14,7 @@ class EmpCheckFuncTest(args: Args) extends Job(args) with CheckinGrouperFunction
 
 
     val pipeserv = TextLine(serviceProfileInput).read.project('line)
-    val pipecheck = groupCheckins(TextLine(checkinInput).read.project('line))
+    val pipecheck = workCheckins(TextLine(checkinInput).read.project('line))
     val pipeout = findEmployees(pipeserv, pipecheck).write(TextLine(out))
 
 }

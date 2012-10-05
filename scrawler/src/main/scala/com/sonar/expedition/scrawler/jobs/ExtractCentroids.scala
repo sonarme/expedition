@@ -35,11 +35,11 @@ class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTO
         }
     */
 
-    val chkindata = groupCheckins(newCheckins)
+    val work = workCheckins(newCheckins)
 
     val friendsForCoworker = SequenceFile(friendinput, FriendTuple).read
 
-    val profilesAndCheckins = newCheckins.map('keyid -> 'key) {
+    val profilesAndCheckins = work.map('keyid -> 'key) {
         identity[String]
     }.project('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc)
 
@@ -47,18 +47,19 @@ class ExtractCentroids(args: Args) extends Job(args) with CheckinSource with DTO
 
     val serviceIds = total.project('key, 'fbid, 'lnid).rename(('key, 'fbid, 'lnid) ->('row_keyfrnd, 'fbId, 'lnId))
 
-    val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
+    val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, work)
 
-    val workCentroids = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
+    val workCentroids = findClusterCenter(profilesAndCheckins ++ coworkerCheckins)
 
-    val homeCheckins = groupHomeCheckins(newCheckins)
+    val home = homeCheckins(newCheckins)
 
-    val homeCentroids = findClusteroidofUserFromChkins(homeCheckins.map('keyid -> 'key) {
+    val homeCentroids = findClusterCenter(home.map('keyid -> 'key) {
         identity[String]
     })
 
     homeCentroids.rename('centroid -> 'homeCentroid)
             .leftJoinWithSmaller('key -> 'key1, workCentroids.rename(('key, 'centroid) ->('key1, 'workCentroid))).discard('key1)
             .write(SequenceFile(args("output"), ('key, 'workCentroid, 'homeCentroid)))
+            .write(Tsv(args("output") + "_tsv", ('key, 'workCentroid, 'homeCentroid)))
 
 }

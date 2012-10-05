@@ -2,7 +2,6 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Haversine}
-import com.sonar.expedition.scrawler.clustering.KMeansClustering
 import grizzled.math.stats._
 
 trait ReachLoyaltyAnalysis extends ScaldingImplicits {

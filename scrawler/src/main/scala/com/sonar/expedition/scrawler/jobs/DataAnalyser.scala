@@ -87,7 +87,7 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Ch
 
     val friendsForCoworker = SequenceFile(finp, FriendTuple).read
 
-    val chkindata = groupCheckins(TextLine(chkininputData).read)
+    val chkindata = workCheckins(TextLine(chkininputData).read)
 
     val profilesAndCheckins = filteredProfiles.joinWithLarger('key -> 'keyid, chkindata).project(('key, 'serType, 'serProfileID, 'serCheckinID, 'venName, 'venAddress, 'chknTime, 'ghash, 'loc))
 
@@ -101,7 +101,7 @@ class DataAnalyser(args: Args) extends Job(args) with DTOProfileInfoPipe with Ch
 
     val coworkerCheckins = findCoworkerCheckinsPipe(employerGroupedServiceProfiles, friendsForCoworker, serviceIds, chkindata)
 
-    val findcityfromchkins = findClusteroidofUserFromChkins(profilesAndCheckins ++ coworkerCheckins)
+    val findcityfromchkins = findClusterCenter(profilesAndCheckins ++ coworkerCheckins)
 
 
     val filteredProfilesWithScore = stemmingAndScore(filteredProfiles, findcityfromchkins, placesPipe, numberOfFriends)

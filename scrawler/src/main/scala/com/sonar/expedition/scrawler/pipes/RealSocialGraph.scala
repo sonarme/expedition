@@ -31,7 +31,7 @@ trait RealSocialGraph extends ScaldingImplicits {
                 .map('chknTime -> 'timeChunk) {
             checkinTime: String => {
                 val timeFilter = Calendar.getInstance()
-                val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                val checkinDate = null //TODO:
                 timeFilter.setTime(checkinDate)
                 (timeFilter.getTimeInMillis / 86400000) // 1000 * 60 * 60 * 24 = for 24 hour chunks
             }
@@ -194,7 +194,7 @@ trait RealSocialGraph extends ScaldingImplicits {
                 .map('chknTime ->('timeChunk, 'timeChunk2)) {
             checkinTime: String => {
                 val timeFilter = Calendar.getInstance()
-                val checkinDate = CheckinTimeFilter.parseDateTime(checkinTime)
+                val checkinDate = null //TODO:
                 timeFilter.setTime(checkinDate)
                 ((timeFilter.getTimeInMillis / 14400000), ((timeFilter.getTimeInMillis + 7200000) / 14400000)) //1000 * 60 * 60 * 4 = for 4 hour chunks
             }
