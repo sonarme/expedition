@@ -20,17 +20,10 @@ trait BuzzFromCheckins extends ScaldingImplicits {
         }
 
 
-    def findBuzz(shingles: RichPipe, checkinsWithNoMessages: RichPipe) =
-        checkinsWithNoMessages
-                .flatMap('venName -> 'stemmedVenName) {
-            venName: String =>
-                if (CommonFunctions.isNullOrEmpty(venName)) None
-                else Some(StemAndMetaphoneEmployer.removeStopWords(venName))
-        }.joinWithLarger('stemmedVenName -> 'singleShingle, shingles).groupBy('stemmedVenName, 'goldenId) {
-            _.size('shinglesPerVenue)
-        }.groupBy('stemmedVenName) {
-            _.sum('shinglesPerVenue -> 'buzzCount).toList[String]('goldenId -> 'goldenIdList)
-        }.project('stemmedVenName, 'buzzCount, 'goldenIdList)
+    def findBuzz(shingles: RichPipe, placeClassification: RichPipe) =
+        placeClassification.joinWithLarger('stemmedVenName -> 'singleShingle, shingles).groupBy('stemmedVenName) {
+            _.size('buzzCount)
+        }
 
 
     def findBuzzStats(buzz: RichPipe) =
@@ -43,16 +36,14 @@ trait BuzzFromCheckins extends ScaldingImplicits {
     def calculateBuzzScore(normalizedBuzz: RichPipe, minMaxAvg: RichPipe) =
         normalizedBuzz
                 .crossWithTiny(minMaxAvg)
-                .flatMapTo(('goldenIdList, 'buzzCount, 'min, 'max, 'avg) ->('rowKey, 'columnName, 'columnValue)) {
-            fields: (List[String], Double, Double, Double, Double) =>
-                val (goldenIdList, buzzCount, min, max, avg) = fields
+                .map(('buzzCount, 'min, 'max, 'avg) -> 'buzzScore) {
+            fields: (Double, Double, Double, Double) =>
+                val (buzzCount, min, max, avg) = fields
                 val normalized = normalize(buzzCount, avg)
                 val minNormalized = normalize(min, avg)
                 val maxNormalized = normalize(max, avg)
                 val buzzScore = (normalized - minNormalized) * (98 / (maxNormalized - minNormalized)) + 1.0
-                goldenIdList flatMap {
-                    goldenId => List((goldenId + "_normalizedBuzz", "buzzCount", buzzCount), (goldenId + "_normalizedBuzz", "buzzScore", buzzScore))
-                }
+                buzzScore
         }
 
 
