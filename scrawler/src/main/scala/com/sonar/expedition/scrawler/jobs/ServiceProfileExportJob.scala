@@ -8,12 +8,13 @@ import com.sonar.scalding.cassandra.CassandraSource
 
 class ServiceProfileExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
     val rpcHostArg = args("rpcHost")
-    val ppmapStr = args.getOrElse("ppmap", "")
-    val ppmap = ppmapStr.split(" *, *").map {
-        s =>
-            val Array(left, right) = s.split(':')
-            ("cassandra.node.map." + left) -> right
-    }.toMap
+    val ppmap = args.optional("ppmap") map {
+        _.split(" *, *").map {
+            s =>
+                val Array(left, right) = s.split(':')
+                ("cassandra.node.map." + left) -> right
+        }.toMap
+    } getOrElse (Map.empty[String, String])
     val output = args("output")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
