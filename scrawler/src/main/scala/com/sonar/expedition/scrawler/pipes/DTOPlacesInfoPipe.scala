@@ -6,6 +6,7 @@ import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 import scala.Array
 import com.sonar.expedition.scrawler.dto.PlacesClassifiersDTO
 import com.sonar.expedition.scrawler.dto.PlacesDTO
+import com.fasterxml.jackson.module.scala.JacksonModule
 
 
 trait DTOPlacesInfoPipe extends ScaldingImplicits {
@@ -22,7 +23,7 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                         'classifiersCategory, 'classifiersType, 'classifiersSubcategory, 'propertiesPhone, 'propertiesHref, 'propertiesAddress, 'propertiesOwner, 'propertiesPostcode, 'linenum)) {
             fields: (String, String) =>
                 val (data, linenum) = fields
-                val placesJson = parseJson(Option(data))
+                val placesJson = ScrawlerObjectMapper.parseJson(data)
                 val geometryType = getGeometryType(placesJson)
                 val coordinates = getGeometryCoordinates(placesJson)
                 val geometryLongitude = coordinates.head
@@ -47,17 +48,6 @@ trait DTOPlacesInfoPipe extends ScaldingImplicits {
                         classifiersCategory, classifiersType, classifiersSubcategory, propertiesPhone, propertiesHref, propertiesAddress, propertiesOwner, propertiesPostcode, linenum)
         }
 
-
-    def parseJson(jsonStringOption: Option[String]): Option[PlacesDTO] = {
-        jsonStringOption map {
-            jsonString =>
-                try {
-                    ScrawlerObjectMapper.mapper().readValue(jsonString, classOf[PlacesDTO])
-                } catch {
-                    case e => throw new RuntimeException("Error parsing JSON: " + jsonString, e)
-                }
-        }
-    }
 
     def getGeometryType(placesData: Option[PlacesDTO]): String = {
         placesData.map(_.getGeometry.getGeometryType()).getOrElse("None")

@@ -35,96 +35,93 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
 
     def serviceProfiles(args: Args) = SequenceFile(args("serviceProfileInput"), ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree)).read
 
-    def getDTOProfileInfoInTuples(datahandle: RichPipe): RichPipe = {
-
-        val dtoProfiles = datahandle
-                .flatMapTo(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('id, 'priority, 'profile)) {
-            in: (ByteBuffer, ByteBuffer, ByteBuffer) =>
-                val (userProfileIdBuffer, columnNameBuffer, jsondataBuffer) = in
+    def getDTOProfileInfoInTuples(datahandle: RichPipe) =
+        datahandle
+                .flatMapTo('jsondataBuffer ->('profileId, 'profile)) {
+            jsondataBuffer: ByteBuffer =>
                 if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
                 else {
                     val jsondata = ByteBufferUtil.getArray(jsondataBuffer)
-                    val rowkey = StringSerializer.get().fromByteBuffer(userProfileIdBuffer)
-                    val serviceTypeString = StringSerializer.get().fromByteBuffer(columnNameBuffer).split(':').last
-                    if (serviceTypeString == "link") None
-                    else {
-                        val serviceType = ServiceType.valueOf(serviceTypeString)
-                        try {
-                            Option(ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](jsondata, classOf[ServiceProfileDTO])) map {
-                                parsed =>
-
-                                    val priority = if (serviceType == ServiceType.linkedin) 0 else 1
-                                    // TODO: fix nulls to be empty
-                                    val work = parsed.work.headOption
-                                    val education = parsed.education.headOption
-                                    val profileData = new ProfileData(
-                                        key = rowkey,
-                                        name = Option(parsed.fullName).getOrElse(""),
-                                        workcomp = work.map(_.companyName).getOrElse(""), // TODO, don't use empty string
-                                        worktitle = work.map(_.title).getOrElse(""),
-                                        educationschool = education.map(_.schoolName).getOrElse(""),
-                                        eduyear = education.map(_.getYear()).getOrElse(""),
-                                        edudegree = education.map(_.getDegree()).getOrElse(""),
-                                        workdesc = work.map(_.getSummary()).getOrElse(""),
-                                        ccity = Option(parsed.getLocation()).getOrElse("") // TODO, don't use empty string
-                                    )
-                                    profileData.twid = ??(parsed.aliases.twitter).map(hashed).getOrElse("")
-                                    profileData.fbid = ??(parsed.aliases.facebook).map(hashed).getOrElse("")
-
-                                    serviceType match {
-                                        case ServiceType.linkedin => profileData.lnid = Option(hashed(parsed.userId)).getOrElse("")
-                                        case ServiceType.facebook => profileData.fbid = Option(hashed(parsed.userId)).getOrElse("")
-                                        case ServiceType.twitter => profileData.twid = Option(hashed(parsed.userId)).getOrElse("")
-                                        case ServiceType.foursquare => profileData.fsid = Option(hashed(parsed.userId)).getOrElse("")
-                                    }
-
-
-                                    (rowkey, priority, profileData)
-                            }
-                        }
-                        catch {
-                            case e => None
-                        }
+                    val result = ScrawlerObjectMapper.parseJsonBytes[ServiceProfileDTO](jsondata)
+                    result.map {
+                        profile => (profile.profileId, profile)
                     }
+
+                    /*map {
+                                            parsed =>
+
+                                                // TODO: fix nulls to be empty
+                                                val work = parsed.work.headOption
+                                                val education = parsed.education.headOption
+                                                val profileData = new ProfileData(
+                                                    key = "",
+                                                    name = Option(parsed.fullName).getOrElse(""),
+                                                    workcomp = work.map(_.companyName).getOrElse(""), // TODO, don't use empty string
+                                                    worktitle = work.map(_.title).getOrElse(""),
+                                                    educationschool = education.map(_.schoolName).getOrElse(""),
+                                                    eduyear = education.map(_.getYear()).getOrElse(""),
+                                                    edudegree = education.map(_.getDegree()).getOrElse(""),
+                                                    workdesc = work.map(_.getSummary()).getOrElse(""),
+                                                    ccity = Option(parsed.getLocation()).getOrElse("") // TODO, don't use empty string
+                                                )
+                                                profileData.twid = ??(parsed.aliases.twitter).map(hashed).getOrElse("")
+                                                profileData.fbid = ??(parsed.aliases.facebook).map(hashed).getOrElse("")
+
+                                                parsed.serviceType match {
+                                                    case ServiceType.linkedin => profileData.lnid = Option(hashed(parsed.userId)).getOrElse("")
+                                                    case ServiceType.facebook => profileData.fbid = Option(hashed(parsed.userId)).getOrElse("")
+                                                    case ServiceType.twitter => profileData.twid = Option(hashed(parsed.userId)).getOrElse("")
+                                                    case ServiceType.foursquare => profileData.fsid = Option(hashed(parsed.userId)).getOrElse("")
+                                                }
+
+                                                profileData
+                                        }
+                    */
+
                 }
 
 
+        }.groupBy('profileId) {
+            _.reduce('profile -> 'combinedProfile) {
+                (profileAgg: ServiceProfileDTO, profile: ServiceProfileDTO) =>
+                    populateNonEmpty(profileAgg, profile)
+            }
         }
 
-        val combinedProfiles = dtoProfiles
+    /*
 
-                .groupBy('id) {
-            _.sortBy('priority)
-                    .reduce('profile -> 'combinedProfile) {
-                (profileAcc: ProfileData, profile: ProfileData) =>
-                    val profileData = new ProfileData(
-                        key = profileAcc.key,
-                        name = if (profileAcc.name != "") profileAcc.name else profile.name,
-                        workdesc = if (profileAcc.workdesc != "") profileAcc.workdesc else profile.workdesc,
-                        workcomp = if (profileAcc.workcomp != "") profileAcc.workcomp else profile.workcomp,
-                        worktitle = if (profileAcc.worktitle != "") profileAcc.worktitle else profile.worktitle,
-                        educationschool = if (profileAcc.educationschool != "") profileAcc.educationschool else profile.educationschool,
-                        eduyear = if (profileAcc.eduyear != "") profileAcc.eduyear else profile.eduyear,
-                        edudegree = if (profileAcc.edudegree != "") profileAcc.edudegree else profile.edudegree,
-                        ccity = if (profileAcc.ccity != "") profileAcc.ccity else profile.ccity
+            val combinedProfiles = dtoProfiles
 
-                    )
-                    profileData.fbid = if (profileAcc.fbid != "") profileAcc.fbid else profile.fbid
-                    profileData.fsid = if (profileAcc.fsid != "") profileAcc.fsid else profile.fsid
-                    profileData.lnid = if (profileAcc.lnid != "") profileAcc.lnid else profile.lnid
-                    profileData.twid = if (profileAcc.twid != "") profileAcc.twid else profile.twid
+                    .groupBy('id) {
+                _.sortBy('priority)
+                        .reduce('profile -> 'combinedProfile) {
+                    (profileAcc: ProfileData, profile: ProfileData) =>
+                        val profileData = new ProfileData(
+                            key = profileAcc.key,
+                            name = if (profileAcc.name != "") profileAcc.name else profile.name,
+                            workdesc = if (profileAcc.workdesc != "") profileAcc.workdesc else profile.workdesc,
+                            workcomp = if (profileAcc.workcomp != "") profileAcc.workcomp else profile.workcomp,
+                            worktitle = if (profileAcc.worktitle != "") profileAcc.worktitle else profile.worktitle,
+                            educationschool = if (profileAcc.educationschool != "") profileAcc.educationschool else profile.educationschool,
+                            eduyear = if (profileAcc.eduyear != "") profileAcc.eduyear else profile.eduyear,
+                            edudegree = if (profileAcc.edudegree != "") profileAcc.edudegree else profile.edudegree,
+                            ccity = if (profileAcc.ccity != "") profileAcc.ccity else profile.ccity
 
-                    profileData
-            }
+                        )
+                        profileData.fbid = if (profileAcc.fbid != "") profileAcc.fbid else profile.fbid
+                        profileData.fsid = if (profileAcc.fsid != "") profileAcc.fsid else profile.fsid
+                        profileData.lnid = if (profileAcc.lnid != "") profileAcc.lnid else profile.lnid
+                        profileData.twid = if (profileAcc.twid != "") profileAcc.twid else profile.twid
+
+                        profileData
+                }
 
 
-        }.unpack[ProfileData]('combinedProfile ->('key, 'name, 'fbid, 'lnid, 'fsid, 'twid, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear, 'worktitle, 'workdesc))
-                .rename(('name, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear) ->('uname, 'educ, 'worked, 'city, 'edegree, 'eyear))
-                .unique(ProfileTuple)
+            }.unpack[ProfileData]('combinedProfile ->('key, 'name, 'fbid, 'lnid, 'fsid, 'twid, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear, 'worktitle, 'workdesc))
+                    .rename(('name, 'educationschool, 'workcomp, 'ccity, 'edudegree, 'eduyear) ->('uname, 'educ, 'worked, 'city, 'edegree, 'eyear))
+                    .unique(ProfileTuple)
+    */
 
-        combinedProfiles
-
-    }
 
     def getTotalProfileTuples(args: Args) =
         SequenceFile(args("serviceProfileInput"), ('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)).read
@@ -207,11 +204,5 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
         serviceProfile.map(_.getUserId())
     }
 
-
-}
-
-
-@JsonIgnoreProperties
-class Foo extends ServiceProfileDTO {
 
 }

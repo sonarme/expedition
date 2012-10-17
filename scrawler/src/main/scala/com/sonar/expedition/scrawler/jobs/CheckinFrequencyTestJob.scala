@@ -24,7 +24,7 @@ class CheckinFrequencyTestJob(args: Args) extends Job(args) {
         keyspaceName = "dossier",
         columnFamilyName = "Checkin",
         scheme = NarrowRowScheme(keyField = 'checkinIdB,
-            nameFields = ('venueIdB, 'checkinTimeB), columnNames = List("venueId", "checkinTime"))
+            valueFields = ('venueIdB, 'checkinTimeB), columnNames = List("venueId", "checkinTime"))
     )
             .flatMapTo(('checkinIdB, 'venueIdB, 'checkinTimeB) ->('venueId, 'checkinTimeHour)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {

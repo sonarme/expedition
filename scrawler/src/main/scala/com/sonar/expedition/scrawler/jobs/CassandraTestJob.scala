@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 import com.twitter.scalding.{Job, Tsv, RichPipe, Args}
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import com.sonar.scalding.cassandra.{NarrowRowScheme, WideRowScheme, CassandraSource}
-import me.prettyprint.cassandra.serializers.StringSerializer
+import me.prettyprint.cassandra.serializers.{LongSerializer, StringSerializer}
 
 // RUN: mvn clean source:jar install -pl dto -am
 // on dossier master, if you don't have the serializers required in here
@@ -25,12 +25,13 @@ class CassandraTestJob(args: Args) extends Job(args) {
         keyspaceName = "dossier",
         columnFamilyName = "SonarUser",
         scheme = WideRowScheme(keyField = 'sonarUserIdB,
-            nameField = ('columnNameB, 'columnValueB)),
+            nameValueFields = ('columnNameB, 'columnValueB, 'ts), includeTimestamp = true),
         additionalConfig = ppmap
     )
-            .mapTo(('sonarUserIdB, 'columnNameB, 'columnValueB) -> ('sonarId)) {
-        in: (ByteBuffer, ByteBuffer, ByteBuffer) => {
+            .mapTo(('sonarUserIdB, 'columnNameB, 'columnValueB, 'ts) -> ('sonarId)) {
+        in: (ByteBuffer, ByteBuffer, ByteBuffer, Long) => {
             val sid = StringSerializer.get().fromByteBuffer(in._1)
+            val cn = StringSerializer.get().fromByteBuffer(in._2)
             (sid)
         }
     }.project('sonarId).groupBy('sonarId) {
@@ -42,7 +43,7 @@ class CassandraTestJob(args: Args) extends Job(args) {
             privatePublicIpMap = ppmap,
             keyspaceName = "dossier_ben",
             columnFamilyName = "BenTest",
-            scheme = NarrowRowScheme(keyField = 'spl, nameFields = 'size, columnNames = List("count"))
+            scheme = NarrowRowScheme(keyField = 'spl, valueFields = 'size, columnNames = List("count"))
         )*/
     )
 }

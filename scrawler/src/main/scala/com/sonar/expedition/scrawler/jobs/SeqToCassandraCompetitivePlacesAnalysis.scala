@@ -64,10 +64,10 @@ class JSONSerializerTwo[T >: Null](clazz: Class[T]) extends AbstractSerializer[T
 
     def toByteBuffer(obj: T) =
         if (obj == null) null
-        else ByteBuffer.wrap(ScrawlerObjectMapper.objectMapper.writeValueAsBytes(obj))
+        else ByteBuffer.wrap(ScrawlerObjectMapper.writeValueAsBytes(obj))
 
     def fromByteBuffer(byteBuffer: ByteBuffer) =
         if (byteBuffer == null || !byteBuffer.hasRemaining) null
-        else ScrawlerObjectMapper.objectMapper.readValue(ByteBufferUtil.getArray(byteBuffer), clazz)
+        else ScrawlerObjectMapper.readValue(ByteBufferUtil.getArray(byteBuffer), clazz)
 }
 

@@ -17,7 +17,7 @@ class FriendshipExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe 
         keyspaceName = "dossier",
         columnFamilyName = "Friendship",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
-            nameField = ('columnNameBuffer, 'jsondataBuffer))
+            nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
     ).flatMapTo(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('userProfileId, 'serviceType, 'serviceProfileId)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) =>
             val (userProfileIdBuffer, columnNameBuffer, jsondataBuffer) = in

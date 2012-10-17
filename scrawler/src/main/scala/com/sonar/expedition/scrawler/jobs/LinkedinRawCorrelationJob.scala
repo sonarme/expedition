@@ -21,7 +21,7 @@ class LinkedinRawCorrelationJob(args: Args) extends Job(args) {
         keyspaceName = "dossier",
         columnFamilyName = "ProfileView",
         scheme = WideRowScheme(keyField = 'privacySPLB,
-            nameField = ('splB, 'profile))
+            nameValueFields = ('splB, 'profile))
     )
             .flatMapTo(('privacySPLB, 'splB, 'profile) ->('rawCorrelationRowKey, 'rawCorrelationData, 'empty)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {

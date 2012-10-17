@@ -18,7 +18,7 @@ class ServiceProfileExportRawJob(args: Args) extends Job(args) with DTOProfileIn
         keyspaceName = "dossier",
         columnFamilyName = "ServiceProfile",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
-            nameField = ('columnNameBuffer, 'jsondataBuffer))
+            nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
     ).read
     profiles
             .flatMapTo(('userProfileIdBuffer, 'columnNameBuffer, 'jsondataBuffer) ->('userProfileId, 'serviceType, 'json)) {

@@ -4,6 +4,8 @@ import java.security.MessageDigest
 import util.matching.Regex
 import com.sonar.dossier.dto.ServiceType
 import com.twitter.scalding.RichDate
+import org.apache.commons.beanutils.{PropertyUtils, BeanUtils}
+import collection.JavaConversions._
 
 object CommonFunctions {
 
@@ -52,5 +54,9 @@ object CommonFunctions {
         }
     }
 
+    def populateNonEmpty[T](agg: T, any: T) = {
+        BeanUtils.populate(agg, PropertyUtils.describe(any).filter(_._2 != null))
+        agg
+    }
 
 }

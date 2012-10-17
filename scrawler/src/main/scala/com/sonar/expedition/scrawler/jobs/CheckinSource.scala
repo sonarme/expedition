@@ -48,7 +48,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                     keyspaceName = "dossier",
                     columnFamilyName = "Checkin",
                     scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
-                        nameFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                        valueFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
                                 'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
                                 'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
                         columnNames = List("userProfileId", "serviceType", "serviceProfileId",

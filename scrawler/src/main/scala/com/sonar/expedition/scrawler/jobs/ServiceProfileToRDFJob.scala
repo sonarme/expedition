@@ -63,42 +63,40 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     }
             .flatMapTo('json -> 'model) {
         json: String => {
-            try {
-                val serviceProfile = ScrawlerObjectMapper.mapper().readValue[ServiceProfileDTO](json, classOf[ServiceProfileDTO])
-                val model = ModelFactory.createDefaultModel()
-                //todo: find SIOC library
-                model.setNsPrefixes(Map[String, String](
-                    "foaf" -> foaf,
-                    "sioc" -> sioc,
-                    "opo" -> opo,
-                    "sonar" -> sonar)
-                )
+            ScrawlerObjectMapper.parseJson[ServiceProfileDTO](json) flatMap {
+                serviceProfile =>
+                    val model = ModelFactory.createDefaultModel()
+                    //todo: find SIOC library
+                    model.setNsPrefixes(Map[String, String](
+                        "foaf" -> foaf,
+                        "sioc" -> sioc,
+                        "opo" -> opo,
+                        "sonar" -> sonar)
+                    )
 
-                model.createResource()
-                        .addProperty(RDF.`type`, FOAF.Person)
-                        .addProperty(ResourceFactory.createProperty(foaf + "account"), model.createResource(sioc + serviceProfile.serviceType + ":" + serviceProfile.userId)
-                        .addProperty(RDF.`type`, ResourceFactory.createProperty(sioc + "UserAccount"))
-                        .addProperty(FOAF.name, ??(serviceProfile.fullName).getOrElse(""))
-                        .addProperty(FOAF.gender, ??(serviceProfile.gender).getOrElse("").toString)
-                        .addProperty(FOAF.birthday, ??(serviceProfile.birthday).getOrElse("").toString)
-                        .addProperty(FOAF.accountName, ??(serviceProfile.userId).getOrElse(""))
-                        .addProperty(FOAF.mbox, ??(serviceProfile.aliases.email).getOrElse(""))
-                        .addProperty(model.createProperty(foaf + "twitterId"), ??(serviceProfile.aliases.twitter).getOrElse(""))
-                        .addProperty(model.createProperty(foaf + "facebookId"), ??(serviceProfile.aliases.facebook).getOrElse(""))
-                        .addProperty(FOAF.homepage, ??(serviceProfile.url).getOrElse("")))
-                val strWriter = new StringWriter
-                try {
-                    model.write(strWriter, "RDF/XML-ABBREV")
-                    Some(strWriter.toString)
-                } catch {
-                    case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + json, cece)
-                } finally {
-                    strWriter.close()
-                }
+                    model.createResource()
+                            .addProperty(RDF.`type`, FOAF.Person)
+                            .addProperty(ResourceFactory.createProperty(foaf + "account"), model.createResource(sioc + serviceProfile.serviceType + ":" + serviceProfile.userId)
+                            .addProperty(RDF.`type`, ResourceFactory.createProperty(sioc + "UserAccount"))
+                            .addProperty(FOAF.name, ??(serviceProfile.fullName).getOrElse(""))
+                            .addProperty(FOAF.gender, ??(serviceProfile.gender).getOrElse("").toString)
+                            .addProperty(FOAF.birthday, ??(serviceProfile.birthday).getOrElse("").toString)
+                            .addProperty(FOAF.accountName, ??(serviceProfile.userId).getOrElse(""))
+                            .addProperty(FOAF.mbox, ??(serviceProfile.aliases.email).getOrElse(""))
+                            .addProperty(model.createProperty(foaf + "twitterId"), ??(serviceProfile.aliases.twitter).getOrElse(""))
+                            .addProperty(model.createProperty(foaf + "facebookId"), ??(serviceProfile.aliases.facebook).getOrElse(""))
+                            .addProperty(FOAF.homepage, ??(serviceProfile.url).getOrElse("")))
+                    val strWriter = new StringWriter
+                    try {
+                        model.write(strWriter, "RDF/XML-ABBREV")
+                        Some(strWriter.toString)
+                    } catch {
+                        case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + json, cece)
+                    } finally {
+                        strWriter.close()
+                    }
             }
-            catch {
-                case e: Exception => None
-            }
+
         }
     }
     models

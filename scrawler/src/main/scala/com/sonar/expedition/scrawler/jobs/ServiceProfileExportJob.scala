@@ -8,14 +8,21 @@ import com.sonar.scalding.cassandra.CassandraSource
 
 class ServiceProfileExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
     val rpcHostArg = args("rpcHost")
+    val ppmapStr = args.getOrElse("ppmap", "")
+    val ppmap = ppmapStr.split(" *, *").map {
+        s =>
+            val Array(left, right) = s.split(':')
+            ("cassandra.node.map." + left) -> right
+    }.toMap
     val output = args("output")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
+        additionalConfig = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "ProfileView",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
-            nameField = ('columnNameBuffer, 'jsondataBuffer))
+            nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
     ).read
-    getDTOProfileInfoInTuples(profiles).write(SequenceFile(output, ProfileTuple))
-            .limit(180000).write(SequenceFile(output + "_small", ProfileTuple))
+    getDTOProfileInfoInTuples(profiles).write(SequenceFile(output))
+            .limit(180000).write(SequenceFile(output + "_small"))
 }
