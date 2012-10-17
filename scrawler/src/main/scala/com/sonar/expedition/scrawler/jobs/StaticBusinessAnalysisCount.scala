@@ -15,7 +15,6 @@ import com.twitter.scalding.TextLine
 // STAG deploy: --rpcHost 10.4.103.222
 class StaticBusinessAnalysisCount(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
 
     val friendinput = args("friendInput")
     val bayesmodel = args("bayesmodelforsalary")

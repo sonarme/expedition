@@ -15,7 +15,6 @@ import com.sonar.scalding.cassandra.CassandraSource
 class SeqToCassandra(args: Args) extends Job(args) {
 
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
     val sequenceInputStaticOpt = args.optional("inputStatics")
     val sequenceInputTimeOpt = args.optional("inputTime")
 
@@ -31,7 +30,6 @@ class SeqToCassandra(args: Args) extends Job(args) {
                     .write(
                 CassandraSource(
                     rpcHost = rpcHostArg,
-                    privatePublicIpMap = ppmap,
                     keyspaceName = "dossier",
                     columnFamilyName = "MetricsVenueStatic",
                     scheme = WideRowScheme(keyField = 'rowKey)
@@ -47,7 +45,6 @@ class SeqToCassandra(args: Args) extends Job(args) {
                     .write(
                 CassandraSource(
                     rpcHost = rpcHostArg,
-                    privatePublicIpMap = ppmap,
                     keyspaceName = "dossier",
                     columnFamilyName = "MetricsVenueTimeseries",
                     scheme = WideRowScheme(keyField = 'rowKey)

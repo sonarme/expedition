@@ -13,7 +13,6 @@ import com.twitter.scalding.TextLine
 class ReachLoyaltyNormalization(args: Args) extends Job(args) {
 
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
     val sequenceInputStatic = args("sequenceInputStatic")
     val buzzTextFile = args("buzzScore")
 
@@ -169,7 +168,6 @@ class ReachLoyaltyNormalization(args: Args) extends Job(args) {
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
             keyspaceName = "dossier",
             columnFamilyName = "MetricsVenueStatic",
             scheme = WideRowScheme(keyField = 'rowKey)

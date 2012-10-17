@@ -14,14 +14,19 @@ import me.prettyprint.cassandra.serializers.StringSerializer
 // STAG deploy: --rpcHost 10.4.103.222
 class CassandraTestJob(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
+    val ppmapStr = args.getOrElse("ppmap", "")
+    val ppmap = ppmapStr.split(" *, *").map {
+        s =>
+            val Array(left, right) = s.split(':')
+            ("cassandra.node.map." + left) -> right
+    }.toMap
     CassandraSource(
         rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "SonarUser",
         scheme = WideRowScheme(keyField = 'sonarUserIdB,
-            nameField = ('columnNameB, 'columnValueB))
+            nameField = ('columnNameB, 'columnValueB)),
+        additionalConfig = ppmap
     )
             .mapTo(('sonarUserIdB, 'columnNameB, 'columnValueB) -> ('sonarId)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer) => {

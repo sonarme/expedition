@@ -15,11 +15,9 @@ import collection.JavaConversions._
 
 class LinkedinRawCorrelationJob(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
 
     CassandraSource(
         rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "ProfileView",
         scheme = WideRowScheme(keyField = 'privacySPLB,
@@ -47,7 +45,6 @@ class LinkedinRawCorrelationJob(args: Args) extends Job(args) {
     }.project(('rawCorrelationRowKey, 'rawCorrelationData, 'empty)).write(
         CassandraSource(
             rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
             keyspaceName = "dossier",
             columnFamilyName = "RawCorrelation",
             scheme = WideRowScheme(keyField = 'rawCorrelationRowKey)

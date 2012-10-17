@@ -36,7 +36,6 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
 
     def checkinSource(args: Args, venuesOnly: Boolean, withVenueGoldenId: Boolean) = {
         val rpcHostArg = args.optional("rpcHost")
-        val ppmap = args.getOrElse("ppmap", "")
         val checkinsInputArg = args.optional("checkinsInput")
         val placeClassification = args.optional("placeClassification")
         val checkins: RichPipe = checkinsInputArg match {
@@ -46,7 +45,6 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
             case None =>
                 CassandraSource(
                     rpcHost = rpcHostArg.get,
-                    privatePublicIpMap = ppmap,
                     keyspaceName = "dossier",
                     columnFamilyName = "Checkin",
                     scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,

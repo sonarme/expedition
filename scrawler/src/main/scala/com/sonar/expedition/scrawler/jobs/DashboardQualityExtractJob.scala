@@ -8,7 +8,6 @@ import cascading.tuple.Fields
 
 class DashboardQualityExtractJob(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
     val placeClassification = SequenceFile(args("placeClassification"), PlaceClassification.PlaceClassificationOutputTuple)
     val sequenceInputStatic = args("inputStatic")
     val output = args("output")
@@ -27,7 +26,6 @@ class DashboardQualityExtractJob(args: Args) extends Job(args) {
 
     /*.write(CassandraSource(
         rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "MetricsVenues",
         scheme = WideRowScheme(keyField = 'rowKey)

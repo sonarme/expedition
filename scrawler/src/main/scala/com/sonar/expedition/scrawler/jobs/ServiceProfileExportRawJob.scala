@@ -12,11 +12,9 @@ import cascading.tuple.Fields
 
 class ServiceProfileExportRawJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
     val output = args("output")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "ServiceProfile",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,

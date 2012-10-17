@@ -19,7 +19,6 @@ class SeqToCassandraCompetitivePlacesAnalysis(args: Args) extends Job(args) {
     val analysisType = CompetitiveAnalysisType.competitor
 
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
     val sequenceInputCompetitiveAnalysis = args("competitiveAnalysisOutput")
 
     val seqCompetitiveAnalysis = SequenceFile(
@@ -53,7 +52,6 @@ class SeqToCassandraCompetitivePlacesAnalysis(args: Args) extends Job(args) {
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
             keyspaceName = "dossier",
             columnFamilyName = "MetricsVenueCompetitiveAnalysis",
             scheme = WideRowScheme(keyField = 'rowKey)

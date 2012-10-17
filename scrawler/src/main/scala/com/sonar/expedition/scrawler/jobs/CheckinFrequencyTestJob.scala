@@ -18,11 +18,9 @@ object CheckinFrequencyTestJob {
 // STAG deploy: --rpcHost 10.4.103.222
 class CheckinFrequencyTestJob(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
 
     CassandraSource(
         rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "Checkin",
         scheme = NarrowRowScheme(keyField = 'checkinIdB,
@@ -44,7 +42,6 @@ class CheckinFrequencyTestJob(args: Args) extends Job(args) {
             .write(
         CassandraSource(
             rpcHost = rpcHostArg,
-            privatePublicIpMap = ppmap,
             keyspaceName = "dossier",
             columnFamilyName = "MetricsVenueTimeseries",
             scheme = WideRowScheme(keyField = 'metricName)

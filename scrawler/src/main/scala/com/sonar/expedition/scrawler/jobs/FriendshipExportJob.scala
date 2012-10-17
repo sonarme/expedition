@@ -11,11 +11,9 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 class FriendshipExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.getOrElse("ppmap", "")
     val output = args("output")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
-        privatePublicIpMap = ppmap,
         keyspaceName = "dossier",
         columnFamilyName = "Friendship",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
