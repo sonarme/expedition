@@ -55,7 +55,16 @@ object CommonFunctions {
     }
 
     def populateNonEmpty[T](agg: T, any: T) = {
-        BeanUtils.populate(agg, PropertyUtils.describe(any).filter(_._2 != null))
+        BeanUtils.populate(agg, PropertyUtils.describe(any).filterNot {
+            _._2 match {
+                case null => true
+                case s: String => s.isEmpty
+                case juMap: java.util.Map[_, _] => juMap.isEmpty
+                case collection: java.util.Collection[_] => collection.isEmpty
+                case iterable: Iterable[_] => iterable.isEmpty
+                case _ => false
+            }
+        })
         agg
     }
 
