@@ -15,6 +15,7 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
     val outputDir = args("output")
 
     val checkins = SequenceFile(input, Tuples.Place)
+//    val checkins = Tsv(input, Tuples.Place)
     val geonameRDF = Tsv(outputDir + "/geonameRdf_tsv")
     val geonameRDFSequence = SequenceFile(outputDir + "/geonameRdf_sequence")
 
@@ -33,6 +34,7 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
                 "owl" -> Owl,
                 "rdf" -> Rdf,
                 "rdfs" -> Rdfs,
+                "v" -> Vcard,
                 "sonar" -> Sonar)
             )
 
@@ -41,7 +43,9 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
                     .addProperty(model.createProperty(Gn, "name"), venName)
                     .addProperty(model.createProperty(Wgs84_pos, "lat"), lat.toString)
                     .addProperty(model.createProperty(Wgs84_pos, "lng"), lng.toString)
-                    .addProperty(model.createProperty(Sonar, "address"), venAddress)
+                    .addProperty(model.createProperty(Vcard, "VCard"), model.createResource()
+                        .addProperty(model.createProperty(Vcard, "adr"), model.createResource(Sonar + venId)
+                            .addProperty(model.createProperty(Vcard, "street-address"), venAddress)))
 
 
             val strWriter = new StringWriter
@@ -49,7 +53,7 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
                 model.write(strWriter, "RDF/XML-ABBREV")
                 val str = strWriter.toString
                 //we strip the root element so that we can create one big document.  should put it back in somewhere
-                val strippedString = strWriter.toString.substring(str.indexOf("  <gn:Feature "), str.lastIndexOf("</rdf:RDF>"))
+                val strippedString = strWriter.toString.substring(str.indexOf("<gn:Feature "), str.lastIndexOf("</rdf:RDF>"))
                 Some("  " + strippedString.trim)
             } catch {
                 case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + venId, cece)
