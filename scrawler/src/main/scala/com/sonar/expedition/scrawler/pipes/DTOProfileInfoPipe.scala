@@ -86,7 +86,7 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
                 (profileAgg: ServiceProfileDTO, profile: ServiceProfileDTO) =>
                     populateNonEmpty(profileAgg, profile)
             }
-        }
+        }.rename('combinedProfile -> 'profile)
 
     /*
 
