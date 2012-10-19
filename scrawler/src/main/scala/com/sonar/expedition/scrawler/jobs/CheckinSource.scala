@@ -10,7 +10,7 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import scala.Some
 import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
-import com.sonar.expedition.scrawler.util.CommonFunctions
+import com.sonar.expedition.scrawler.util.{Tuples, CommonFunctions}
 import com.sonar.expedition.scrawler.pipes.{ScaldingImplicits, CheckinGrouperFunction}
 import java.util.Date
 import scala.Some
@@ -38,6 +38,14 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
         val rpcHostArg = args.optional("rpcHost")
         val checkinsInputArg = args.optional("checkinsInput")
         val placeClassification = args.optional("placeClassification")
+        val ppmap = args.optional("ppmap") map {
+            _.split(" *, *").map {
+                s =>
+                    val Array(left, right) = s.split(':')
+                    ("cassandra.node.map." + left) -> right
+            }.toMap
+        } getOrElse (Map.empty[String, String])
+
         val checkins: RichPipe = checkinsInputArg match {
             case Some(checkinsInput) =>
                 SequenceFile(checkinsInput, CheckinTuple).read
@@ -45,48 +53,42 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
             case None =>
                 CassandraSource(
                     rpcHost = rpcHostArg.get,
+                    additionalConfig = ppmap,
                     keyspaceName = "dossier",
                     columnFamilyName = "Checkin",
-                    scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
-                        valueFields = ('serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-                                'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-                                'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
+                    scheme = NarrowRowScheme(keyField = 'rowKeyBuffer,
+                        valueFields = ('serviceTypeB, 'serviceProfileIdB, 'serviceCheckinIdB,
+                                'venueNameB, 'venueAddressB, 'venueIdB, 'checkinTimeB,
+                                'latitudeB, 'longitudeB, 'messageB),
                         columnNames = List("serviceType", "serviceProfileId",
                             "serviceCheckinId", "venueName", "venueAddress",
-                            "venueId", "checkinTime", "geohash", "latitude",
+                            "venueId", "checkinTime", "latitude",
                             "longitude", "message"))
-                ).flatMapTo(('serviceCheckinIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
-                        'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
-                        'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) -> CheckinTuple) {
+                ).flatMapTo(('serviceTypeB, 'serviceProfileIdB, 'serviceCheckinIdB,
+                        'venueNameB, 'venueAddressB, 'venueIdB, 'checkinTimeB,
+                        'latitudeB, 'longitudeB, 'messageB) -> Tuples.Checkin) {
                     in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
-                            ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
-                        val (serviceCheckinIdBuffer, serTypeBuffer, serProfileIDBuffer, serCheckinIDBuffer,
-                        venNameBuffer, venAddressBuffer, venIdBuffer, chknTimeBuffer,
-                        ghashBuffer, latBuffer, lngBuffer, msgBuffer) = in
-                        val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
+                            ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
+                        val (serviceTypeB, serviceProfileIdB, serviceCheckinIdB, venueNameB,
+                        venueAddressB, venueIdB, checkinTimeB, latitudeB, longitudeB, messageB) = in
 
-                        val serviceType = Option(serTypeBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val serviceProfileId = Option(serProfileIDBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val serCheckinID = Option(serCheckinIDBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val venName = Option(venNameBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val venAddress = Option(venAddressBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val venId = Option(venIdBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
-                        val checkinTime = Option(chknTimeBuffer).map(DateSerializer.get().fromByteBuffer).getOrElse(DefaultNoDate)
-                        val ghash = Option(ghashBuffer).map(LongSerializer.get().fromByteBuffer).orNull
-                        val latOption = Option(latBuffer).map(DoubleSerializer.get().fromByteBuffer)
-                        val lngOption = Option(lngBuffer).map(DoubleSerializer.get().fromByteBuffer)
-                        val msg = Option(msgBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val serviceType = Option(serviceTypeB).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val serviceProfileId = Option(serviceProfileIdB).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val serCheckinID = Option(serviceCheckinIdB).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val venName = Option(venueNameB).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val venAddress = Option(venueAddressB).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val venId = Option(venueIdB).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
+                        val checkinTime = Option(checkinTimeB).map(DateSerializer.get().fromByteBuffer).getOrElse(DefaultNoDate)
+                        val latOption = Option(latitudeB).map(DoubleSerializer.get().fromByteBuffer)
+                        val lngOption = Option(longitudeB).map(DoubleSerializer.get().fromByteBuffer)
+                        val msg = Option(messageB).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
                         // only checkins with venues
                         if (latOption.isEmpty || lngOption.isEmpty || venuesOnly && CommonFunctions.isNullOrEmpty(venId))
                             None
                         else {
                             val Some(lat) = latOption
                             val Some(lng) = lngOption
-                            val hashedServiceProfileId = hashed(serviceProfileId)
-
-                            val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(lat, lng, checkinTime, serviceType, hashedServiceProfileId)
-                            Some((rowKeyDes, "", serviceType, hashedServiceProfileId, serCheckinID,
-                                    venName, venAddress, serviceType + ":" + venId, checkinTime, ghash, lat, lng, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
+                            Some((serviceType, serviceProfileId, serCheckinID, venId, venName, venAddress, checkinTime, lat, lng, msg))
                         }
                     }
                 }
