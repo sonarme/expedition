@@ -20,14 +20,9 @@ object ScrawlerObjectMapper extends ObjectMapper {
     this.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
 
     def parseJson[T](jsonString: String)(implicit m: Manifest[T]): Option[T] = {
-        for (jsonString <- Option(jsonString) if jsonString.contains( """{""");
-             value <- try {
-                 Some(readValue(jsonString, m.erasure.asInstanceOf[Class[T]]))
-             }
-             catch {
-                 case e: Exception => None
-             }
-        ) yield value
+        if (jsonString.startsWith("{\""))
+            Option(readValue(jsonString, m.erasure.asInstanceOf[Class[T]]))
+        else None
     }
 
     def parseJsonBytes[T](json: Array[Byte])(implicit m: Manifest[T]): Option[T] = {

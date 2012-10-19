@@ -41,8 +41,8 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
             jsondataBuffer: ByteBuffer =>
                 if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
                 else {
-                    val jsondata = ByteBufferUtil.getArray(jsondataBuffer)
-                    val result = ScrawlerObjectMapper.parseJsonBytes[ServiceProfileDTO](jsondata)
+                    val jsondata = StringSerializer.get().fromByteBuffer(jsondataBuffer)
+                    val result = ScrawlerObjectMapper.parseJson[ServiceProfileDTO](jsondata)
                     result.map {
                         profile =>
                             if (profile.serviceType == null) throw new RuntimeException("ST null")
