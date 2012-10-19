@@ -16,6 +16,7 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
 
     val checkins = SequenceFile(input, Tuples.Place)
     val geonameRDF = Tsv(outputDir + "/geonameRdf_tsv")
+    val geonameRDFSequence = SequenceFile(outputDir + "/geonameRdf_sequence")
 
     val checkinsSmall = Tsv(outputDir + "/checkinsSmall_tsv")
 
@@ -58,4 +59,5 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
     }
 
     models.write(geonameRDF)
+    models.write(geonameRDFSequence)
 }
