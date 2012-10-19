@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.util
 import java.security.MessageDigest
 import util.matching.Regex
 import com.sonar.dossier.dto.ServiceType
-import com.twitter.scalding.RichDate
+import com.twitter.scalding.{Args, RichDate}
 import org.apache.commons.beanutils.{PropertyUtils, BeanUtils}
 import collection.JavaConversions._
 
@@ -68,4 +68,14 @@ object CommonFunctions {
         agg
     }
 
+    def ppmap(args: Args) = {
+        args.optional("ppmap") map {
+            _.split(" *, *").map {
+                s =>
+                    val Array(left, right) = s.split(':')
+                    ("cassandra.node.map." + left) -> right
+            }.toMap
+        } getOrElse (Map.empty[String, String])
+
+    }
 }

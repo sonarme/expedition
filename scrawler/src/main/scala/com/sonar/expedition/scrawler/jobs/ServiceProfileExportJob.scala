@@ -6,21 +6,18 @@ import com.twitter.scalding.SequenceFile
 import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
 import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.twitter.scalding.SequenceFile
+import com.sonar.scalding.cassandra.WideRowScheme
+import com.sonar.scalding.cassandra.CassandraSource
 
 class ServiceProfileExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
     val columnFamily = args("columnFamily")
     val rpcHostArg = args("rpcHost")
-    val ppmap = args.optional("ppmap") map {
-        _.split(" *, *").map {
-            s =>
-                val Array(left, right) = s.split(':')
-                ("cassandra.node.map." + left) -> right
-        }.toMap
-    } getOrElse (Map.empty[String, String])
     val output = args("output")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
-        additionalConfig = ppmap,
+        additionalConfig = ppmap(args),
         keyspaceName = "dossier",
         columnFamilyName = columnFamily,
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,

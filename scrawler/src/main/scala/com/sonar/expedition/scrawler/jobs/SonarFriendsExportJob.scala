@@ -16,6 +16,7 @@ class SonarFriendsExportJob(args: Args) extends Job(args) with DTOProfileInfoPip
     val output = args("output")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
+        additionalConfig = ppmap(args),
         keyspaceName = "dossier",
         columnFamilyName = "SonarFriends",
         scheme = WideRowScheme(keyField = 'sonarIdBuffer,

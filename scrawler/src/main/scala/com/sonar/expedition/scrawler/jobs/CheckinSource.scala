@@ -38,14 +38,6 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
         val rpcHostArg = args.optional("rpcHost")
         val checkinsInputArg = args.optional("checkinsInput")
         val placeClassification = args.optional("placeClassification")
-        val ppmap = args.optional("ppmap") map {
-            _.split(" *, *").map {
-                s =>
-                    val Array(left, right) = s.split(':')
-                    ("cassandra.node.map." + left) -> right
-            }.toMap
-        } getOrElse (Map.empty[String, String])
-
         val checkins: RichPipe = checkinsInputArg match {
             case Some(checkinsInput) =>
                 SequenceFile(checkinsInput, CheckinTuple).read
@@ -53,7 +45,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
             case None =>
                 CassandraSource(
                     rpcHost = rpcHostArg.get,
-                    additionalConfig = ppmap,
+                    additionalConfig = ppmap(args),
                     keyspaceName = "dossier",
                     columnFamilyName = "Checkin",
                     scheme = NarrowRowScheme(keyField = 'rowKeyBuffer,
