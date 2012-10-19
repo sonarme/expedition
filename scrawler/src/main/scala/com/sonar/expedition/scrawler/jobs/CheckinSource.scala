@@ -48,23 +48,23 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                     keyspaceName = "dossier",
                     columnFamilyName = "Checkin",
                     scheme = NarrowRowScheme(keyField = 'serviceCheckinIdBuffer,
-                        valueFields = ('userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                        valueFields = ('serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
                                 'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
                                 'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer),
-                        columnNames = List("userProfileId", "serviceType", "serviceProfileId",
+                        columnNames = List("serviceType", "serviceProfileId",
                             "serviceCheckinId", "venueName", "venueAddress",
                             "venueId", "checkinTime", "geohash", "latitude",
                             "longitude", "message"))
-                ).flatMapTo(('serviceCheckinIdBuffer, 'userProfileIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
+                ).flatMapTo(('serviceCheckinIdBuffer, 'serTypeBuffer, 'serProfileIDBuffer, 'serCheckinIDBuffer,
                         'venNameBuffer, 'venAddressBuffer, 'venIdBuffer, 'chknTimeBuffer,
                         'ghashBuffer, 'latBuffer, 'lngBuffer, 'msgBuffer) -> CheckinTuple) {
-                    in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
+                    in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                             ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer) => {
-                        val (serviceCheckinIdBuffer, userProfileIdBuffer, serTypeBuffer, serProfileIDBuffer, serCheckinIDBuffer,
+                        val (serviceCheckinIdBuffer, serTypeBuffer, serProfileIDBuffer, serCheckinIDBuffer,
                         venNameBuffer, venAddressBuffer, venIdBuffer, chknTimeBuffer,
                         ghashBuffer, latBuffer, lngBuffer, msgBuffer) = in
                         val rowKeyDes = StringSerializer.get().fromByteBuffer(in._1)
-                        val keyId = Option(userProfileIdBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse("missingKeyId")
+
                         val serviceType = Option(serTypeBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
                         val serviceProfileId = Option(serProfileIDBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
                         val serCheckinID = Option(serCheckinIDBuffer).map(StringSerializer.get().fromByteBuffer).getOrElse(NoneValue)
@@ -85,7 +85,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
                             val hashedServiceProfileId = hashed(serviceProfileId)
 
                             val (dayOfYear, dayOfWeek, hourOfDay, keyid) = deriveCheckinFields(lat, lng, checkinTime, serviceType, hashedServiceProfileId)
-                            Some((rowKeyDes, keyId, serviceType, hashedServiceProfileId, serCheckinID,
+                            Some((rowKeyDes, "", serviceType, hashedServiceProfileId, serCheckinID,
                                     venName, venAddress, serviceType + ":" + venId, checkinTime, ghash, lat, lng, msg, dayOfYear, dayOfWeek, hourOfDay, keyid))
                         }
                     }
