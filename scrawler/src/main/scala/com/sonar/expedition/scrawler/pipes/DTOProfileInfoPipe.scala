@@ -44,7 +44,10 @@ trait DTOProfileInfoPipe extends ScaldingImplicits {
                     val jsondata = ByteBufferUtil.getArray(jsondataBuffer)
                     val result = ScrawlerObjectMapper.parseJsonBytes[ServiceProfileDTO](jsondata)
                     result.map {
-                        profile => (profile.profileId, profile)
+                        profile =>
+                            if (profile.serviceType == null) throw new RuntimeException("ST null")
+                            if (profile.userId == null) throw new RuntimeException("userId null")
+                            (profile.profileId, profile)
                     }
 
                     /*map {

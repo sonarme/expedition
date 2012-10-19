@@ -31,13 +31,8 @@ object ScrawlerObjectMapper extends ObjectMapper {
     }
 
     def parseJsonBytes[T](json: Array[Byte])(implicit m: Manifest[T]): Option[T] = {
-        for (jsonBytes <- Option(json);
-             value <- try {
-                 Some(readValue(jsonBytes, m.erasure.asInstanceOf[Class[T]]))
-             }
-             catch {
-                 case e: Exception => None
-             }
-        ) yield value
+        val value = readValue(json, m.erasure.asInstanceOf[Class[T]])
+        if (value == null) throw new RuntimeException("value was null")
+        Some(value)
     }
 }
