@@ -46,9 +46,9 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
                     .addProperty(model.createProperty(Vcard, "VCard"), model.createResource()
                         .addProperty(model.createProperty(Vcard, "adr"), model.createResource(Sonar + venId)
                             .addProperty(model.createProperty(Vcard, "street-address"), venAddress)
-                            .addProperty(model.createProperty(Vcard, "locality"), "some city") //todo: get city from cassandra
-                            .addProperty(model.createProperty(Vcard, "postal-code"), "12345") //todo: get postal code from cassandra
-                            .addProperty(model.createProperty(Vcard, "country-name"), "United States"))) //todo: get country from cassandra
+                            .addProperty(model.createProperty(Vcard, "locality"), "") //todo: get city from cassandra
+                            .addProperty(model.createProperty(Vcard, "postal-code"), "") //todo: get postal code from cassandra
+                            .addProperty(model.createProperty(Vcard, "country-name"), ""))) //todo: get country from cassandra
 
 
             val strWriter = new StringWriter
@@ -65,6 +65,6 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
             }
     }
 
-//    models.write(geonameRDF)
+    models.write(geonameRDF)
     models.write(geonameRDFSequence)
 }
