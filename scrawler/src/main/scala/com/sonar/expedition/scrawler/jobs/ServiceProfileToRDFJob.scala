@@ -10,13 +10,14 @@ import collection.JavaConversions._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import java.io.{StringWriter, ByteArrayOutputStream}
 import com.hp.hpl.jena.ontology.OntModel
-import com.sonar.expedition.scrawler.jena.vocabulary.OPO
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
-import com.sonar.dossier.dto.ServiceProfileDTO
-import com.hp.hpl.jena.sparql.vocabulary.FOAF
-import thewebsemantic.vocabulary.Sioc
+import com.sonar.dossier.dto.{ServiceType, ServiceProfileDTO}
 import com.sonar.dossier.ScalaGoodies._
 import com.hp.hpl.jena.shared.CannotEncodeCharacterException
+import com.sonar.expedition.scrawler.util.RDFNamespaces._
+import com.sonar.expedition.scrawler.jobs.ServiceProfileToRDFJob._
+import com.hp.hpl.jena.sparql.vocabulary.FOAF
+
 
 //import org.apache.clerezza.rdf.ontologies.FOAF
 
@@ -29,8 +30,8 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     val outputDir = args("output")
     val input = args("input")
 
-    //    val profilesTsv = Tsv("/Users/rogchang/Desktop/rdf/serviceProfiles.tsv", ProfileTuple) //('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)
-    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
+        val profiles = Tsv(input, ('userProfileId, 'serviceType, 'json))
+//    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
     //    val friendships = SequenceFile("/Users/rogchang/Desktop/rdf/friendship_prod_0905_small", FriendTuple)
 
 
@@ -47,12 +48,6 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
     //   val profilesSmall2 = Tsv(input, ('userProfileId, 'serviceType, 'json))
 
-    val foaf = "http://xmlns.com/foaf/0.1/"
-    val sioc = "http://rdfs.org/sioc/ns#"
-    val opo = OPO.NS
-    val sonar = "http://sonar.me/ns#"
-
-
     val models = profiles
             .read
             .filter('json) {
@@ -68,28 +63,66 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                     val model = ModelFactory.createDefaultModel()
                     //todo: find SIOC library
                     model.setNsPrefixes(Map[String, String](
-                        "foaf" -> foaf,
-                        "sioc" -> sioc,
-                        "opo" -> opo,
-                        "sonar" -> sonar)
+                        "foaf" -> Foaf,
+                        "sioc" -> Sioc,
+                        "opo" -> Opo,
+                        "owl" -> Owl,
+                        "sonar" -> Sonar)
                     )
 
-                    model.createResource()
+                    val resource = model.createResource(Foaf + serviceProfile.serviceType + ":" + serviceProfile.userId)
                             .addProperty(RDF.`type`, FOAF.Person)
-                            .addProperty(ResourceFactory.createProperty(foaf + "account"), model.createResource(sioc + serviceProfile.serviceType + ":" + serviceProfile.userId)
-                            .addProperty(RDF.`type`, ResourceFactory.createProperty(sioc + "UserAccount"))
-                            .addProperty(FOAF.name, ??(serviceProfile.fullName).getOrElse(""))
-                            .addProperty(FOAF.gender, ??(serviceProfile.gender).getOrElse("").toString)
-                            .addProperty(FOAF.birthday, ??(serviceProfile.birthday).getOrElse("").toString)
-                            .addProperty(FOAF.accountName, ??(serviceProfile.userId).getOrElse(""))
-                            .addProperty(FOAF.mbox, ??(serviceProfile.aliases.email).getOrElse(""))
-                            .addProperty(model.createProperty(foaf + "twitterId"), ??(serviceProfile.aliases.twitter).getOrElse(""))
-                            .addProperty(model.createProperty(foaf + "facebookId"), ??(serviceProfile.aliases.facebook).getOrElse(""))
-                            .addProperty(FOAF.homepage, ??(serviceProfile.url).getOrElse("")))
+                            .addProperty(model.createProperty(Foaf + "account"), model.createResource()
+                                .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
+                                .addProperty(FOAF.accountName, serviceProfile.userId))
+
+                    if (serviceProfile.fullName != null) {
+                        resource.addProperty(FOAF.name, serviceProfile.fullName)
+                    }
+                    if (serviceProfile.gender != null) {
+                        resource.addProperty(FOAF.gender, serviceProfile.gender.toString)
+                    }
+                    if (serviceProfile.birthday != null) {
+                        resource.addProperty(FOAF.birthday, serviceProfile.birthday.toString)
+                    }
+                    if (serviceProfile.aliases != null && serviceProfile.aliases.email != null) {
+                        resource.addProperty(FOAF.mbox, model.createResource("mailto:" + serviceProfile.aliases.email))
+                    }
+                    if (serviceProfile.photoUrl != null) {
+                        resource.addProperty(FOAF.depiction, model.createResource(serviceProfile.photoUrl))
+                    }
+                    //add sameAs
+                    if (serviceProfile.aliases != null && serviceProfile.aliases.username != null) {
+                        resource.addProperty(model.createProperty(Owl + "sameAs"), model.createResource(Foaf + serviceProfile.serviceType + ":" + serviceProfile.aliases.username))
+                    }
+                    //add known correlations
+                    if (serviceProfile.aliases != null && serviceProfile.aliases.facebook != null && serviceProfile.serviceType != ServiceType.facebook) {
+                        resource.addProperty(model.createProperty(Foaf + "account"), model.createResource()
+                            .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
+                            .addProperty(FOAF.accountName, serviceProfile.aliases.facebook))
+                    }
+                    if (serviceProfile.aliases != null && serviceProfile.aliases.twitter != null && serviceProfile.serviceType != ServiceType.twitter) {
+                        resource.addProperty(model.createProperty(Foaf + "account"), model.createResource()
+                            .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
+                            .addProperty(FOAF.accountName, serviceProfile.aliases.twitter))
+                    }
+
+                    //todo: add a seeAlso for id or username version of accountName?
+
                     val strWriter = new StringWriter
                     try {
                         model.write(strWriter, "RDF/XML-ABBREV")
-                        Some(strWriter.toString)
+                        val str = strWriter.toString
+                        //we strip the root element so that we can create one big document.  should put it back in somewhere
+//                        <rdf:RDF
+//                            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+//                            xmlns:sonar="http://sonar.me/#"
+//                            xmlns:foaf="http://xmlns.com/foaf/0.1/"
+//                            xmlns:opo="http://ggg.milanstankovic.org/opo/ns#"
+//                            xmlns:sioc="http://rdfs.org/sioc/ns#">
+//                        </rdf:RDF>
+                        val strippedString = strWriter.toString.substring(str.indexOf("<foaf:Person"), str.lastIndexOf("</rdf:RDF>"))
+                        Some("  " + strippedString.trim)
                     } catch {
                         case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + json, cece)
                     } finally {
@@ -99,11 +132,25 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
         }
     }
-    models
-            .write(profileRdf)
+    models.write(profileRdf)
+//    models.write(profileRdfSequence)
 
-    models
-            .write(profileRdfSequence)
+    def getServiceHome(serviceType: ServiceType) = {
+        serviceType match {
+            case ServiceType.facebook => FacebookHome
+            case ServiceType.twitter => TwitterHome
+            case ServiceType.foursquare => FoursquareHome
+            case ServiceType.linkedin => LinkedinHome
+            case _ => SonarHome
+        }
+    }
 
 }
 
+object ServiceProfileToRDFJob {
+    val TwitterHome = "http://www.twitter.com"
+    val FacebookHome = "http://www.facebook.com"
+    val FoursquareHome = "http://www.foursquare.com"
+    val LinkedinHome = "http://www.linkedin.com"
+    val SonarHome = "http://www.sonar.me"
+}

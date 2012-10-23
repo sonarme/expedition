@@ -55,6 +55,15 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
             try {
                 model.write(strWriter, "RDF/XML-ABBREV")
                 val str = strWriter.toString
+//                <rdf:RDF
+//                    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+//                    xmlns:sonar="http://sonar.me/#"
+//                    xmlns:foaf="http://xmlns.com/foaf/0.1/"
+//                    xmlns:owl="http://www.w3.org/2002/07/owl#"
+//                    xmlns:gn="http://www.geonames.org/ontology#"
+//                    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+//                    xmlns:wgs84_pos="http://www.w3.org/2003/01/geo/wgs84_pos#">
+//                </rdf:RDF>
                 //we strip the root element so that we can create one big document.  should put it back in somewhere
                 val strippedString = strWriter.toString.substring(str.indexOf("<gn:Feature "), str.lastIndexOf("</rdf:RDF>"))
                 Some("  " + strippedString.trim)
