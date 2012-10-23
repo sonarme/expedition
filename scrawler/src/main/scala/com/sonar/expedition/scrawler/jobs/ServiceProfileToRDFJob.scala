@@ -73,8 +73,12 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                     val resource = model.createResource(Foaf + serviceProfile.serviceType + ":" + serviceProfile.userId)
                             .addProperty(RDF.`type`, FOAF.Person)
                             .addProperty(model.createProperty(Foaf + "account"), model.createResource()
-                                .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
-                                .addProperty(FOAF.accountName, serviceProfile.userId))
+                                .addProperty(model.createProperty(Foaf + "OnlineAccount"), model.createResource(serviceProfile.serviceType + ":" + serviceProfile.userId)
+                                        .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount"))
+                                        .addProperty(model.createProperty(Sioc + "follows"), model.createResource("http://www.linkedin.com/sGiYOiEnd1")
+                                            .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount")))
+                                        .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
+                                        .addProperty(FOAF.accountName, serviceProfile.userId)))
 
                     if (serviceProfile.fullName != null) {
                         resource.addProperty(FOAF.name, serviceProfile.fullName)
