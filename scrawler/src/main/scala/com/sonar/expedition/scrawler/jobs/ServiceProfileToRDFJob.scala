@@ -30,8 +30,8 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     val outputDir = args("output")
     val input = args("input")
 
-        val profiles = Tsv(input, ('userProfileId, 'serviceType, 'json))
-//    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
+//        val profiles = Tsv(input, ('userProfileId, 'serviceType, 'json))
+    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
     //    val friendships = SequenceFile("/Users/rogchang/Desktop/rdf/friendship_prod_0905_small", FriendTuple)
 
 
@@ -70,12 +70,39 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                         "sonar" -> Sonar)
                     )
 
+                    val xml =
+<foaf:Person rdf:about={Foaf + serviceProfile.serviceType.toString + ":" + serviceProfile.userId}>
+    {if (serviceProfile.aliases != null && serviceProfile.aliases.username != null) {
+    <owl:sameAs rdf:resource={Foaf + serviceProfile.serviceType + ":" + serviceProfile.aliases.username}></owl:sameAs>
+    }}
+    <foaf:depiction rdf:resource={serviceProfile.photoUrl}/>
+    {if (serviceProfile.aliases != null && serviceProfile.aliases.email != null) {
+    <foaf:mbox rdf:resource={"mailto:" + serviceProfile.aliases.email}/>
+    }}
+    {if (serviceProfile.gender != null) {
+    <foaf:gender>{serviceProfile.gender.toString}</foaf:gender>
+    }}
+    {if (serviceProfile.fullName != null) {
+    <foaf:name>{serviceProfile.fullName.toString}</foaf:name>
+    }}
+    <foaf:account rdf:parseType="Resource">
+        <foaf:OnlineAccount>
+            <sioc:UserAccount rdf:about={Sioc + serviceProfile.serviceType + ":" + serviceProfile.userId}>
+                <foaf:accountName>{serviceProfile.userId}</foaf:accountName>
+                <foaf:accountServiceHomepage rdf:resource={getServiceHome(serviceProfile.serviceType)}/>
+                <sioc:follows rdf:resource="twitter:changeme"/>
+            </sioc:UserAccount>
+        </foaf:OnlineAccount>
+    </foaf:account>
+</foaf:Person>
+                        Some(xml.toString())
+                    /*
                     val resource = model.createResource(Foaf + serviceProfile.serviceType + ":" + serviceProfile.userId)
                             .addProperty(RDF.`type`, FOAF.Person)
                             .addProperty(model.createProperty(Foaf + "account"), model.createResource()
                                 .addProperty(model.createProperty(Foaf + "OnlineAccount"), model.createResource(serviceProfile.serviceType + ":" + serviceProfile.userId)
                                         .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount"))
-                                        .addProperty(model.createProperty(Sioc + "follows"), model.createResource("http://www.linkedin.com/sGiYOiEnd1")
+                                        .addProperty(model.createProperty(Sioc + "follows"), model.createResource(serviceProfile.serviceType + ":" + serviceProfile.userId)
                                             .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount")))
                                         .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
                                         .addProperty(FOAF.accountName, serviceProfile.userId)))
@@ -132,12 +159,13 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                     } finally {
                         strWriter.close()
                     }
+                    */
             }
 
         }
     }
     models.write(profileRdf)
-//    models.write(profileRdfSequence)
+    models.write(profileRdfSequence)
 
     def getServiceHome(serviceType: ServiceType) = {
         serviceType match {
@@ -147,6 +175,16 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
             case ServiceType.linkedin => LinkedinHome
             case _ => SonarHome
         }
+    }
+
+    def getRDFHeader() = {
+        <rdf:RDF
+            xmlns:sonar="http://sonar.me/ns#"
+            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+            xmlns:foaf="http://xmlns.com/foaf/0.1/"
+            xmlns:opo="http://ggg.milanstankovic.org/opo/ns#"
+            xmlns:sioc="http://rdfs.org/sioc/ns#">
+        </rdf:RDF>
     }
 
 }
