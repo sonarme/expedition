@@ -83,7 +83,8 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
             }
             val update = updateFromStatements(model.listStatements)
             val ds = new DatasetImpl(model)
-            ds.asDatasetGraph().find()
+            // ds.asDatasetGraph().find()
+            // ...
             UpdateExecutionFactory.createRemote(update, "http://ec2-107-22-231-224.compute-1.amazonaws.com:3030/data/update").execute()
             /*
                        val strWriter = new StringWriter
@@ -103,14 +104,5 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
             .write(profileRdf)
 
 
-    def updateFromStatements(stmts: StmtIterator) = {
-        val update = new UpdateDeleteInsert
-
-        stmts foreach {
-            stmt =>
-                update.getInsertAcc.addTriple(new com.hp.hpl.jena.graph.Triple(stmt.getSubject, stmt.getPredicate, stmt.getObject))
-        }
-        update
-    }
 }
 
