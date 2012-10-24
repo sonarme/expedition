@@ -30,8 +30,8 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     val outputDir = args("output")
     val input = args("input")
 
-//        val profiles = Tsv(input, ('userProfileId, 'serviceType, 'json))
-    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
+        val profiles = Tsv(input, ('userProfileId, 'serviceType, 'json))
+//    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
     //    val friendships = SequenceFile("/Users/rogchang/Desktop/rdf/friendship_prod_0905_small", FriendTuple)
 
 
@@ -70,39 +70,12 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                         "sonar" -> Sonar)
                     )
 
-                    val xml =
-<foaf:Person rdf:about={Foaf + serviceProfile.serviceType.toString + ":" + serviceProfile.userId}>
-    {if (serviceProfile.aliases != null && serviceProfile.aliases.username != null) {
-    <owl:sameAs rdf:resource={Foaf + serviceProfile.serviceType + ":" + serviceProfile.aliases.username}></owl:sameAs>
-    }}
-    <foaf:depiction rdf:resource={serviceProfile.photoUrl}/>
-    {if (serviceProfile.aliases != null && serviceProfile.aliases.email != null) {
-    <foaf:mbox rdf:resource={"mailto:" + serviceProfile.aliases.email}/>
-    }}
-    {if (serviceProfile.gender != null) {
-    <foaf:gender>{serviceProfile.gender.toString}</foaf:gender>
-    }}
-    {if (serviceProfile.fullName != null) {
-    <foaf:name>{serviceProfile.fullName.toString}</foaf:name>
-    }}
-    <foaf:account rdf:parseType="Resource">
-        <foaf:OnlineAccount>
-            <sioc:UserAccount rdf:about={Sioc + serviceProfile.serviceType + ":" + serviceProfile.userId}>
-                <foaf:accountName>{serviceProfile.userId}</foaf:accountName>
-                <foaf:accountServiceHomepage rdf:resource={getServiceHome(serviceProfile.serviceType)}/>
-                <sioc:follows rdf:resource="twitter:changeme"/>
-            </sioc:UserAccount>
-        </foaf:OnlineAccount>
-    </foaf:account>
-</foaf:Person>
-                        Some(xml.toString())
-                    /*
                     val resource = model.createResource(Foaf + serviceProfile.serviceType + ":" + serviceProfile.userId)
                             .addProperty(RDF.`type`, FOAF.Person)
                             .addProperty(model.createProperty(Foaf + "account"), model.createResource()
-                                .addProperty(model.createProperty(Foaf + "OnlineAccount"), model.createResource(serviceProfile.serviceType + ":" + serviceProfile.userId)
+                                .addProperty(model.createProperty(Foaf + "OnlineAccount"), model.createResource(Sioc + serviceProfile.serviceType + ":" + serviceProfile.userId)
                                         .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount"))
-                                        .addProperty(model.createProperty(Sioc + "follows"), model.createResource(serviceProfile.serviceType + ":" + serviceProfile.userId)
+                                        .addProperty(model.createProperty(Sioc + "follows"), model.createResource(Sioc + serviceProfile.serviceType + ":rogchang")
                                             .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount")))
                                         .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
                                         .addProperty(FOAF.accountName, serviceProfile.userId)))
@@ -142,30 +115,21 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
                     val strWriter = new StringWriter
                     try {
-                        model.write(strWriter, "RDF/XML-ABBREV")
-                        val str = strWriter.toString
-                        //we strip the root element so that we can create one big document.  should put it back in somewhere
-//                        <rdf:RDF
-//                            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-//                            xmlns:sonar="http://sonar.me/#"
-//                            xmlns:foaf="http://xmlns.com/foaf/0.1/"
-//                            xmlns:opo="http://ggg.milanstankovic.org/opo/ns#"
-//                            xmlns:sioc="http://rdfs.org/sioc/ns#">
-//                        </rdf:RDF>
-                        val strippedString = strWriter.toString.substring(str.indexOf("<foaf:Person"), str.lastIndexOf("</rdf:RDF>"))
-                        Some("  " + strippedString.trim)
+                        model.write(strWriter, rdfOutputFormat)
+                        val str = stripHeader(rdfOutputFormat, strWriter.toString, serviceProfile)
+                        Some(str)
                     } catch {
                         case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + json, cece)
                     } finally {
                         strWriter.close()
                     }
-                    */
+
             }
 
         }
     }
     models.write(profileRdf)
-    models.write(profileRdfSequence)
+//    models.write(profileRdfSequence)
 
     def getServiceHome(serviceType: ServiceType) = {
         serviceType match {
@@ -177,14 +141,37 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
         }
     }
 
-    def getRDFHeader() = {
-        <rdf:RDF
-            xmlns:sonar="http://sonar.me/ns#"
-            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-            xmlns:foaf="http://xmlns.com/foaf/0.1/"
-            xmlns:opo="http://ggg.milanstankovic.org/opo/ns#"
-            xmlns:sioc="http://rdfs.org/sioc/ns#">
-        </rdf:RDF>
+    /**
+     *
+     * @param format
+     * @param strToStrip
+     * @param serviceProfile
+     * @return
+     */
+    def stripHeader(format: String, strToStrip: String, serviceProfile: ServiceProfileDTO) = {
+       /*
+        * <rdf:RDF
+        *      xmlns:sonar="http://sonar.me/ns#"
+        *      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+        *      xmlns:foaf="http://xmlns.com/foaf/0.1/"
+        *      xmlns:opo="http://ggg.milanstankovic.org/opo/ns#"
+        *      xmlns:sioc="http://rdfs.org/sioc/ns#">
+        *  </rdf:RDF>
+        *
+        *  @prefix sonar:   <http://sonar.me/#> .
+        *  @prefix sioc:    <http://rdfs.org/sioc/ns#> .
+        *  @prefix opo:     <http://ggg.milanstankovic.org/opo/ns#> .
+        *  @prefix foaf:    <http://xmlns.com/foaf/0.1/> .
+        *  @prefix owl:     <http://www.w3.org/2002/07/owl#> .
+        */
+        format match {
+            case "N3" => {
+                val lastPrefix = strToStrip.lastIndexOf("@prefix")
+                strToStrip.substring(strToStrip.indexOf("\n\n", lastPrefix)).trim
+            }
+            case "RDF/XML-ABBREV" => strToStrip.substring(strToStrip.indexOf("<foaf:Person"), strToStrip.lastIndexOf("</rdf:RDF>"))
+            case _ => strToStrip
+        }
     }
 
 }
@@ -195,4 +182,6 @@ object ServiceProfileToRDFJob {
     val FoursquareHome = "http://www.foursquare.com"
     val LinkedinHome = "http://www.linkedin.com"
     val SonarHome = "http://www.sonar.me"
+
+    val rdfOutputFormat = "N3" // RDF/XML-ABBREV | N3
 }
