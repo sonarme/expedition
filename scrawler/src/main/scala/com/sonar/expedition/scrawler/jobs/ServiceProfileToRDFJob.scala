@@ -28,25 +28,19 @@ import com.hp.hpl.jena.vocabulary._
 // STAG deploy: --rpcHost 10.4.103.222
 class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val outputDir = args("output")
-    val input = args("input")
+    val profileInput = args("profiles")
+    val friendshipInput = args("friendships")
 
-        val profiles = Tsv(input, ('userProfileId, 'serviceType, 'json))
+        val profiles = Tsv(profileInput, ('userProfileId, 'serviceType, 'json))
 //    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
-    //    val friendships = SequenceFile("/Users/rogchang/Desktop/rdf/friendship_prod_0905_small", FriendTuple)
-
-
-    //    val input = SequenceFile(src, ProfileTuple)
-    /*
-
-        val testOutput = Tsv(outputDir + "/test.tsv")
-        val testOutput2 = Tsv(outputDir + "/test2.tsv")
-    */
+        val friendships = SequenceFile(friendshipInput, FriendTuple)
 
     val profileRdf = Tsv(outputDir + "/profileRdfTsv")
     val profileRdfSequence = SequenceFile(outputDir + "/profileRdfSequence")
     //  val profilesSmall = Tsv(outputDir + "/profilesSmall.tsv")
 
     //   val profilesSmall2 = Tsv(input, ('userProfileId, 'serviceType, 'json))
+    val friendshipsSmall = Tsv(outputDir + "/frienshipsSmall.tsv")
 
     val models = profiles
             .read
@@ -72,13 +66,7 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
                     val resource = model.createResource(Foaf + serviceProfile.serviceType + ":" + serviceProfile.userId)
                             .addProperty(RDF.`type`, FOAF.Person)
-                            .addProperty(model.createProperty(Foaf + "account"), model.createResource()
-                                .addProperty(model.createProperty(Foaf + "OnlineAccount"), model.createResource(Sioc + serviceProfile.serviceType + ":" + serviceProfile.userId)
-                                        .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount"))
-                                        .addProperty(model.createProperty(Sioc + "follows"), model.createResource(Sioc + serviceProfile.serviceType + ":rogchang")
-                                            .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount")))
-                                        .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
-                                        .addProperty(FOAF.accountName, serviceProfile.userId)))
+                            .addProperty(model.createProperty(Foaf + "account"), createUserAccount(model, serviceProfile.serviceType, serviceProfile.userId))
 
                     if (serviceProfile.fullName != null) {
                         resource.addProperty(FOAF.name, serviceProfile.fullName)
@@ -101,14 +89,10 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
                     }
                     //add known correlations
                     if (serviceProfile.aliases != null && serviceProfile.aliases.facebook != null && serviceProfile.serviceType != ServiceType.facebook) {
-                        resource.addProperty(model.createProperty(Foaf + "account"), model.createResource()
-                            .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
-                            .addProperty(FOAF.accountName, serviceProfile.aliases.facebook))
+                        resource.addProperty(model.createProperty(Foaf + "account"), createUserAccount(model, ServiceType.facebook, serviceProfile.aliases.facebook))
                     }
                     if (serviceProfile.aliases != null && serviceProfile.aliases.twitter != null && serviceProfile.serviceType != ServiceType.twitter) {
-                        resource.addProperty(model.createProperty(Foaf + "account"), model.createResource()
-                            .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceProfile.serviceType)))
-                            .addProperty(FOAF.accountName, serviceProfile.aliases.twitter))
+                        resource.addProperty(model.createProperty(Foaf + "account"), createUserAccount(model, ServiceType.twitter, serviceProfile.aliases.twitter))
                     }
 
                     //todo: add a seeAlso for id or username version of accountName?
@@ -130,6 +114,16 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     }
     models.write(profileRdf)
 //    models.write(profileRdfSequence)
+
+
+    def createUserAccount(model: Model, serviceType: ServiceType, serviceId: String) = {
+        model.createResource(Sioc + serviceType.toString + ":" + serviceId)
+            .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount"))
+            .addProperty(model.createProperty(Sioc + "follows"), model.createResource(Sioc + serviceType.toString + ":rogchang")
+                .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount")))
+            .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceType)))
+            .addProperty(FOAF.accountName, serviceId)
+    }
 
     def getServiceHome(serviceType: ServiceType) = {
         serviceType match {
