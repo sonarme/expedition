@@ -17,6 +17,7 @@ import com.hp.hpl.jena.shared.CannotEncodeCharacterException
 import com.sonar.expedition.scrawler.util.RDFNamespaces._
 import com.sonar.expedition.scrawler.jobs.ServiceProfileToRDFJob._
 import com.hp.hpl.jena.sparql.vocabulary.FOAF
+import com.sonar.expedition.scrawler.util.RdfFormat
 
 
 //import org.apache.clerezza.rdf.ontologies.FOAF
@@ -35,7 +36,7 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 //    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
         val friendships = SequenceFile(friendshipInput, FriendTuple)
 
-    val profileRdf = Tsv(outputDir + "/profileRdfTsv")
+    val profileRdf = Tsv(outputDir + "/profileRdf.ttl")
     val profileRdfSequence = SequenceFile(outputDir + "/profileRdfSequence")
     //  val profilesSmall = Tsv(outputDir + "/profilesSmall.tsv")
 
@@ -99,8 +100,8 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
                     val strWriter = new StringWriter
                     try {
-                        model.write(strWriter, rdfOutputFormat)
-                        val str = stripHeader(rdfOutputFormat, strWriter.toString, serviceProfile)
+                        model.write(strWriter, RdfFormat.Turtle)
+                        val str = stripHeader(RdfFormat.Turtle, strWriter.toString, serviceProfile)
                         Some(str)
                     } catch {
                         case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + json, cece)
@@ -176,6 +177,4 @@ object ServiceProfileToRDFJob {
     val FoursquareHome = "http://www.foursquare.com"
     val LinkedinHome = "http://www.linkedin.com"
     val SonarHome = "http://www.sonar.me"
-
-    val rdfOutputFormat = "N3" // RDF/XML-ABBREV | N3
 }

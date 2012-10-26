@@ -1,7 +1,7 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding.{Tsv, SequenceFile, Args, Job}
-import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.expedition.scrawler.util.{RdfFormat, Tuples}
 import collection.JavaConversions._
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.hp.hpl.jena.rdf.model.ModelFactory
@@ -14,10 +14,10 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
     val input = args("input")
     val outputDir = args("output")
 
-    val checkins = SequenceFile(input, Tuples.Place)
-//    val checkins = Tsv(input, Tuples.Place)
-    val geonameRDF = Tsv(outputDir + "/geonameRdf_tsv")
-    val geonameRDFSequence = SequenceFile(outputDir + "/geonameRdf_sequence")
+//    val checkins = SequenceFile(input, Tuples.Place)
+    val checkins = Tsv(input, Tuples.Place)
+    val geonameRDF = Tsv(outputDir + "/placesRdf.rdf")
+    val geonameRDFSequence = SequenceFile(outputDir + "/placesRdf_sequence")
 
     val checkinsSmall = Tsv(outputDir + "/checkinsSmall_tsv")
 
@@ -38,22 +38,28 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
                 "sonar" -> Sonar)
             )
 
+            model.createResource(Vcard + venId)
+                .addProperty(RDF.`type`, model.createResource(Vcard + "VCard"))
+                    .addProperty(model.createProperty(Vcard, "geo"), model.createResource()
+                        .addProperty(model.createProperty(Vcard + "latitude"), lat.toString)
+                        .addProperty(model.createProperty(Vcard + "longitude"), lng.toString))
+                    .addProperty(model.createProperty(Vcard, "adr"), model.createResource()
+                        .addProperty(model.createProperty(Vcard, "street-address"), venAddress)
+                        .addProperty(model.createProperty(Vcard, "locality"), "") //todo: get city from cassandra
+                        .addProperty(model.createProperty(Vcard, "postal-code"), "") //todo: get postal code from cassandra
+                        .addProperty(model.createProperty(Vcard, "country-name"), "")) //todo: get country from cassandra
+
             model.createResource(Gn + venId)
-                    .addProperty(RDF.`type`, model.createResource(Gn + "Feature"))
-                    .addProperty(model.createProperty(Gn, "name"), venName)
-                    .addProperty(model.createProperty(Wgs84_pos, "lat"), lat.toString)
-                    .addProperty(model.createProperty(Wgs84_pos, "lng"), lng.toString)
-                    .addProperty(model.createProperty(Vcard, "VCard"), model.createResource()
-                        .addProperty(model.createProperty(Vcard, "adr"), model.createResource(Sonar + venId)
-                            .addProperty(model.createProperty(Vcard, "street-address"), venAddress)
-                            .addProperty(model.createProperty(Vcard, "locality"), "") //todo: get city from cassandra
-                            .addProperty(model.createProperty(Vcard, "postal-code"), "") //todo: get postal code from cassandra
-                            .addProperty(model.createProperty(Vcard, "country-name"), ""))) //todo: get country from cassandra
+                .addProperty(RDF.`type`, model.createResource(Gn + "Feature"))
+                .addProperty(model.createProperty(Owl + "sameAs"), model.createResource(Vcard + venId))
+                .addProperty(model.createProperty(Gn, "name"), venName)
+                .addProperty(model.createProperty(Wgs84_pos, "lat"), lat.toString)
+                .addProperty(model.createProperty(Wgs84_pos, "lng"), lng.toString)
 
 
             val strWriter = new StringWriter
             try {
-                model.write(strWriter, "RDF/XML-ABBREV")
+                model.write(strWriter, RdfFormat.RdfXmlAbbrev)
                 val str = strWriter.toString
 //                <rdf:RDF
 //                    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -65,8 +71,9 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
 //                    xmlns:wgs84_pos="http://www.w3.org/2003/01/geo/wgs84_pos#">
 //                </rdf:RDF>
                 //we strip the root element so that we can create one big document.  should put it back in somewhere
-                val strippedString = strWriter.toString.substring(str.indexOf("<gn:Feature "), str.lastIndexOf("</rdf:RDF>"))
-                Some("  " + strippedString.trim)
+//                val strippedString = strWriter.toString.substring(str.indexOf("<gn:Feature "), str.lastIndexOf("</rdf:RDF>"))
+//                Some("  " + strippedString.trim)
+                Some(str)
             } catch {
                 case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + venId, cece)
             } finally {
@@ -75,5 +82,5 @@ class CheckinToGeonameRDF(args: Args) extends Job(args) {
     }
 
     models.write(geonameRDF)
-    models.write(geonameRDFSequence)
+//    models.write(geonameRDFSequence)
 }
