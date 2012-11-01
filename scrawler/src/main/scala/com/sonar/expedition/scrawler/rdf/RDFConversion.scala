@@ -25,12 +25,12 @@ trait RDFConversion {
         )
 
         model.createResource(Vcard + venId)
-                .addProperty(RDF.`type`, model.createResource(Vcard + "VCard"))
+            .addProperty(RDF.`type`, model.createResource(Vcard + "VCard"))
                 .addProperty(model.createProperty(Vcard, "geo"), model.createResource()
-                .addLiteral(model.createProperty(Vcard + "latitude"), lat)
-                .addLiteral(model.createProperty(Vcard + "longitude"), lng))
-                .addLiteral(model.createProperty(Vcard, "adr"), model.createResource()
-                .addLiteral(model.createProperty(Vcard, "street-address"), venAddress)
+                    .addLiteral(model.createProperty(Vcard + "latitude"), lat)
+                    .addLiteral(model.createProperty(Vcard + "longitude"), lng))
+                .addProperty(model.createProperty(Vcard, "adr"), model.createResource()
+                    .addLiteral(model.createProperty(Vcard, "street-address"), venAddress)
             /*.addProperty(model.createProperty(Vcard, "locality"), "") //todo: get city from cassandra
                             .addProperty(model.createProperty(Vcard, "postal-code"), "") //todo: get postal code from cassandra
                             .addProperty(model.createProperty(Vcard, "country-name"), "")) //todo: get country from cassandra
@@ -46,7 +46,7 @@ trait RDFConversion {
 
         val strWriter = new StringWriter
         try {
-            model.write(strWriter, RdfFormat.Ntriple)
+            model.write(strWriter, RdfFormat.Turtle)
             strWriter.toString
         } catch {
             case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + venId, cece)
