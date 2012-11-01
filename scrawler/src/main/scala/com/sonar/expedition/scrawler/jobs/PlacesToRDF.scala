@@ -17,7 +17,7 @@ class PlacesToRDF(args: Args) extends Job(args) with RDFConversion {
     val input = args("iPlaces")
     val output = args("oPlacesRDF")
 
-    Tsv(input, Tuples.Place)
+    SequenceFile(input, Tuples.Place)
             .read
             .mapTo(('serType, 'venId, 'venName, 'venAddress, 'lat, 'lng) -> 'model) {
         in: (String, String, String, String, Double, Double) =>
