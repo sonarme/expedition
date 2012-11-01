@@ -27,20 +27,21 @@ trait RDFConversion {
         model.createResource(Vcard + venId)
                 .addProperty(RDF.`type`, model.createResource(Vcard + "VCard"))
                 .addProperty(model.createProperty(Vcard, "geo"), model.createResource()
-                .addProperty(model.createProperty(Vcard + "latitude"), lat.toString)
-                .addProperty(model.createProperty(Vcard + "longitude"), lng.toString))
-                .addProperty(model.createProperty(Vcard, "adr"), model.createResource()
-                .addProperty(model.createProperty(Vcard, "street-address"), venAddress)
-                .addProperty(model.createProperty(Vcard, "locality"), "") //todo: get city from cassandra
-                .addProperty(model.createProperty(Vcard, "postal-code"), "") //todo: get postal code from cassandra
-                .addProperty(model.createProperty(Vcard, "country-name"), "")) //todo: get country from cassandra
-
+                .addLiteral(model.createProperty(Vcard + "latitude"), lat)
+                .addLiteral(model.createProperty(Vcard + "longitude"), lng))
+                .addLiteral(model.createProperty(Vcard, "adr"), model.createResource()
+                .addLiteral(model.createProperty(Vcard, "street-address"), venAddress)
+            /*.addProperty(model.createProperty(Vcard, "locality"), "") //todo: get city from cassandra
+                            .addProperty(model.createProperty(Vcard, "postal-code"), "") //todo: get postal code from cassandra
+                            .addProperty(model.createProperty(Vcard, "country-name"), "")) //todo: get country from cassandra
+            */
+        )
         model.createResource(Gn + venId)
                 .addProperty(RDF.`type`, model.createResource(Gn + "Feature"))
                 .addProperty(model.createProperty(Owl + "sameAs"), model.createResource(Vcard + venId))
-                .addProperty(model.createProperty(Gn, "name"), venName)
-                .addProperty(model.createProperty(Wgs84_pos, "lat"), lat.toString)
-                .addProperty(model.createProperty(Wgs84_pos, "lng"), lng.toString)
+                .addLiteral(model.createProperty(Gn, "name"), venName)
+                .addLiteral(model.createProperty(Wgs84_pos, "lat"), lat)
+                .addLiteral(model.createProperty(Wgs84_pos, "lng"), lng)
 
 
         val strWriter = new StringWriter
