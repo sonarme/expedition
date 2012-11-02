@@ -26,7 +26,8 @@ trait RDFConversion {
                 .addProperty(LinkedGeo.contributor, model.createResource(SonarService + serType))
                 .addLiteral(LinkedGeo.lat, lat)
                 .addLiteral(LinkedGeo.long, lng)
-                // TODO: parse the address
+                .addLiteral(LinkedGeo.point, lat.toString + " " + lng.toString)
+                // TODO: parse the address into housenumber, street, etc.
                 .addLiteral(LinkedGeo.street, venAddress)
                 .addLiteral(LinkedGeo.label, venName)
 

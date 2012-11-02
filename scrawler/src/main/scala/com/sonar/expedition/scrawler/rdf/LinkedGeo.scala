@@ -9,32 +9,38 @@ object LinkedGeo {
 
     val LGNS = "http://linkedgeodata.org/ontology/"
 
-    def Amenity = resource(LGNS, "Amenity")
+    val Amenity = resource(LGNS, "Amenity")
 
     val J1NS = "http://linkedgeodata.org/ontology/addr%3A"
 
-    def street = property(J1NS, "street")
+    val street = property(J1NS, "street")
 
     val GeoNS = "http://www.w3.org/2003/01/geo/wgs84_pos#"
 
-    def long = property(GeoNS, "long")
+    val long = property(GeoNS, "long")
 
-    def lat = property(GeoNS, "lat")
+    val lat = property(GeoNS, "lat")
 
     val DCTermsNS = "http://purl.org/dc/terms/"
 
-    def contributor = property(DCTermsNS, "contributor")
+    val contributor = property(DCTermsNS, "contributor")
 
     val RDFSNS = "http://www.w3.org/2000/01/rdf-schema#"
 
-    def label = property(RDFSNS, "label")
+    val label = property(RDFSNS, "label")
+
+    val GEORSSNS = "http://www.georss.org/georss/"
+
+    val point = property(GEORSSNS, "point")
 
     val NS = Map(
         "lgdo" -> LGNS,
         "j.1" -> J1NS,
         "geo" -> GeoNS,
         "dcterms" -> DCTermsNS,
-        "rdfs" -> RDFSNS)
+        "rdfs" -> RDFSNS,
+        "georss" -> GEORSSNS)
+
 }
 
 
