@@ -32,9 +32,9 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
     val profileInput = args("profiles")
     val friendshipInput = args("friendships")
 
-        val profiles = Tsv(profileInput, ('userProfileId, 'serviceType, 'json))
-//    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
-        val friendships = SequenceFile(friendshipInput, FriendTuple)
+    val profiles = Tsv(profileInput, ('userProfileId, 'serviceType, 'json))
+    //    val profiles = SequenceFile(input, ('userProfileId, 'serviceType, 'json))
+    val friendships = SequenceFile(friendshipInput, FriendTuple)
 
     val profileRdf = Tsv(outputDir + "/profileRdf.ttl")
     val profileRdfSequence = SequenceFile(outputDir + "/profileRdfSequence")
@@ -100,8 +100,8 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
 
                     val strWriter = new StringWriter
                     try {
-                        model.write(strWriter, RdfFormat.Turtle)
-                        val str = stripHeader(RdfFormat.Turtle, strWriter.toString, serviceProfile)
+                        model.write(strWriter, RdfFormat.Turtle.toString)
+                        val str = stripHeader(RdfFormat.Turtle.toString, strWriter.toString, serviceProfile)
                         Some(str)
                     } catch {
                         case cece: CannotEncodeCharacterException => throw new RuntimeException("Failed creating model for " + json, cece)
@@ -114,16 +114,17 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
         }
     }
     models.write(profileRdf)
-//    models.write(profileRdfSequence)
+
+    //    models.write(profileRdfSequence)
 
 
     def createUserAccount(model: Model, serviceType: ServiceType, serviceId: String) = {
         model.createResource(Sioc + serviceType.toString + ":" + serviceId)
-            .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount"))
-            .addProperty(model.createProperty(Sioc + "follows"), model.createResource(Sioc + serviceType.toString + ":rogchang")
+                .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount"))
+                .addProperty(model.createProperty(Sioc + "follows"), model.createResource(Sioc + serviceType.toString + ":rogchang")
                 .addProperty(RDF.`type`, model.createResource(Sioc + "UserAccount")))
-            .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceType)))
-            .addProperty(FOAF.accountName, serviceId)
+                .addProperty(FOAF.accountServiceHomepage, model.createResource(getServiceHome(serviceType)))
+                .addProperty(FOAF.accountName, serviceId)
     }
 
     def getServiceHome(serviceType: ServiceType) = {
@@ -144,7 +145,7 @@ class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPi
      * @return
      */
     def stripHeader(format: String, strToStrip: String, serviceProfile: ServiceProfileDTO) = {
-       /*
+        /*
         * <rdf:RDF
         *      xmlns:sonar="http://sonar.me/ns#"
         *      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
