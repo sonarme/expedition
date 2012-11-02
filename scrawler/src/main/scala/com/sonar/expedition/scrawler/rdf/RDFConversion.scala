@@ -14,13 +14,16 @@ trait RDFConversion {
     def placeToRDF(serType: String, venId: String, venName: String, venAddress: String, lat: Double, lng: Double, rdfFormat: RdfFormat.RdfFormat = RdfFormat.Ntriple) = {
         val model = ModelFactory.createDefaultModel()
         model.setNsPrefixes(
-            LinkedGeo.NS +
-                    ("sonarven" -> SonarVenue)
+            LinkedGeo.NS ++
+                    Map("sonarven" -> SonarVenue,
+                        "sonarsvc" -> SonarService)
         )
 
         val canonicalVenueId = serType + "_" + venId
         model.createResource(SonarVenue + canonicalVenueId)
                 .addProperty(RDF.`type`, LinkedGeo.Amenity)
+                // TODO: not ideal
+                .addProperty(LinkedGeo.contributor, model.createResource(SonarService + serType))
                 .addLiteral(LinkedGeo.lat, lat)
                 .addLiteral(LinkedGeo.long, lng)
                 .addLiteral(LinkedGeo.street, venAddress)

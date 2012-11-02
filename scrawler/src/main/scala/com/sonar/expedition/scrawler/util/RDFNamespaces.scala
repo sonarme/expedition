@@ -9,6 +9,7 @@ object RDFNamespaces {
     val Owl = "http://www.w3.org/2002/07/owl#"
     val Rdf = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
     val Rdfs = "http://www.w3.org/2000/01/rdf-schema#"
+    val SonarService = "http://sonar.me/service#"
     val SonarVenue = "http://sonar.me/venue#"
     val Sonar = "http://sonar.me/#"
     val Vcard = "http://www.w3.org/2006/vcard/ns#"
