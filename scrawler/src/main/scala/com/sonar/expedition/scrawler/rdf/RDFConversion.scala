@@ -11,7 +11,7 @@ import scala.Predef._
 import collection.JavaConversions._
 
 trait RDFConversion {
-    def placeToRDF(serType: String, venId: String, venName: String, venAddress: String, lat: Double, lng: Double, rdfFormat: RdfFormat.RdfFormat = RdfFormat.Ntriple) = {
+    def placeToRDF(serType: String, venId: String, venName: String, venAddress: String, lat: Double, lng: Double, rdfFormat: RdfFormat.Value = RdfFormat.Ntriple) = {
         val model = ModelFactory.createDefaultModel()
         model.setNsPrefixes(
             LinkedGeo.NS ++
@@ -26,6 +26,7 @@ trait RDFConversion {
                 .addProperty(LinkedGeo.contributor, model.createResource(SonarService + serType))
                 .addLiteral(LinkedGeo.lat, lat)
                 .addLiteral(LinkedGeo.long, lng)
+                // TODO: parse the address
                 .addLiteral(LinkedGeo.street, venAddress)
                 .addLiteral(LinkedGeo.label, venName)
 
