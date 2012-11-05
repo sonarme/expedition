@@ -83,8 +83,6 @@ trait RDFConversion {
             person.setFoafDepiction(Set[Image](photo))
         }
 
-//        val file = new File("/Users/rogchang/Desktop/test.rdf")
-//        val writer = new FileWriter(file)
         val writer = new StringWriter()
         try {
             //        manager.getConnection.export(new NTriplesWriter(writer))
