@@ -15,7 +15,7 @@ import com.sonar.expedition.scrawler.util.{VenueMatcher, Venue}
 import cascading.tuple.Fields
 import util.Random
 
-class YelpCrawl(args: Args) extends Job(args) {
+class YelpCrawl(args: Args) extends Job(args) with Fetcher {
 
     val outputDir = args("output")
     val src = args("src")
@@ -46,7 +46,7 @@ class YelpCrawl(args: Args) extends Job(args) {
             try {
                 val loc = URLEncoder.encode(city + " " + zip, "UTF-8")
                 val url = "http://www.yelp.com/search?find_desc=" + URLEncoder.encode(merchantName, "UTF-8") + "&find_loc=" + loc
-                val (status, content) = Crawler.fetchContent(url)
+                val (status, content) = fetchStatusAndContent(url)
                 content
             } catch {
                 case e: Exception => println(e); ""
@@ -86,7 +86,7 @@ class YelpCrawl(args: Args) extends Job(args) {
     val rawTuples = linkOut
             .map('url ->('status, 'content, 'links)) {
         url: String => {
-            Crawler.fetchToTuple(url)
+            fetchStatusContentAndLinks(url)
         }
     }
 

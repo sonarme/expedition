@@ -4,7 +4,6 @@ import com.twitter.scalding._
 import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
-import filter.ParseFilter
 import com.sonar.expedition.scrawler.util.Tuples
 
 class ParseJob(args: Args) extends Job(args) with ParseFilter {
@@ -46,9 +45,25 @@ class ParseJob(args: Args) extends Job(args) with ParseFilter {
                         val wereHereCount = extractor.wereHereCount()
                         val talkingAboutCount = extractor.talkingAboutCount()
                         val likes = extractor.likes()
-                        val dealPrice = extractor.price()
-                        val purchased = extractor.purchased()
-                        val savingsPercent = extractor.savingsPercent()
+                        val dealPrice = try {
+                            extractor.price().substring(1).replace(",", "").toInt
+                        } catch {
+                            case e: Exception => println("url: " + url + "\n" + e); 0
+                        }
+                        val purchased = try {
+                            extractor.purchased().replace(",", "").toInt
+                        } catch {
+                            case e: Exception => println("url: " + url + "\n" + e); try {
+                                extractor.purchased().replace(",", "").replace("?", "").toInt
+                            } catch {
+                                case f: Exception => 0
+                            }
+                        }
+                        val savingsPercent = try {
+                            extractor.savingsPercent().stripSuffix("%").toInt
+                        } catch {
+                            case e: Exception => println("url: " + url + "\n" + e); 0
+                        }
                         val dealDescription = extractor.dealDescription()
                         val dealImage = extractor.dealImage()
                         val dealRegion = extractor.dealRegion()
@@ -64,39 +79,6 @@ class ParseJob(args: Args) extends Job(args) with ParseFilter {
         parsedTuples
             .write(parsedSequence)
 
-    val parsedAgain = parsed
-            .map(('url, 'dealPrice, 'purchased, 'savingsPercent) ->('dealPriceNum, 'purchasedNum, 'savingsPercentNum)) {
-        in: (String, String, String, String) =>
-            val (url, price, purchased, savings) = in
-            val priceNum = try {
-                price.substring(1).replace(",", "").toInt
-            } catch {
-                case e: Exception => println("url: " + url + "\n" + e); 0
-            }
-            val purchaseNum = try {
-                purchased.replace(",", "").toInt
-            } catch {
-                case e: Exception => println("url: " + url + "\n" + e); try {
-                    purchased.replace(",", "").replace("?", "").toInt
-                } catch {
-                    case f: Exception => 0
-                }
-            }
-            val savingsNum = try {
-                savings.stripSuffix("%").toInt
-            } catch {
-                case e: Exception => println("url: " + url + "\n" + e); 0
-            }
-            (priceNum, purchaseNum, savingsNum)
-    }
-            .discard('dealPrice, 'purchased, 'savingsPercent)
-            .filter('dealPriceNum) { price: Int => price > 0}
-
-    parsedAgain
-        .write(parsed2)
-
-    parsedAgain
-        .write(parsedSequence2)
 }
 
 object ParseJob extends FieldConversions {

@@ -5,8 +5,7 @@ import org.jsoup.Jsoup
 import org.apache.commons.validator.routines.UrlValidator
 import java.net.URL
 import org.joda.time.DateTime
-import com.sonar.expedition.scrawler.crawler.filter.ParseFilter
-import com.sonar.expedition.scrawler.crawler.ExtractorFactory
+import com.sonar.expedition.scrawler.crawler.{ParseFilter, ExtractorFactory}
 import cascading.tuple.Fields
 import ch.hsr.geohash.util.VincentyGeodesy
 import ch.hsr.geohash.WGS84Point
