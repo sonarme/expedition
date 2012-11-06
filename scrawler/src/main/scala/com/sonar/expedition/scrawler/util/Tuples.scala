@@ -8,4 +8,6 @@ object Tuples extends TupleConversions {
     val SonarFriend = ('sonarId, 'serviceType, 'serviceProfileId)
     val Checkin = ('serType, 'serProfileID, 'serCheckinID, 'venId, 'venName, 'venAddress, 'chknTime, 'lat, 'lng, 'msg)
     val Correlation = ('correlationId, 'serviceType, 'serviceProfileId)
+
+    val RawCrawl = ('url, 'timestamp, 'status, 'content, 'links)
 }

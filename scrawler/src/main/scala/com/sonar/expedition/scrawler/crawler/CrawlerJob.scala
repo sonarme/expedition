@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.crawler
 
 import com.twitter.scalding._
 import collection.JavaConversions._
-import filter.ParseFilterFactory
+import filter.ParseFilter
 import org.joda.time.DateTime
 import cascading.pipe.joiner.{RightJoin, LeftJoin, OuterJoin}
 import org.jsoup.Jsoup
@@ -16,8 +16,9 @@ import org.apache.http.util.EntityUtils
 import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
 import util.Random
 import com.sonar.expedition.scrawler.jobs.DealAnalysis
+import com.sonar.expedition.scrawler.util.Tuples
 
-class CrawlerJob(args: Args) extends Job(args) {
+class CrawlerJob(args: Args) extends Job(args) with ParseFilter {
 
     val level: Int = args("level").toInt
     val levelUp: Int = level + 1
@@ -38,7 +39,7 @@ class CrawlerJob(args: Args) extends Job(args) {
     val statusSequence = SequenceFile(outputDir+"/crawl_"+level+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
     val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL)
-    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", CrawlerJob.RawTuple)
+    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", Tuples.RawCrawl)
 
     val venues = SequenceFile(src, YelpCrawl.DealsOutputTuple)
 
@@ -138,7 +139,7 @@ class CrawlerJob(args: Args) extends Job(args) {
 
     //Parse out the content and write to parsed.tsv
     val parsedTuples = rawTuples
-            .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
+            .filter('url) { url: String => url != null && isUrlIncluded(url)}
             .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'reviews, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount, 'likes)) { in: (String, String) => {
                     val (url, content) = in
                     val extractor = ExtractorFactory.getExtractor(url, content)
@@ -191,8 +192,4 @@ class CrawlerJob(args: Args) extends Job(args) {
     statusOut
         .write(statusOutput)
     */
-}
-
-object CrawlerJob extends FieldConversions {
-    val RawTuple = ('url, 'timestamp, 'status, 'content, 'links)
 }

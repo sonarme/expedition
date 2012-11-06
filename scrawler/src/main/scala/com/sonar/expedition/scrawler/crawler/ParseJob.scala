@@ -4,16 +4,17 @@ import com.twitter.scalding._
 import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
-import filter.ParseFilterFactory
+import filter.ParseFilter
+import com.sonar.expedition.scrawler.util.Tuples
 
-class ParseJob(args: Args) extends Job(args) {
+class ParseJob(args: Args) extends Job(args) with ParseFilter {
 
     val level: Int = args("level").toInt
     val levelUp: Int = level + 1
     val outputDir = args("output")
     val domains = args("domains")
 
-    val rawSequence = SequenceFile(outputDir + "/crawl_" + level + "/raw", CrawlerJob.RawTuple)
+    val rawSequence = SequenceFile(outputDir + "/crawl_" + level + "/raw", Tuples.RawCrawl)
 
     val parsed = Tsv(outputDir + "/crawl_" + level + "/parsed.tsv", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
     val parsedSequence = SequenceFile(outputDir + "/crawl_" + level + "/parsed", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
@@ -23,7 +24,7 @@ class ParseJob(args: Args) extends Job(args) {
 
 
     val parsedTuples = rawSequence
-                .filter('url) { url: String => url != null && ParseFilterFactory.getParseFilter(url).isIncluded(url)}
+                .filter('url) { url: String => url != null && isUrlIncluded(url)}
                 .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
                         val (url, content) = in
                         val extractor = ExtractorFactory.getExtractor(url, content)

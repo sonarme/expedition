@@ -5,14 +5,12 @@ import com.sonar.expedition.scrawler.crawler.Sites
 /**
  * urls to be included when parsing content
  */
-class ParseFilter {
-    def isIncluded(url: String) = true
-}
-
-case class YelpParseFilter() extends ParseFilter {
-    override def isIncluded(url: String) = if (url.contains(Sites.Yelp + "/biz/")) true else false
-}
-
-case class CitySearchParseFilter() extends ParseFilter {
-    override def isIncluded(url: String) = if (url.contains(Sites.CitySearch + "/profile/")) true else false
+trait ParseFilter {
+    def isUrlIncluded(url: String) = {
+        url match {
+            case u: String if u.indexOf(Sites.Yelp) > -1 => if (url.contains(Sites.Yelp + "/biz/")) true else false
+            case u: String if u.indexOf(Sites.CitySearch) > -1 => if (url.contains(Sites.CitySearch + "/profile/")) true else false
+            case _ => true
+        }
+    }
 }
