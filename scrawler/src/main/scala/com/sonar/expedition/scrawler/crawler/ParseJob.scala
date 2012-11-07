@@ -1,7 +1,6 @@
 package com.sonar.expedition.scrawler.crawler
 
 import com.twitter.scalding._
-import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import com.sonar.expedition.scrawler.util.Tuples
@@ -17,39 +16,14 @@ class ParseJob(args: Args) extends Job(args) with ParseFilter {
     val parsedSequence = SequenceFile(srcDir + "/crawl_" + level + "/parsedSequence", Tuples.Crawler.BaseVenue)
 
     val parsedTuples = rawSequence
-                .filter('url) { url: String => url != null && isUrlIncluded(url)}
-                .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone)) { in: (String, String) => {
-                        val (url, content) = in
-                        val extractor = ExtractorFactory.getExtractor(url, content)
-                        val business = extractor.businessName()
-                        val category = extractor.category()
-                        val rating = extractor.rating()
-                        val latitude = extractor.latitude()
-                        val longitude = extractor.longitude()
-                        val address = extractor.address()
-                        val city = extractor.city()
-                        val state = extractor.state()
-                        val zip = extractor.zip()
-                        val phone = extractor.phone()
-                        val priceRange = extractor.priceRange()
-                        val reviewCount = extractor.reviewCount()
-                        val reviews = extractor.reviews()
-                        val peopleCount = extractor.peopleCount()
-                        val checkins = extractor.checkinCount()
-                        val wereHereCount = extractor.wereHereCount()
-                        val talkingAboutCount = extractor.talkingAboutCount()
-                        val likes = extractor.likes()
-                        val dealPrice = extractor.price()
-                        val purchased = extractor.purchased()
-                        val savingsPercent = extractor.savingsPercent()
-                        val dealDescription = extractor.dealDescription()
-                        val dealImage = extractor.dealImage()
-                        val dealRegion = extractor.dealRegion()
+            .filter('url) { url: String => url != null && isUrlIncluded(url)}
+            .mapTo(('url, 'timestamp, 'content) -> Tuples.Crawler.BaseVenue) { in: (String, String, String) => {
+                    val (url, timestamp, content) = in
+                    val extractor = ExtractorFactory.getExtractor(url, content)
 
-                        (business, category, rating, latitude, longitude, address, city, state, zip, phone)
-                    }
+                    (url, timestamp, extractor.businessName(), extractor.category(), extractor.rating(), extractor.latitude(), extractor.longitude(), extractor.address(), extractor.city(), extractor.state(), extractor.zip(), extractor.phone())
                 }
-                .discard('content, 'links, 'status)
+            }
 
         parsedTuples
             .write(parsedTsv)
