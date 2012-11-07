@@ -9,22 +9,16 @@ import com.sonar.expedition.scrawler.util.Tuples
 class ParseJob(args: Args) extends Job(args) with ParseFilter {
 
     val level: Int = args("level").toInt
-    val levelUp: Int = level + 1
-    val outputDir = args("output")
-    val domains = args("domains")
+    val srcDir = args("srcDir")
 
-    val rawSequence = SequenceFile(outputDir + "/crawl_" + level + "/raw", Tuples.RawCrawl)
+    val rawSequence = SequenceFile(srcDir + "/crawl_" + level + "/raw", Tuples.Crawler.Raw)
 
-    val parsed = Tsv(outputDir + "/crawl_" + level + "/parsed.tsv", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
-    val parsedSequence = SequenceFile(outputDir + "/crawl_" + level + "/parsed", ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage))
-
-    val parsed2 = Tsv(outputDir + "/crawl_" + level + "/parsed2.tsv")
-    val parsedSequence2 = SequenceFile(outputDir + "/crawl_" + level + "/parsed2", Fields.ALL)
-
+    val parsedTsv = Tsv(srcDir + "/crawl_" + level + "/parsedTsv", Tuples.Crawler.BaseVenue)
+    val parsedSequence = SequenceFile(srcDir + "/crawl_" + level + "/parsedSequence", Tuples.Crawler.BaseVenue)
 
     val parsedTuples = rawSequence
                 .filter('url) { url: String => url != null && isUrlIncluded(url)}
-                .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone, 'priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)) { in: (String, String) => {
+                .map(('url, 'content) -> ('businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone)) { in: (String, String) => {
                         val (url, content) = in
                         val extractor = ExtractorFactory.getExtractor(url, content)
                         val business = extractor.businessName()
@@ -45,48 +39,22 @@ class ParseJob(args: Args) extends Job(args) with ParseFilter {
                         val wereHereCount = extractor.wereHereCount()
                         val talkingAboutCount = extractor.talkingAboutCount()
                         val likes = extractor.likes()
-                        val dealPrice = try {
-                            extractor.price().substring(1).replace(",", "").toInt
-                        } catch {
-                            case e: Exception => println("url: " + url + "\n" + e); 0
-                        }
-                        val purchased = try {
-                            extractor.purchased().replace(",", "").toInt
-                        } catch {
-                            case e: Exception => println("url: " + url + "\n" + e); try {
-                                extractor.purchased().replace(",", "").replace("?", "").toInt
-                            } catch {
-                                case f: Exception => 0
-                            }
-                        }
-                        val savingsPercent = try {
-                            extractor.savingsPercent().stripSuffix("%").toInt
-                        } catch {
-                            case e: Exception => println("url: " + url + "\n" + e); 0
-                        }
+                        val dealPrice = extractor.price()
+                        val purchased = extractor.purchased()
+                        val savingsPercent = extractor.savingsPercent()
                         val dealDescription = extractor.dealDescription()
                         val dealImage = extractor.dealImage()
                         val dealRegion = extractor.dealRegion()
 
-                        (business, category, rating, latitude, longitude, address, city, state, zip, phone, priceRange, reviewCount, likes, dealRegion, dealPrice, purchased, savingsPercent, dealDescription, dealImage)
+                        (business, category, rating, latitude, longitude, address, city, state, zip, phone)
                     }
                 }
                 .discard('content, 'links, 'status)
 
         parsedTuples
-            .write(parsed)
+            .write(parsedTsv)
 
         parsedTuples
             .write(parsedSequence)
 
-}
-
-object ParseJob extends FieldConversions {
-    val BaseVenueTuple = ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone) append ('priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)
-    val LivingSocialTuple = BaseVenueTuple append ('priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)
-    val FoursquareTuple = BaseVenueTuple append ('priceRange, 'reviewCount, 'reviews)
-    val FacebookTuple = BaseVenueTuple append ('priceRange, 'reviewCount, 'likes, 'peopleCount, 'checkins, 'wereHereCount, 'talkingAboutCount)
-    val TwitterTuple = BaseVenueTuple
-    val YelpTuple = BaseVenueTuple append ('priceRange, 'reviewCount, 'reviews)
-    val CitySearchTuple = BaseVenueTuple append ('priceRange, 'reviewCount)
 }

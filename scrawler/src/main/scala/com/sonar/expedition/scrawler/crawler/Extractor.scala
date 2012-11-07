@@ -55,11 +55,11 @@ class Extractor(@BeanProperty val content: String) {
 
     def likes(): Int = 0
 
-    def price(): String = ""
+    def price(): Double = 0.0
 
-    def purchased(): String = ""
+    def purchased(): Int = 0
 
-    def savingsPercent(): String = ""
+    def savingsPercent(): Int = 0
 
     def dealDescription(): String = ""
 
@@ -415,34 +415,54 @@ class LivingSocialExtractor(content: String) extends Extractor(content) {
     override def phone() = extractByAttributeValue("class", "phone").getOrElse("").stripSuffix(" |")
 
     override def price() = doc.getElementsByClass("deal-price").headOption match {
-        case Some(e) => Jsoup.parse(e.text()).text()
-        case None => ""
+        case Some(e) => try{
+            Jsoup.parse(e.text()).text().substring(1).replace(",", "").toDouble
+        } catch {
+            case ex: Exception => println("price: " + e.text() + "\n" + ex); 0.0
+        }
+        case None => 0.0
     }
 
-    override def purchased() = Option(doc.getElementById("deal-purchase-count")) match {
-        case Some(d) => d.getElementsByClass("value").headOption match {
-            case Some(e) => e.text()
-            case None => ""
-        }
-        case None => doc.getElementsByClass("purchased").headOption match {
-            //for /escapes
+    override def purchased() = {
+        val purchasedStr = Option(doc.getElementById("deal-purchase-count")) match {
             case Some(d) => d.getElementsByClass("value").headOption match {
                 case Some(e) => e.text()
                 case None => ""
             }
-            case None => ""
+            case None => doc.getElementsByClass("purchased").headOption match {
+                //for /escapes
+                case Some(d) => d.getElementsByClass("value").headOption match {
+                    case Some(e) => e.text()
+                    case None => ""
+                }
+                case None => ""
+            }
+        }
+        try {
+            purchasedStr.replace(",", "").toInt
+        } catch {
+            case e: Exception => println("purchased: " + purchasedStr + "\n" + e)
+            try {
+                purchasedStr.replace(",", "").replace("?", "").toInt
+            } catch {
+                case f: Exception => 0
+            }
         }
     }
 
-    override def savingsPercent() = extractById("percentage").getOrElse {
-        doc.getElementsByClass("discount").headOption match {
-            case Some(d) => d.getElementsByClass("value").headOption match {
-                case Some(e) => e.text()
+    override def savingsPercent() = try {
+        extractById("percentage").getOrElse {
+            doc.getElementsByClass("discount").headOption match {
+                case Some(d) => d.getElementsByClass("value").headOption match {
+                    case Some(e) => e.text()
+                    case None => ""
+                }
                 case None => ""
             }
-            case None => ""
-        }
-    }.stripSuffix("%")
+        }.stripSuffix("%").toInt
+    } catch {
+        case e: Exception => println(e); 0
+    }
 
     override def dealDescription() = extractById("view-details-full").getOrElse{
         doc.getElementsByClass("deal-description").headOption match {

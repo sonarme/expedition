@@ -26,11 +26,11 @@ class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
     val src = args("src")
 
 //    val links = Tsv(outputDir+"/crawl_"+level+"/links.tsv", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
-    val linksOutput = Tsv(outputDir+"/crawl_"+levelUp+"/links.tsv", ('url, 'timestamp, 'referer))
+    val linksOutput = Tsv(outputDir+"/crawl_"+levelUp+"/links.tsv", Tuples.Crawler.Links)
     val status = Tsv(outputDir+"/crawl_"+level+"/status.tsv", ('url, 'status, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutput = Tsv(outputDir+"/crawl_"+levelUp+"/status_tsv", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
     val parsed = Tsv(outputDir+"/crawl_"+level+"/parsed_tsv") //('url, 'timestamp, 'businessName, 'category, 'subcategory, 'rating)
-    val raw = Tsv(outputDir+"/crawl_"+level+"/raw_tsv") //('url, 'timestamp, 'status, 'content, 'links)
+    val rawTsv = Tsv(outputDir+"/crawl_"+level+"/rawTsv") //('url, 'timestamp, 'status, 'content, 'links)
 
     //Sequence files
     val linksSequence = SequenceFile(outputDir+"/crawl_"+level+"/links", ('url, 'timestamp, 'referer)) //('url, 'timestamp, 'referer)
@@ -38,7 +38,7 @@ class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
     val statusSequence = SequenceFile(outputDir+"/crawl_"+level+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)) //('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
     val statusOutputSequence = SequenceFile(outputDir+"/crawl_"+levelUp+"/status", ('url, 'status, 'timestamp, 'attempts, 'crawlDepth))
     val parsedSequence = SequenceFile(outputDir+"/crawl_"+level+"/parsed", Fields.ALL)
-    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", Tuples.RawCrawl)
+    val rawSequence = SequenceFile(outputDir+"/crawl_"+level+"/raw", Tuples.Crawler.Raw)
 
     val venues = SequenceFile(src, YelpCrawl.DealsOutputTuple)
 
@@ -95,8 +95,8 @@ class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
                 }
             }
 
-//    rawTuples
-//        .write(raw)
+    rawTuples
+        .write(rawTsv)
 
     rawTuples
         .write(rawSequence)
