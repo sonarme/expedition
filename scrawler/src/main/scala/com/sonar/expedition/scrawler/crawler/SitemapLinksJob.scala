@@ -24,7 +24,6 @@ class SitemapLinksJob(args: Args) extends Job(args) with SitemapFilter {
         .read
         .flatMapTo('line -> Tuples.Crawler.Links) {
             line: String => {
-                //ported from java code
 
                 val siteMapParser = new SiteMapParser
                 val url = new URL(sitemap)
@@ -54,7 +53,7 @@ class SitemapLinksJob(args: Args) extends Job(args) with SitemapFilter {
                     }
                     case _ => List.empty[Option[(String, String, String)]]
                 }
-                tuples.flatten.take(10)
+                tuples.flatten
             }
         }
 
