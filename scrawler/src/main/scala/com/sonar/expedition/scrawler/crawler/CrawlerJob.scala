@@ -3,18 +3,8 @@ package com.sonar.expedition.scrawler.crawler
 import com.twitter.scalding._
 import collection.JavaConversions._
 import org.joda.time.DateTime
-import cascading.pipe.joiner.{RightJoin, LeftJoin, OuterJoin}
-import org.jsoup.Jsoup
-import java.net.URL
-import org.apache.commons.validator.routines.UrlValidator
+import cascading.pipe.joiner.{LeftJoin, OuterJoin}
 import com.twitter.scalding.Tsv
-import cascading.tuple.Fields
-import org.apache.http.impl.client.DefaultHttpClient
-import org.apache.http.client.methods.HttpGet
-import org.apache.http.util.EntityUtils
-import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
-import util.Random
-import com.sonar.expedition.scrawler.jobs.DealAnalysis
 import com.sonar.expedition.scrawler.util.Tuples
 
 class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
