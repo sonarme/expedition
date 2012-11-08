@@ -13,7 +13,7 @@ import java.util.Date
  * Write the links in a sitemap into a Tsv file specified by the output
  * @param args
  */
-class SitemapLinksJob(args: Args) extends Job(args) with SitemapFilter {
+class SitemapLinksJob(args: Args) extends Job(args) with SitemapFilter with LinkPostProcessor {
     val sitemap = args("sitemap")
     val output = args("output")
 
@@ -42,7 +42,7 @@ class SitemapLinksJob(args: Args) extends Job(args) with SitemapFilter {
                                     val curSiteMap = siteMapParser.parseSiteMap("application/gzipped", curSiteMapContent, sm.getUrl)
                                     curSiteMap match {
                                         case s: SiteMap => s.getSiteMapUrls.map(siteMapUrl => {
-                                            Some((siteMapUrl.getUrl.toExternalForm, new Date().getTime.toString, ""))
+                                            Some((processUrl(siteMapUrl.getUrl.toExternalForm), new Date().getTime, ""))
                                         })
                                         case _ => None
                                     }

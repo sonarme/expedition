@@ -9,6 +9,7 @@ trait ParseFilter {
         url match {
             case u: String if u.contains(Sites.Yelp) => if (url.contains(Sites.Yelp + "/biz/")) true else false
             case u: String if u.contains(Sites.CitySearch) => if (url.contains(Sites.CitySearch + "/profile/")) true else false
+            case u: String if u.contains(Sites.LivingSocial) => if (!url.contains("/cities/") && !url.contains("/events/")) true else false
             case _ => true
         }
     }
