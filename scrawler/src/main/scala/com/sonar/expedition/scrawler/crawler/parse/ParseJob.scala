@@ -1,9 +1,10 @@
-package com.sonar.expedition.scrawler.crawler
+package com.sonar.expedition.scrawler.crawler.parse
 
 import com.twitter.scalding._
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.expedition.scrawler.crawler.{ExtractorFactory, ParseFilter}
 
 class ParseJob(args: Args) extends Job(args) with ParseFilter {
 

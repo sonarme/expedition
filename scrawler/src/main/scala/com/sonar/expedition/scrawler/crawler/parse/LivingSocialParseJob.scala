@@ -1,7 +1,8 @@
-package com.sonar.expedition.scrawler.crawler
+package com.sonar.expedition.scrawler.crawler.parse
 
 import com.twitter.scalding.{Tsv, SequenceFile, Job, Args}
 import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.expedition.scrawler.crawler.{ExtractorFactory, ParseFilter}
 
 class LivingSocialParseJob(args: Args) extends Job(args) with ParseFilter {
     val level: Int = args("level").toInt
