@@ -11,6 +11,7 @@ object Tuples extends TupleConversions {
 
     object Crawler extends FieldConversions {
         val Links = ('url, 'timestamp, 'referer)
+        val Status = ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)
         val Raw = ('url, 'timestamp, 'status, 'content, 'links)
         val BaseVenue = ('url, 'timestamp, 'businessName, 'category, 'rating, 'latitude, 'longitude, 'address, 'city, 'state, 'zip, 'phone)
         val LivingSocial = BaseVenue append ('priceRange, 'reviewCount, 'likes, 'dealRegion, 'dealPrice, 'purchased, 'savingsPercent, 'dealDescription, 'dealImage)
