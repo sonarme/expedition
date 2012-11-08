@@ -16,7 +16,7 @@ class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
 
     val links = Tsv(srcDir+"/crawl_"+level+"/linksTsv", Tuples.Crawler.Links)
     val linksOutTsv = Tsv(srcDir+"/crawl_"+levelUp+"/linksTsv", Tuples.Crawler.Links)
-    val status = Tsv(srcDir+"/crawl_"+level+"/statusTsv", Tuples.Crawler.Status)
+    val status = if(level == 0) Tsv(getClass.getResource("/datafiles/dummyTsv.tsv").getFile, Tuples.Crawler.Status) else Tsv(srcDir+"/crawl_"+level+"/statusTsv", Tuples.Crawler.Status)
     val statusOutTsv = Tsv(srcDir+"/crawl_"+levelUp+"/statusTsv", Tuples.Crawler.Status)
     val rawTsv = Tsv(srcDir+"/crawl_"+level+"/rawTsv", Tuples.Crawler.Raw)
     val rawSequence = SequenceFile(srcDir+"/crawl_"+level+"/rawSequence", Tuples.Crawler.Raw)
@@ -63,8 +63,6 @@ class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
             }
         }
 
-    rawTuples
-        .write(rawTsv)
 
     rawTuples
         .write(rawSequence)
@@ -74,7 +72,7 @@ class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
     val outgoingLinks = rawTuples
         .flatMapTo('links -> 'link) { links : Iterable[String] => links.filter(link => link != null && link != "") }
         .unique('link)
-        .mapTo('link -> ('url, 'timestamp, 'referer)) { link: String => (link, new DateTime().getMillis, "referer")}
+        .mapTo('link -> Tuples.Crawler.Links) { link: String => (link, new DateTime().getMillis, "referer")}
 
     outgoingLinks
         .write(linksOutTsv)
@@ -82,7 +80,7 @@ class CrawlerJob(args: Args) extends Job(args) with Fetcher with ParseFilter {
 
     //Write status of each fetch
     val statusOut = rawTuples
-        .mapTo(('url, 'status, 'timestamp) -> ('url, 'status, 'timestamp, 'attempts, 'crawlDepth)){ x: (String, String, Long) => {
+        .mapTo(('url, 'status, 'timestamp) -> Tuples.Crawler.Status){ x: (String, String, Long) => {
             val (url, status, timestamp) = x
             (url, status, timestamp, 1, level)
         }
