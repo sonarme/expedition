@@ -5,8 +5,7 @@ import org.jsoup.Jsoup
 import org.apache.commons.validator.routines.UrlValidator
 import java.net.URL
 import org.joda.time.DateTime
-import com.sonar.expedition.scrawler.crawler.filter.ParseFilterFactory
-import com.sonar.expedition.scrawler.crawler.ExtractorFactory
+import com.sonar.expedition.scrawler.crawler.{ParseFilter, ExtractorFactory}
 import cascading.tuple.Fields
 import ch.hsr.geohash.util.VincentyGeodesy
 import ch.hsr.geohash.WGS84Point
@@ -16,7 +15,7 @@ import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
 import util.Random
 import org.apache.http.util.EntityUtils
 
-class DealVenueSearchCorrelationJob(args: Args) extends Job(args) {
+class DealVenueSearchCorrelationJob(args: Args) extends Job(args) with ParseFilter {
 
     val domain = args("domain")
     val outputDir = args("output")
@@ -95,7 +94,7 @@ class DealVenueSearchCorrelationJob(args: Args) extends Job(args) {
 
         //Parse out the content and write to parsed.tsv
         val parsedTuples = rawTuples
-                .filter('siteLink) { url: String => url != null && ParseFilterFactory.getParseFilter(domain).isIncluded(url)}
+                .filter('siteLink) { url: String => url != null && isUrlIncluded(url)}
                 .map('content -> ('ybusinessName, 'ycategory, 'yrating, 'ylatitude, 'ylongitude, 'yaddress, 'ycity, 'ystate, 'yzip, 'yphone, 'ypriceRange, 'yreviewCount, 'yreviews)) { content: String => {
                         val extractor = ExtractorFactory.getExtractor(domain, content)
                         val business = extractor.businessName()

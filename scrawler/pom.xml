@@ -461,6 +461,33 @@
             <artifactId>dozer</artifactId>
             <version>5.3.2</version>
         </dependency>
+
+        <dependency>
+            <groupId>net.sourceforge.owlapi</groupId>
+            <artifactId>owlapi-distribution</artifactId>
+            <version>3.4.2-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openrdf.elmo</groupId>
+            <artifactId>elmo-sesame</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrdf.elmo</groupId>
+            <artifactId>elmo-rdfs</artifactId>
+            <version>1.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrdf.sesame</groupId>
+            <artifactId>sesame-runtime</artifactId>
+            <version>2.2.4</version>
+        </dependency>
+        <dependency>
+            <groupId>me.sonar.ontologies</groupId>
+            <artifactId>foaf-concepts</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>
