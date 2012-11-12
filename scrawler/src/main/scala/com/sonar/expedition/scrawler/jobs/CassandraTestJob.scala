@@ -5,6 +5,7 @@ import com.twitter.scalding.{Job, Tsv, RichPipe, Args}
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import com.sonar.scalding.cassandra.{NarrowRowScheme, WideRowScheme, CassandraSource}
 import me.prettyprint.cassandra.serializers.{LongSerializer, StringSerializer}
+import grizzled.slf4j.Logging
 
 // RUN: mvn clean source:jar install -pl dto -am
 // on dossier master, if you don't have the serializers required in here
@@ -12,7 +13,7 @@ import me.prettyprint.cassandra.serializers.{LongSerializer, StringSerializer}
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class CassandraTestJob(args: Args) extends Job(args) {
+class CassandraTestJob(args: Args) extends Job(args) with Logging {
     val rpcHostArg = args("rpcHost")
     val ppmapStr = args.getOrElse("ppmap", "")
     val ppmap = ppmapStr.split(" *, *").map {
@@ -31,7 +32,8 @@ class CassandraTestJob(args: Args) extends Job(args) {
             .mapTo(('sonarUserIdB, 'columnNameB, 'columnValueB, 'ts) -> ('sonarId)) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, Long) => {
             val sid = StringSerializer.get().fromByteBuffer(in._1)
-            val cn = StringSerializer.get().fromByteBuffer(in._2)
+            val cn = StringSerializer.get().fromByteBuffer(in._2.duplicate())
+            info(sid + " " + cn)
             (sid)
         }
     }.project('sonarId).groupBy('sonarId) {

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Silk>
+  <Prefixes>
+      <Prefix id="rdf" namespace="http://www.w3.org/1999/02/22-rdf-syntax-ns#" />
+      <Prefix id="rdfs" namespace="http://www.w3.org/2000/01/rdf-schema#" />
+      <Prefix id="owl" namespace="http://www.w3.org/2002/07/owl#" />
+    <Prefix id="lgdp" namespace="http://linkedgeodata.org/property/" />
+    <Prefix id="lgdo" namespace="http://linkedgeodata.org/ontology/" />
+    <Prefix id="georss" namespace="http://www.georss.org/georss/" />
+    <Prefix id="wgs84" namespace="http://www.w3.org/2003/01/geo/wgs84_pos#" />
+      <Prefix namespace="http://purl.org/dc/terms/" id="dcterms" />
+      <Prefix namespace="http://sonar.me/service#" id="sonarsvc" />
+  </Prefixes>
+
+  <DataSources>
+    <DataSource id="sonarfacebook" type="hadoop">
+      <Param name="path" value="s3n://AKIAJ3LQ4JXR6NFGMSRA:1e4U6x9alziFyodFa0f4iTaXd6HdpTpy3H547ZhW@scrawler/placeExtraction1018_rdf" />
+      <Param name="format" value="N-TRIPLE" />
+    </DataSource>
+    <DataSource id="sonarfoursquare" type="hadoop">
+      <Param name="path" value="s3n://AKIAJ3LQ4JXR6NFGMSRA:1e4U6x9alziFyodFa0f4iTaXd6HdpTpy3H547ZhW@scrawler/placeExtraction1018_rdf" />
+      <Param name="format" value="N-TRIPLE" />
+    </DataSource>
+  </DataSources>
+
+  <Interlinks>
+    <Interlink id="places_fb_4sq">
+      <LinkType>owl:sameAs</LinkType>
+
+      <SourceDataset dataSource="sonarfacebook" var="a">
+        <RestrictTo>
+          ?a rdf:type lgdo:Amenity .           
+				?a dcterms:contributor sonarsvc:facebook . 		  
+				?a georss:point ?p .
+        </RestrictTo>
+      </SourceDataset>
+      <TargetDataset dataSource="sonarfoursquare" var="b">
+        <RestrictTo>
+          ?b rdf:type lgdo:Amenity .           
+	  ?b dcterms:contributor sonarsvc:foursquare . 		  
+	  ?b georss:point ?p .
+        </RestrictTo>
+      </TargetDataset>
+
+      <LinkageRule>
+        <Aggregate type="min">
+         
+            <Compare metric="levenshteinDistance" threshold="3">
+			 <TransformInput function="lucene">
+                  <Input path="?a/rdfs:label" />
+				  <Param name="additionalStopWords" value="inc,incorporated,co,ltd,llc,group,corp,corporation,company,limited,hq"/>
+              </TransformInput>
+			   <TransformInput function="lucene">
+                  <Input path="?b/rdfs:label" />
+				  <Param name="additionalStopWords" value="inc,incorporated,co,ltd,llc,group,corp,corporation,company,limited,hq"/>
+              </TransformInput>
+            </Compare>
+          <Compare metric="wgs84" threshold="30" required="true">
+            <Input path="?a/georss:point" />
+            <Input path="?b/georss:point" />
+            <Param name="unit" value="km"/>
+          </Compare>
+       </Aggregate>
+      </LinkageRule>
+
+      <Filter threshold="0.6" />
+
+    </Interlink>
+  </Interlinks>
+
+<Outputs>
+        <Output minConfidence="0.6" type="file">
+          <Param name="file" value="places_fb_4sq.nt"/>
+          <Param name="format" value="ntriples"/>
+        </Output>
+      </Outputs>
+</Silk>
