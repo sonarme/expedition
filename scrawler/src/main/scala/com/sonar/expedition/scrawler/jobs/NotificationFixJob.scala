@@ -32,7 +32,6 @@ class NotificationFixJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
         case (key, value) => key == value
     }
     val rpcHostArg = args("rpcHost")
-    val output = args("output")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
         keyspaceName = "dossier",
