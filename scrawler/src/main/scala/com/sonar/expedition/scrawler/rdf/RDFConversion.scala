@@ -2,22 +2,13 @@ package com.sonar.expedition.scrawler.rdf
 
 import com.hp.hpl.jena.rdf.model.ModelFactory
 import com.sonar.expedition.scrawler.util.RDFNamespaces._
-import scala.{Double, Some}
+import scala.Double
 import com.hp.hpl.jena.vocabulary.RDF
 import java.io.StringWriter
 import com.sonar.expedition.scrawler.util.RdfFormat
 import com.hp.hpl.jena.shared.CannotEncodeCharacterException
 import scala.Predef._
 import collection.JavaConversions._
-import org.openrdf.elmo.ElmoModule
-import org.openrdf.elmo.sesame.SesameManagerFactory
-import org.openrdf.rio.RDFFormat
-import javax.xml.namespace.QName
-import com.sonar.dossier.dto.ServiceProfileDTO
-import com.sonar.ontologies.foaf.{Image, Person}
-import org.openrdf.rio.ntriples.NTriplesWriter
-import org.openrdf.rio.rdfxml.RDFXMLWriter
-import org.openrdf.rio.turtle.TurtleWriter
 
 trait RDFConversion {
     def placeToRDF(serType: String, venId: String, venName: String, venAddress: String, lat: Double, lng: Double, rdfFormat: RdfFormat.Value = RdfFormat.Ntriple) = {
@@ -52,6 +43,7 @@ trait RDFConversion {
 
     }
 
+    /*
     def profileToRDF(serviceProfile: ServiceProfileDTO) = {
         val module = new ElmoModule()
         module.addConcept(classOf[Person])
@@ -94,5 +86,5 @@ trait RDFConversion {
         } finally {
             writer.close()
         }
-    }
+    }*/
 }

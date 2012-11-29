@@ -49,7 +49,10 @@ class MeetUpCrawl(args: Args) extends Job(args) {
     var links1 = ((TextLine(args.apply("input")).read
             .project('line)
             .flatMap('line -> 'links) {
-        line: String => MeetupCrawler.importLinks(line).split("\\n")
+        line: String =>
+        // TODO: DIDNT COMPILE
+        // MeetupCrawler.importLinks(line).split("\\n")
+            Seq.empty[String]
     }.flatMapTo('links -> 'memberlinks) {
         links: String => ScrawlerUtils.extractContentsPageLinks(links) //will contain  pagination links , if pages more then one, add first page as a pagination link
     })

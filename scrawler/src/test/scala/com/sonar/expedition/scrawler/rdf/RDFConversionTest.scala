@@ -13,7 +13,7 @@ class RDFConversionTest extends FlatSpec with ShouldMatchers with RDFConversion 
         assert(rdf contains """<lgdo:Amenity rdf:about="http://sonar.me/venue#foursquare_123ab">""")
     }
 
-    "profile tuple" should "be written into RDF" in {
+    /*"profile tuple" should "be written into RDF" in {
         val serviceProfile = new ServiceProfileDTO(serviceType = ServiceType.foursquare, userId = "rogerchang")
         serviceProfile.gender = Gender.male
         serviceProfile.fullName = "Roger Chang"
@@ -23,6 +23,6 @@ class RDFConversionTest extends FlatSpec with ShouldMatchers with RDFConversion 
         val rdf = profileToRDF(serviceProfile)
         println(rdf)
         assert(rdf.nonEmpty)
-    }
+    }*/
 }
 
