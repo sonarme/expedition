@@ -461,7 +461,23 @@
             <artifactId>dozer</artifactId>
             <version>5.3.2</version>
         </dependency>
-<!-- TODO: with these dependencies the jobs don't run on EMS...exclude slf4j etc
+        <dependency>
+            <groupId>de.fuberlin.wiwiss.silk</groupId>
+            <artifactId>silk-core</artifactId>
+            <version>2.5.4</version>
+        </dependency>
+        <dependency>
+            <groupId>de.fuberlin.wiwiss.silk</groupId>
+            <artifactId>silk-jena</artifactId>
+            <version>2.5.4</version>
+        </dependency>
+        <dependency>
+            <groupId>de.fuberlin.wiwiss.silk</groupId>
+            <artifactId>silk-mapreduce</artifactId>
+            <version>2.5.4</version>
+        </dependency>
+
+        <!-- TODO: with these dependencies the jobs don't run on EMS...exclude slf4j etc
         <dependency>
             <groupId>net.sourceforge.owlapi</groupId>
             <artifactId>owlapi-distribution</artifactId>
