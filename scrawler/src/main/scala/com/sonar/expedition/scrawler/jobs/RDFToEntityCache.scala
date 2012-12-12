@@ -45,10 +45,11 @@ class RDFToEntityCache(args: Args) extends Job(args) with Logging {
         _.mapList('line -> '__dummy__) {
             lines: List[String] =>
 
-            // need to load silk stuff here, because some of it isn't serializable
+            // need to load silk stuff here and not at the beginning of the job, because some of it isn't serializable
                 Plugins.register()
                 JenaPlugins.register()
                 DataSource.register(classOf[RdfDataSource])
+                EntityRetriever.useParallelRetriever = false
                 //Load the configuration
                 val silkConfig = {
                     val filePath = new Path(silkConfigPath)
