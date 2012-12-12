@@ -1,20 +1,13 @@
 package com.sonar.expedition.scrawler.jobs
 
 import org.apache.hadoop.fs.{Path, FileSystem}
-import de.fuberlin.wiwiss.silk.config.LinkingConfig
 import com.twitter.scalding._
 import de.fuberlin.wiwiss.silk.config.LinkingConfig
-import de.fuberlin.wiwiss.silk.config.LinkSpecification
-import de.fuberlin.wiwiss.silk.LoadTask
-import de.fuberlin.wiwiss.silk.entity.{Entity, EntityDescription}
 import de.fuberlin.wiwiss.silk.util.DPair
-import de.fuberlin.wiwiss.silk.plugins.jena.{RdfDataSource, ModelDataSource, JenaPlugins, HadoopDataSource}
+import de.fuberlin.wiwiss.silk.plugins.jena.JenaPlugins
 import de.fuberlin.wiwiss.silk.datasource.{Source, DataSource}
 import de.fuberlin.wiwiss.silk.hadoop.impl.HadoopEntityCache
-import com.hp.hpl.jena.rdf.model.ModelFactory
-import java.io.{StringReader, InputStreamReader, BufferedReader}
 import de.fuberlin.wiwiss.silk.util.sparql.EntityRetriever
-import java.util.logging.Level
 import org.apache.hadoop
 import grizzled.slf4j.Logging
 import de.fuberlin.wiwiss.silk.plugins.Plugins
