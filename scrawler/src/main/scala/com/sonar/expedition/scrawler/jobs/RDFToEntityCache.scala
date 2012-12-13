@@ -22,6 +22,34 @@ class RDFToEntityCache(args: Args) extends Job(args) with Logging {
     val linkSpecArg = args.optional("linkSpec")
     val buckets = 100
 
+    def copyConfig() {
+
+        val filePath = new Path(silkConfigPath)
+        val entityCachePath = new Path(entityCachePathArg)
+        val hadoopConfig = new hadoop.conf.Configuration
+        //Create two FileSystem objects, because the config file and the entity cache might be located in different file systems
+        val configFS = FileSystem.get(filePath.toUri, hadoopConfig)
+        val cacheFS = FileSystem.get(entityCachePath.toUri, hadoopConfig)
+
+        //Copy the config file into the entity cache directory
+        val inputStream = configFS.open(filePath)
+        val outputStream = cacheFS.create(entityCachePath.suffix("/config.xml"))
+        try {
+            val buffer = new Array[Byte](4096)
+            var c = inputStream.read(buffer)
+            while (c != -1) {
+                outputStream.write(buffer, 0, c)
+                c = inputStream.read(buffer)
+            }
+        }
+        finally {
+            outputStream.close()
+            inputStream.close()
+        }
+
+    }
+
+    copyConfig()
 
     TextLine(args("rdf")).read
             // create buckets for the n-triples by subject (doesn't work for all sparql queries)
