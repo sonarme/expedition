@@ -15,7 +15,7 @@ class ServiceVenueJob(args: Args) extends Job(args) with Normalizers {
             else {
                 val rawNormalizedVenue = normalizeVenueFromCheckin(deserializeFromRaw(dto.serviceType, dto.raw))
                 val venue = rawNormalizedVenue getOrElse dto.serviceVenue
-                Some((venue.serviceType.name() + "-" + venue.key, venue, rawNormalizedVenue.isEmpty))
+                Some((venue.canonicalId, venue, rawNormalizedVenue.isEmpty))
             }
     }.groupBy('venueId) {
         // pick the venue resulting from raw data first, because it contains categories etc.

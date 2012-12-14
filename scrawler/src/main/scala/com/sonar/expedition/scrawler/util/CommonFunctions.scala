@@ -78,4 +78,11 @@ object CommonFunctions {
         } getOrElse (Map.empty[String, String])
 
     }
+
+    def createSegments[T <: Comparable[_], S](value: T, segments: Iterable[Segment[T, S]]) = segments.filter(_.contains(value))
+
+    case class Segment[T <: Comparable[_], S](from: T, to: T, name: S) {
+        def contains(value: T) = from.asInstanceOf[Comparable[T]].compareTo(value) <= 0 && value.asInstanceOf[Comparable[T]].compareTo(to) < 0
+    }
+
 }

@@ -10,9 +10,10 @@ import java.util.{Date, TimeZone, Calendar}
 import org.scalastuff.scalabeans.types.DateType
 import org.joda.time._
 import com.sonar.expedition.scrawler.util.TimezoneLookup
+import com.sonar.expedition.scrawler.checkins.CheckinInference
 
 
-trait CheckinGrouperFunction extends ScaldingImplicits {
+trait CheckinGrouperFunction extends ScaldingImplicits with CheckinInference {
     def workCheckins(input: RichPipe) =
         input.filter('dayOfWeek, 'hour) {
             fields: (Int, Int) =>
@@ -30,10 +31,9 @@ trait CheckinGrouperFunction extends ScaldingImplicits {
 
 
     def deriveCheckinFields(lat: Double, lng: Double, checkinTime: Date, serviceType: String, serviceProfileId: String) = {
-        val localTz = TimezoneLookup.getClosestTimeZone(lat, lng)
-        val localDateTime = new LocalDateTime(checkinTime, localTz)
+        val ldt = localDateTime(lat, lng, checkinTime)
         val goldenId = serviceType + ":" + serviceProfileId
-        (localDateTime.getDayOfYear, localDateTime.getDayOfWeek, localDateTime.getHourOfDay, goldenId)
+        (ldt.getDayOfYear, ldt.getDayOfWeek, ldt.getHourOfDay, goldenId)
     }
 
     def unfilteredCheckinsFromCassandra(input: RichPipe): RichPipe = {
