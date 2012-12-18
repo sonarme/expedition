@@ -5,6 +5,7 @@ import net.sf.javaml.clustering.OPTICS
 import scala.Array
 import net.sf.javaml.distance.DistanceMeasure
 import collection.JavaConversions._
+import net.sf.javaml.core.Dataset
 
 object LocationClusterer {
     val Epsilon = 50
@@ -27,6 +28,8 @@ object LocationClusterer {
             Some(avg)
         }
     }
+
+    def datasetValues(ds: Dataset) = ds.map(instance => (instance.value(0), instance.value(1))).toSeq
 
     /**
      * http://stackoverflow.com/a/8564922
