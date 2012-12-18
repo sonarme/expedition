@@ -38,11 +38,15 @@ trait CheckinInference extends ScaldingImplicits {
             in: (GeodataDTO, GeodataDTO) =>
                 val (locationSmaller, locationLarger) = in
                 val distance = measure.evaluate(locationSmaller.canonicalId, locationLarger.canonicalId)
-                if (distance > threshold) None else Some(distance)
+                val result = if (distance > threshold) None else Some(distance)
+                result
         }.groupBy(groupFields) {
-            _.sortWithTake[Tuple](distanceAndMetaFields -> 'topEls, top) {
-                (left: Tuple, right: Tuple) =>
+            _.sortWithTake[cascading.tuple.Tuple](distanceAndMetaFields -> 'topEls, top) {
+                (left: cascading.tuple.Tuple, right: cascading.tuple.Tuple) => {
+                    println(left)
+                    println(right)
                     left.getDouble(0) > right.getDouble(0)
+                }
             }
         }.discard('indexEl).flatten[Tuple]('topEls -> distanceAndMetaFields)
     }

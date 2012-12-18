@@ -19,12 +19,20 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
     //val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
     val checkinSource = IterableSource(Seq(
         ("test1", dto.CheckinDTO(ServiceType.foursquare,
-            "123",
+            "test1",
             GeodataDTO(40.0, -74.0),
             DateTime.now,
             "ben123",
 
             Some(ServiceVenueDTO(ServiceType.foursquare, "gg", "G&G", location = LocationDTO(GeodataDTO(40.0, -74.0), "x")))
+        )),
+        ("test1", dto.CheckinDTO(ServiceType.sonar,
+            "test1",
+            GeodataDTO(40.0, -74.000001),
+            DateTime.now,
+            "ben123",
+
+            None
         ))
     ), Tuples.CheckinIdDTO)
 
@@ -37,7 +45,7 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
 
             createSegments(ldt.toLocalTime, segments) map {
                 // TODO: pull in correlation
-                segment => (dto.canonicalId, dto.profileId, dto.serviceType, if (dto.venueId == null || dto.venueId.isEmpty) null else dto.serviceVenue.canonicalId, dto.serviceVenue.location.geodata, (weekDay, segment.name))
+                segment => (dto.canonicalId, dto.profileId, dto.serviceType, if (dto.venueId == null || dto.venueId.isEmpty) null else dto.serviceVenue.canonicalId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
             }
     }
 
@@ -60,7 +68,7 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
                         val GeodataDTO(lat, lng) = geodata
                         (lat, lng) -> checkinId
                 }.toMap
-                val clusters = LocationClusterer.cluster(checkinMap.keySet)
+                val clusters = LocationClusterer.cluster(checkinMap.keySet, 50, 1)
                 clusters.flatMap {
                     cluster =>
                         val dsValues = LocationClusterer.datasetValues(cluster)
@@ -84,4 +92,11 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
     topScores.write(placeInferenceOut)
 
 
+}
+
+case class TimeSegment(weekday: Boolean, segment: Int) extends Comparable[TimeSegment] {
+    def compareTo(o: TimeSegment) = {
+        val first = weekday.compareTo(o.weekday)
+        if (first == 0) segment.compareTo(o.segment) else first
+    }
 }

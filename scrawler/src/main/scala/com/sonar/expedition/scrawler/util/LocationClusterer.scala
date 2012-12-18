@@ -8,15 +8,12 @@ import collection.JavaConversions._
 import net.sf.javaml.core.Dataset
 
 object LocationClusterer {
-    val Epsilon = 50
-    val MinPoints = 4
-    val clusterer = new OPTICS(Epsilon, MinPoints, HaversineDistanceMeasure)
 
-    def cluster(points: Iterable[(Double, Double)]) = {
+    def cluster(points: Iterable[(Double, Double)], epsilon: Int = 50, minPoints: Int = 4) = {
         val instances = points map {
             case (lat, lng) => new DenseInstance(Array(lat, lng))
         }
-        clusterer.cluster(new DefaultDataset(instances))
+        new OPTICS(epsilon, minPoints, HaversineDistanceMeasure).cluster(new DefaultDataset(instances))
     }
 
     def maxClusterCenter(points: Iterable[(Double, Double)]) = {
