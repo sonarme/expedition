@@ -6,7 +6,7 @@ object Tuples extends TupleConversions {
     val Place = ('serType, 'venId, 'venName, 'venAddress, 'lat, 'lng)
     val Profile = ('profileId, 'profile)
     val SonarFriend = ('sonarId, 'serviceType, 'serviceProfileId)
-    val PlaceInference = ('checkinId, 'venueId, 'probability)
+    val PlaceInference = ('userGoldenId, 'checkinId, 'venueId, 'score, 'timeSegment)
     val CheckinIdDTO = ('checkinId, 'checkinDto)
     val VenueIdDTO = ('venueId, 'venueDto)
     val Checkin = ('serType, 'serProfileID, 'serCheckinID, 'venId, 'venName, 'venAddress, 'chknTime, 'lat, 'lng, 'msg)
