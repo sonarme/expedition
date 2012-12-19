@@ -44,24 +44,10 @@ class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFun
     val statsOut = args("statsOut")
     val statsOut2 = args("statsOut2")
 
-    /*
-    val checkinsPipe = checkinsIn.read.mapTo(('checkinId, 'checkinDto) -> ('checkinId, 'userGoldenId, 'location)){
-        x: (String, CheckinDTO) =>
-            val (checkinId, dto) = x
-            (checkinId, dto.profileId, dto.serviceVenue.location.geodata)
-    }
-    */
-//    checkinsPipe.write(Tsv(statsOut))
-
-
-
     //join checkinDTO and venueDTO with the input
     val stats = Tsv(checkinProbabilityIn, Tuples.PlaceInference)
         .read
-//        .joinWithLarger('checkinId -> 'id, Tsv(checkinsIn, ('id, 'user_id, 'lat, 'lng, 'timestamp)))
-//        .discard('id, 'lat, 'lng)
-        .rename('venueId -> 'vId)
-        .joinWithLarger('vId -> 'venueId, venuesIn)
+        .joinWithLarger('canonicalVenueId -> 'venueId, venuesIn)
         .discard('vId)
         .map('venueDto -> ('category)){
             dto: ServiceVenueDTO =>
@@ -74,7 +60,7 @@ class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFun
 
 
     val stats2 = stats
-         .groupBy('userGoldenId, 'category){ _.pivot(('timeSegment, 'score) -> ('a, 'b), 0.0)}    //todo: replace 'a, 'b with time segments
+         .groupBy('userGoldenId, 'category){ _.pivot(('timeSegment, 'score) -> ('a, 'b, 'c), 0.0)}    //todo: replace 'a, 'b with time segments
 
     stats2.write(Tsv(statsOut2))
 
