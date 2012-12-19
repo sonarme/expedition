@@ -36,23 +36,26 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
         ))
     ), Tuples.CheckinIdDTO)
 
-    //val placeInferenceOut = SequenceFile(args("placeInferenceOut"), Tuples.PlaceInference)
-    val placeInferenceOut = NullSource
-    val checkinsPipe = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'userGoldenId, 'serviceType, 'canonicalVenueId, 'location, 'timeSegment)) {
+    val placeInferenceOut = Tsv(args("placeInferenceOut"), Tuples.PlaceInference)
+
+    val correlation = IterableSource(Seq(
+        ("c1", ServiceType.foursquare, "ben123"),
+        ("c1", ServiceType.sonar, "ben123")
+    ), Tuples.Correlation)
+    val checkinsPipe = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'serviceProfileId, 'serviceType, 'canonicalVenueId, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
             val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
             val weekDay = isWeekDay(ldt)
-
+            // only treat foursquare venues as venues
+            val canonicalVenueId = if (dto.venueId == null || dto.venueId.isEmpty || dto.serviceType != ServiceType.foursquare) null else dto.serviceVenue.canonicalId
             createSegments(ldt.toLocalTime, segments) map {
                 // TODO: pull in correlation
-                segment => (dto.canonicalId, dto.profileId, dto.serviceType, if (dto.venueId == null || dto.venueId.isEmpty) null else dto.serviceVenue.canonicalId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
+                segment => (dto.canonicalId, dto.serviceProfileId, dto.serviceType, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
             }
-    }
+    }.joinWithSmaller(('serviceType, 'serviceProfileId) ->('serviceType, 'serviceProfileId), correlation).rename('correlationId -> 'userGoldenId)
 
-    val venueUserPopularity = checkinsPipe.filter('serviceType, 'canonicalVenueId) {
-        in: (ServiceType, String) =>
-            val (serviceType, canonicalVenueId) = in
-            canonicalVenueId != null && serviceType == ServiceType.foursquare
+    val venueUserPopularity = checkinsPipe.filter('canonicalVenueId) {
+        canonicalVenueId: String => canonicalVenueId != null
     }.rename('location, 'venueLocation).groupBy('userGoldenId, 'canonicalVenueId, 'venueLocation, 'timeSegment) {
         _.size('venueUserPopularity)
     }
@@ -86,7 +89,9 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
     val withVenuePopularity = matchGeo((venuePopularity, Fields.NONE, 'venueLocation), (clusterAveragesPipe, Fields.NONE, 'location), 'score, metaFields)
     val topScores = (withUserPopularity.project('userGoldenId, 'checkinId, 'timeSegment, 'canonicalVenueId, 'score) ++ withVenuePopularity.project('userGoldenId, 'checkinId, 'timeSegment, 'canonicalVenueId, 'score)).groupBy('userGoldenId, 'checkinId, 'timeSegment) {
         _.sortWithTake(('canonicalVenueId, 'score) -> 'topScores, 3) {
-            (left: (String, Double), right: (String, Double)) => left._2 > right._2
+            (left: (String, Double), right: (String, Double)) =>
+                println(left + " " + right)
+                left._2 > right._2
         }
     }.flatten[(String, Double)]('topScores ->('canonicalVenueId, 'score))
     topScores.write(placeInferenceOut)
@@ -95,8 +100,5 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
 }
 
 case class TimeSegment(weekday: Boolean, segment: Int) extends Comparable[TimeSegment] {
-    def compareTo(o: TimeSegment) = {
-        val first = weekday.compareTo(o.weekday)
-        if (first == 0) segment.compareTo(o.segment) else first
-    }
+    def compareTo(o: TimeSegment) = Ordering[(Boolean, Int)].compare((weekday, segment), (o.weekday, o.segment))
 }

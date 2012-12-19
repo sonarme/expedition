@@ -21,9 +21,10 @@ trait CheckinInference extends ScaldingImplicits {
     }
 
 
-    def addIndex(pipe: Pipe, location: Fields, measure: SimpleDistanceMeasure, threshold: Int) = pipe.flatMap(location -> 'indexEl) {
+    def addIndex(pipe: Pipe, locationField: Fields, measure: SimpleDistanceMeasure, threshold: Int) = pipe.flatMap(locationField -> 'indexEl) {
         location: GeodataDTO =>
-            measure.indexValue(location.canonicalId, threshold).flatten
+            val latLng = location.canonicalLatLng
+            measure.indexValue(latLng, threshold).flatten
     }
 
     def matchGeo(smaller: (Pipe, Fields, Fields), larger: (Pipe, Fields, Fields), distance: Fields, metaFields: Fields, measure: SimpleDistanceMeasure = GeographicDistanceMetric("m"), threshold: Int = 50, top: Int = 3) = {
@@ -37,14 +38,12 @@ trait CheckinInference extends ScaldingImplicits {
                 .flatMap((smallerLocation, largerLocation) -> distance) {
             in: (GeodataDTO, GeodataDTO) =>
                 val (locationSmaller, locationLarger) = in
-                val distance = measure.evaluate(locationSmaller.canonicalId, locationLarger.canonicalId)
+                val distance = measure.evaluate(locationSmaller.canonicalLatLng, locationLarger.canonicalLatLng)
                 val result = if (distance > threshold) None else Some(distance)
                 result
         }.groupBy(groupFields) {
             _.sortWithTake[cascading.tuple.Tuple](distanceAndMetaFields -> 'topEls, top) {
                 (left: cascading.tuple.Tuple, right: cascading.tuple.Tuple) => {
-                    println(left)
-                    println(right)
                     left.getDouble(0) > right.getDouble(0)
                 }
             }
