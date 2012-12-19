@@ -12,7 +12,6 @@ import com.sonar.dossier.dto.LocationDTO
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
 import com.sonar.dossier.dto.GeodataDTO
-import com.sonar.expedition.scrawler.util.CommonFunctions.Segment
 
 
 class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFunction {
@@ -75,42 +74,8 @@ class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFun
 
 
     val stats2 = stats
-         .groupBy('userGoldenId, 'category){ _.pivot(('timeSegment, 'score) -> ('a, 'b))}
+         .groupBy('userGoldenId, 'category){ _.pivot(('timeSegment, 'score) -> ('a, 'b), 0.0)}    //todo: replace 'a, 'b with time segments
 
     stats2.write(Tsv(statsOut2))
 
-
-    /*
-    stats
-        .map(('lat, 'lng, 'timestamp, 'score) -> ('weekdayMorning, 'weekdayAfternoon, 'weekdayEvening, 'weekdayNight, 'weekendMorning, 'weekendAfternoon, 'weekendEvening, 'weekendNight)) {
-            x: (Double, Double, Long, Double) =>
-            val (lat, lng, timestamp, probability) = x
-            val ldt = localDateTime(lat, lng, new Date(timestamp))
-
-            def getProbability(isTimeOfDay: Boolean) = if (isTimeOfDay) probability else 0
-
-            val weekdayMorning = getProbability(isWeekDayMorning(ldt))
-            val weekdayAfternoon = getProbability(isWeekDayAfternoon(ldt))
-            val weekdayEvening = getProbability(isWeekDayEvening(ldt))
-            val weekdayNight = getProbability(isWeekDayNight(ldt))
-            val weekendMorning = getProbability(isWeekEndMorning(ldt))
-            val weekendAfternoon = getProbability(isWeekEndAfternoon(ldt))
-            val weekendEvening = getProbability(isWeekEndEvening(ldt))
-            val weekendNight = getProbability(isWeekEndNight(ldt))
-
-            (weekdayMorning, weekdayAfternoon, weekdayEvening, weekdayNight, weekendMorning, weekendAfternoon, weekendEvening, weekendNight)
-         }
-            .groupBy('user_id, 'place_type) {
-                _
-                .sum('weekdayMorning)
-                .sum('weekdayAfternoon)
-                .sum('weekdayEvening)
-                .sum('weekdayNight)
-                .sum('weekendMorning)
-                .sum('weekendAfternoon)
-                .sum('weekendEvening)
-                .sum('weekendNight)
-            }
-        .write(Tsv(statsOut))
-    */
 }
