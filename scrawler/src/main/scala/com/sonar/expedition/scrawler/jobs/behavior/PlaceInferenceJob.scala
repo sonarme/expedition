@@ -13,7 +13,7 @@ import org.scala_tools.time.Imports._
 import cascading.tuple.Fields
 
 class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with CheckinInference {
-    val segments = Seq(0 -> 7, 6 -> 11, 11 -> 14, 13 -> 17, 16 -> 20, 19 -> 0) map {
+    val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
         case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = toHr)
     }
     //val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
@@ -42,58 +42,70 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
         ("c1", ServiceType.foursquare, "ben123"),
         ("c1", ServiceType.sonar, "ben123")
     ), Tuples.Correlation)
-    val checkinsPipe = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'serviceProfileId, 'serviceType, 'canonicalVenueId, 'location, 'timeSegment)) {
+
+    val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'serviceProfileId, 'serviceType, 'canonicalVenueId, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
             val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
             val weekDay = isWeekDay(ldt)
             // only treat foursquare venues as venues
             val canonicalVenueId = if (dto.venueId == null || dto.venueId.isEmpty || dto.serviceType != ServiceType.foursquare) null else dto.serviceVenue.canonicalId
             createSegments(ldt.toLocalTime, segments) map {
-                // TODO: pull in correlation
                 segment => (dto.canonicalId, dto.serviceProfileId, dto.serviceType, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
             }
     }.joinWithSmaller(('serviceType, 'serviceProfileId) ->('serviceType, 'serviceProfileId), correlation).rename('correlationId -> 'userGoldenId)
 
-    val venueUserPopularity = checkinsPipe.filter('canonicalVenueId) {
+    // popularity of a venue with a particular user in a time segment
+    val venueUserPopularity = segmentedCheckins.filter('canonicalVenueId) {
         canonicalVenueId: String => canonicalVenueId != null
     }.rename('location, 'venueLocation).groupBy('userGoldenId, 'canonicalVenueId, 'venueLocation, 'timeSegment) {
         _.size('venueUserPopularity)
     }
+
+    // popularity of a venue with all users in a time segment
     val venuePopularity = venueUserPopularity.groupBy('canonicalVenueId, 'venueLocation, 'timeSegment) {
         _.sum('venueUserPopularity -> 'venuePopularity)
     }
 
-    val clusterAveragesPipe = checkinsPipe.groupBy('userGoldenId, 'timeSegment) {
-        _.mapList(('checkinId, 'location) -> ('clusterAverages)) {
+    val clusterAveragesPipe = segmentedCheckins.groupBy('userGoldenId, 'timeSegment) {
+        _.mapList(('checkinId, 'location) -> ('adjustedCheckinLocations)) {
             checkins: List[(String, GeodataDTO)] =>
-                val checkinMap = checkins.map {
+                val geoToCheckinIdMap = checkins.map {
                     case (checkinId, geodata) =>
                         val GeodataDTO(lat, lng) = geodata
                         (lat, lng) -> checkinId
                 }.toMap
-                val clusters = LocationClusterer.cluster(checkinMap.keySet, 50, 1)
-                clusters.flatMap {
+                val checkinLocations = geoToCheckinIdMap.keySet
+                val clusters = LocationClusterer.cluster(checkinLocations, 50, 1)
+                val adjustedCheckinLocations = clusters.flatMap {
                     cluster =>
                         val dsValues = LocationClusterer.datasetValues(cluster)
                         val (avgLat, avgLng) = LocationClusterer.average(dsValues)
                         val geodata = GeodataDTO(avgLat, avgLng)
-                        dsValues.map(checkinMap).map(_ -> geodata)
+                        dsValues.map(geoToCheckinIdMap).map(_ -> geodata)
                 }.toSeq
+                println("ca:" + adjustedCheckinLocations)
+                adjustedCheckinLocations
         }
-    }.flatten[(String, GeodataDTO)]('clusterAverages ->('checkinId, 'location)).discard('clusterAverages, 'timeSegment)
+    }.flatten[(String, GeodataDTO)]('adjustedCheckinLocations ->('checkinId, 'location)).discard('adjustedCheckinLocations, 'timeSegment)
 
     val metaFields: Fields = ('canonicalVenueId, 'checkinId, 'userGoldenId, 'timeSegment)
-    val withUserPopularity = matchGeo((venueUserPopularity, 'userGoldenId, 'venueLocation), (clusterAveragesPipe, 'userGoldenId, 'location), 'score, metaFields).map('score -> 'score) {
-        distance: Double => distance / 10.0
+    val withUserPopularity = matchGeo((venueUserPopularity, 'userGoldenId, 'venueLocation, 'venueUserPopularity), (clusterAveragesPipe, 'userGoldenId, 'location), 'userScore, metaFields).rename(('userGoldenId, 'canonicalVenueId, 'checkinId, 'timeSegment) -> (('user_userGoldenId, 'user_canonicalVenueId, 'user_checkinId, 'user_timeSegment)))
+    val withVenuePopularity = matchGeo((venuePopularity, Fields.NONE, 'venueLocation, 'venuePopularity), (clusterAveragesPipe, Fields.NONE, 'location), 'allScore, metaFields)
+    val topScores = withVenuePopularity.leftJoinWithSmaller(('userGoldenId, 'canonicalVenueId, 'checkinId, 'timeSegment) ->('user_userGoldenId, 'user_canonicalVenueId, 'user_checkinId, 'user_timeSegment), withUserPopularity)
+            // create composite score from user and allUser score
+            .map(('userScore, 'allScore) -> 'score) {
+        in: (java.lang.Double, java.lang.Double) =>
+            println("score: " + in)
+            if (in._1 == null) in._2 else (in._1 + in._2) / 2.0
     }
-    val withVenuePopularity = matchGeo((venuePopularity, Fields.NONE, 'venueLocation), (clusterAveragesPipe, Fields.NONE, 'location), 'score, metaFields)
-    val topScores = (withUserPopularity.project('userGoldenId, 'checkinId, 'timeSegment, 'canonicalVenueId, 'score) ++ withVenuePopularity.project('userGoldenId, 'checkinId, 'timeSegment, 'canonicalVenueId, 'score)).groupBy('userGoldenId, 'checkinId, 'timeSegment) {
-        _.sortWithTake(('canonicalVenueId, 'score) -> 'topScores, 3) {
-            (left: (String, Double), right: (String, Double)) =>
+            .groupBy('checkinId) {
+        // pick the top 3 scores for each checkin
+        _.sortWithTake[cascading.tuple.Tuple](('score, 'userGoldenId, 'timeSegment, 'canonicalVenueId) -> 'topScores, 3) {
+            (left: cascading.tuple.Tuple, right: cascading.tuple.Tuple) =>
                 println(left + " " + right)
-                left._2 > right._2
+                left.getDouble(0) > right.getDouble(0)
         }
-    }.flatten[(String, Double)]('topScores ->('canonicalVenueId, 'score))
+    }.flatten[cascading.tuple.Tuple]('topScores ->('score, 'userGoldenId, 'timeSegment, 'canonicalVenueId))
     topScores.write(placeInferenceOut)
 
 
