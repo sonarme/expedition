@@ -9,6 +9,7 @@ object Tuples extends TupleConversions {
     val PlaceInference = ('userGoldenId, 'location, 'numVisits, 'canonicalVenueId, 'score, 'timeSegment)
     val CheckinIdDTO = ('checkinId, 'checkinDto)
     val VenueIdDTO = ('venueId, 'venueDto)
+    val ProfileIdDTO = ('profileId, 'profileDto)
     val Checkin = ('serType, 'serProfileID, 'serCheckinID, 'venId, 'venName, 'venAddress, 'chknTime, 'lat, 'lng, 'msg)
     val Correlation = ('correlationId, 'serviceType, 'serviceProfileId)
 
@@ -25,4 +26,9 @@ object Tuples extends TupleConversions {
         val CitySearch = BaseVenue append('priceRange, 'reviewCount)
     }
 
+    object Behavior extends FieldConversions {
+        val UserPlaceTimeMap = ('userGoldenId, 'place_type, 'timeSegments)
+        val CategoryAttributes = ('category, 'place_type, 'min_score, 'age, 'gender, 'income)
+        val UserCategories = ('userGoldenId, 'categories)
+    }
 }
