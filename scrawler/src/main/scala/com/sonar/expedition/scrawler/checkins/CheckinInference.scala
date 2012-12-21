@@ -24,6 +24,9 @@ trait CheckinInference extends ScaldingImplicits {
     }
 
 
+    /**
+     * add a geo index to the given pipe for the location field with the given distance measure
+     */
     def addIndex(pipe: Pipe, locationField: Fields, measure: SimpleDistanceMeasure, threshold: Int) = pipe.flatMap(locationField -> 'indexEl) {
         location: GeodataDTO =>
         /*
@@ -36,53 +39,51 @@ trait CheckinInference extends ScaldingImplicits {
             Some(GeoHash.withBitPrecision(latitude, longitude, 30).longValue())
     }
 
-    def matchGeo(smaller: (Pipe, Fields, Fields, Fields), larger: (Pipe, Fields, Fields), distance: Fields, metaFields: Fields, measure: SimpleDistanceMeasure = GeographicDistanceMetric("m"), threshold: Int = 50, top: Int = 3) = {
-        val (smallerPipe, smallerBlockId, smallerLocation, popularity) = smaller
-        val (largerPipe, largerBlockId, largerLocation) = larger
-        val blockIds = Fields.merge(smallerBlockId, largerBlockId)
-        val groupFields = 'indexEl append blockIds
-        val distanceAndMetaFields = distance append metaFields subtract blockIds
-        addIndex(smallerPipe, smallerLocation, measure, threshold)
+    def matchGeo(venues: (Pipe, Fields, Fields, Fields), checkins: (Pipe, Fields, Fields, Fields), distance: Fields, metaFields: Fields, measure: SimpleDistanceMeasure = GeographicDistanceMetric("m"), threshold: Int = 100, top: Int = 3) = {
+        val (venuesPipe, venuesBlockId, venuesLocation, popularity) = venues
+        val (checkinsPipe, checkinsBlockId, checkinsLocation, checkinId) = checkins
+        // fields that should remain in the pipe after the matching
+        val distanceAndMetaFields = Fields.merge(distance append popularity, metaFields)
+        println("DAMF" + distanceAndMetaFields)
+        println("LOC" + checkinsLocation)
+        val venuesPipeWithBlocking = addIndex(venuesPipe, venuesLocation, measure, threshold)
+        val checkinsPipeWithBlocking = addIndex(checkinsPipe, checkinsLocation, measure, threshold)
+        venuesPipeWithBlocking
                 // join pipes on blocking indices
-                .joinWithLarger(('indexEl append smallerBlockId) -> ('indexEl append largerBlockId), addIndex(largerPipe, largerLocation, measure, threshold))
+                .joinWithLarger(('indexEl append venuesBlockId) -> ('indexEl append checkinsBlockId), checkinsPipeWithBlocking)
                 .map(Fields.ALL ->()) {
             in: Tuple =>
-                println("tuple: " + in)
-
+                println("XX: " + in)
         }
                 // filter out locations that are further away than the threshold
-                .flatMap((smallerLocation, largerLocation) -> distance) {
+                .flatMap((venuesLocation, checkinsLocation) -> distance) {
             in: (GeodataDTO, GeodataDTO) =>
-                val (locationSmaller, locationLarger) = in
-                println("fm: " + smallerBlockId + "/ " + in)
-                val distance = measure.evaluate(locationSmaller.canonicalLatLng, locationLarger.canonicalLatLng)
+                val (venuesLocation, checkinLocation) = in
+                println("fm: " + venuesBlockId + "/ " + in)
+                val distance = measure.evaluate(venuesLocation.canonicalLatLng, checkinLocation.canonicalLatLng)
                 val result = if (distance > threshold) None else Some(distance)
                 result
-        }.groupBy(groupFields) {
-            _.sum(popularity -> 'popularitySum).then {
-                /* // normalize data
-         _.sizeAveStdev(popularity -> popularityFields)
-                 .mapReduceMap((distance) -> (distance)) {
-             in: Double =>
-                 println("POP " + in)
-                 in
-         } {
-             (left: Double, right: Double) =>
-                 println("III" + left + " " + right)
-                 left
-         }(identity[Double])
-                */
-                // return top elements
-                _.sortWithTake[cascading.tuple.Tuple]((distanceAndMetaFields append ('popularitySum)) -> 'topEls, top) {
-                    (left: cascading.tuple.Tuple, right: cascading.tuple.Tuple) => {
-                        left.getDouble(0) > right.getDouble(0)
-                    }
+        }.groupBy(checkinId) {
+            // add total popularity within georange
+            _.sum(popularity -> 'popularitySum)
+                    // keep top closest elements in georange
+                    .sortWithTake[cascading.tuple.Tuple](distanceAndMetaFields -> 'topEls, top) {
+                (left: cascading.tuple.Tuple, right: cascading.tuple.Tuple) => {
+                    left.getDouble(0) > right.getDouble(0)
                 }
             }
-        }.discard('indexEl).map('popularitySum ->()) {
-            in: Tuple =>
-                println("XXX" + in)
-        }.flatten[Tuple]('topEls -> distanceAndMetaFields).discard('popularitySum, 'topEls)
+        }.flatMap(('popularitySum, 'topEls) -> distanceAndMetaFields) {
+            in: (Long, List[cascading.tuple.Tuple]) =>
+                val (popularitySum, topEls) = in
+                // make popularity of venues relative to other venues within georange
+                topEls foreach {
+                    tuple =>
+                        cascading.tuple.Tuples.asModifiable(tuple).setDouble(1, tuple.getLong(1) / popularitySum.toDouble)
+                }
+
+                println("XXX" + popularitySum + " /    " + topEls)
+                topEls
+        }.discard('popularitySum, 'topEls)
     }
 
     def isWeekDay(ldt: LocalDateTime) = WeekDays(ldt.getDayOfWeek)
