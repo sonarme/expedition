@@ -42,16 +42,16 @@ class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFun
         .read
         .joinWithLarger('canonicalVenueId -> 'venueId, venuesIn)
         .discard('venueId)
-        .map('venueDto -> ('place_type)){
+        .map('venueDto -> ('placeType)){
             dto: ServiceVenueDTO =>
                 dto.category.headOption.orNull
         }
         .discard('venueDto)
-        .groupBy('userGoldenId, 'timeSegment, 'place_type){_.sum('score)}
+        .groupBy('userGoldenId, 'timeSegment, 'placeType){_.sum('score)}
 
     stats.write(Tsv(statsOut))
 
-    val stats2 = stats.groupBy('userGoldenId, 'place_type) {
+    val stats2 = stats.groupBy('userGoldenId, 'placeType) {
         _.mapList(('timeSegment, 'score) -> ('timeSegments)) {
             timeSegments: List[(String, Double)] => {
                 timeSegments.map {

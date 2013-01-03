@@ -6,7 +6,7 @@ object Tuples extends TupleConversions {
     val Place = ('serType, 'venId, 'venName, 'venAddress, 'lat, 'lng)
     val Profile = ('profileId, 'profile)
     val SonarFriend = ('sonarId, 'serviceType, 'serviceProfileId)
-    val PlaceInference = ('userGoldenId, 'location, 'numVisits, 'canonicalVenueId, 'score, 'timeSegment)
+    val PlaceInference = ('userGoldenId, 'checkinId, 'canonicalVenueId, 'score, 'timeSegment)
     val CheckinIdDTO = ('checkinId, 'checkinDto)
     val VenueIdDTO = ('venueId, 'venueDto)
     val ProfileIdDTO = ('profileId, 'profileDto)
@@ -27,8 +27,8 @@ object Tuples extends TupleConversions {
     }
 
     object Behavior extends FieldConversions {
-        val UserPlaceTimeMap = ('userGoldenId, 'place_type, 'timeSegments)
-        val CategoryAttributes = ('category, 'place_type, 'min_score, 'age, 'gender, 'income)
+        val UserPlaceTimeMap = ('userGoldenId, 'placeType, 'timeSegments)
+        val CategoryAttributes = ('ageBracket, 'gender, 'incomeBracket, 'education, 'placeType, 'placeFrequencyThreshold, 'profileCategory)
         val UserCategories = ('userGoldenId, 'categories)
     }
 }
