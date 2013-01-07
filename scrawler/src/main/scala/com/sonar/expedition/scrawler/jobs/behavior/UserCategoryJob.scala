@@ -74,14 +74,14 @@ class UserCategoryJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
     .filter('total, 'placeFrequencyThreshold, 'gender, 'categoryGender, 'age, 'ageBracket, 'placeType, 'categoryPlaceType, 'income, 'incomeBracket, 'education, 'categoryEducation) {
         fields: (Double, Double, Gender, String, Int, String, String, String, String, String, Education, String) => {
             val (totalScore, placeFrequencyThreshold, gender, categoryGender, age, ageRangeStr, placeType, categoryPlaceType, income, incomeBracket, education, categoryEducation) = fields
-            val ageRange = ProfileAttributeMapping.AgeBrackets.get(ageRangeStr).getOrElse(Range(0,125).inclusive)
+            val ageRange = ProfileAttributeMapping.AgeBrackets.get(ageRangeStr).getOrElse((0 to 125))
             val profileGender = ProfileAttributeMapping.Gender.get(categoryGender).getOrElse(Gender.unknown)
             val profileEducation = ProfileAttributeMapping.EducationBrackets.get(categoryEducation).getOrElse(Education.unknown)
             (
                     totalScore >= placeFrequencyThreshold &&
                     (profileGender == Gender.unknown || gender == profileGender) &&
                     placeType.equals(categoryPlaceType) && ageRange.contains(age) &&
-                    ProfileAttributeMapping.IncomeBrackets.get(incomeBracket).getOrElse(Range(0,100000000).inclusive).contains(income.toInt) &&
+                    ProfileAttributeMapping.IncomeBrackets.get(incomeBracket).getOrElse((0 to 100000000)).contains(income.toInt) &&
                     (education == Education.unknown || education == profileEducation)
             )
         }
