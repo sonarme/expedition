@@ -11,6 +11,7 @@ import com.twitter.scalding.IterableSource
 import com.sonar.dossier.dto.GeodataDTO
 import org.scala_tools.time.Imports._
 import cascading.tuple.{Tuple, Fields}
+import grizzled.slf4j.Logging
 
 class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with CheckinInference {
     val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
@@ -20,49 +21,70 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
     val checkinSource = IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "test1a",
-            GeodataDTO(40.0, -74.0000011),
+            GeodataDTO(40.7505800, -73.9935800),
             DateTime.now,
             "ben1234",
-            Some(ServiceVenueDTO(ServiceType.foursquare, "chi", "Chipotle", location = LocationDTO(GeodataDTO(40.0, -74.0000011), "x")))
+            Some(ServiceVenueDTO(ServiceType.foursquare, "chi", "Chipotle", location = LocationDTO(GeodataDTO(40.7505800, -73.9935800), "x")))
         ),
         dto.CheckinDTO(ServiceType.foursquare,
             "test1",
-            GeodataDTO(40.0, -74.0000011),
+            GeodataDTO(40.7505800, -73.9935800),
             DateTime.now,
             "ben123",
-            Some(ServiceVenueDTO(ServiceType.foursquare, "chi", "Chipotle", location = LocationDTO(GeodataDTO(40.0, -74.0000011), "x")))
+            Some(ServiceVenueDTO(ServiceType.foursquare, "chi", "Chipotle", location = LocationDTO(GeodataDTO(40.7505800, -73.9935800), "x")))
         ),
         dto.CheckinDTO(ServiceType.foursquare,
             "test2",
-            GeodataDTO(40.0, -74.0000012),
+            GeodataDTO(40.749712, -73.993092),
             DateTime.now,
             "ben123",
             Some(ServiceVenueDTO(ServiceType.foursquare, "gg", "G&G", location = LocationDTO(GeodataDTO(40.0, -74.0000012), "x")))
         ),
         dto.CheckinDTO(ServiceType.foursquare,
             "test2b",
-            GeodataDTO(40.0, -74.0000012),
+            GeodataDTO(40.749712, -73.993092),
             DateTime.now - 1.minute,
             "ben123",
             Some(ServiceVenueDTO(ServiceType.foursquare, "gg", "G&G", location = LocationDTO(GeodataDTO(40.0, -74.0000012), "x")))
         ),
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test2c",
+            GeodataDTO(40.750817, -73.992405),
+            DateTime.now - 1.minute,
+            "ben12345",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "cosi", "Cosi", location = LocationDTO(GeodataDTO(40.0, -74.0000013), "x")))
+        ),
         dto.CheckinDTO(ServiceType.sonar,
             "test3",
-            GeodataDTO(40.0, -74.000001),
+            GeodataDTO(40.750183, -73.992512),
             DateTime.now,
             "ben123",
             None
         ),
         dto.CheckinDTO(ServiceType.sonar,
             "test4",
-            GeodataDTO(40.0, -74.000002),
+            GeodataDTO(40.750183, -73.992513),
             DateTime.now,
             "ben123",
             None
         ),
         dto.CheckinDTO(ServiceType.sonar,
             "test5",
-            GeodataDTO(40.0, -74.000003),
+            GeodataDTO(40.750183, -73.992514),
+            DateTime.now,
+            "ben123",
+            None
+        ),
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test5b",
+            GeodataDTO(40.791979, -73.957215),
+            DateTime.now - 1.minute,
+            "ben12345",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "xy", "XY", location = LocationDTO(GeodataDTO(40.791979, -73.957214), "x")))
+        ),
+        dto.CheckinDTO(ServiceType.sonar,
+            "test5a",
+            GeodataDTO(40.791979, -73.957214),
             DateTime.now,
             "ben123",
             None
@@ -87,7 +109,12 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
             createSegments(ldt.toLocalTime, segments) map {
                 segment => (dto.canonicalId, dto.serviceProfileId, dto.serviceType, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
             }
-    }.joinWithSmaller(('serviceType, 'serviceProfileId) ->('serviceType, 'serviceProfileId), correlation).rename('correlationId -> 'userGoldenId)
+    }.leftJoinWithSmaller(('serviceType, 'serviceProfileId) ->('_serviceType, '_serviceProfileId), correlation.read.rename(('serviceType, 'serviceProfileId) ->('_serviceType, '_serviceProfileId))).discard(('_serviceType, '_serviceProfileId)).map(('correlationId, 'serviceType, 'serviceProfileId) -> 'userGoldenId) {
+        in: (String, ServiceType, String) =>
+        // add some fake correlation id if there is no correlation in cassandra
+            val (correlationId, serviceType, serviceProfileId) = in
+            if (correlationId == null) serviceType.name() + ":" + serviceProfileId else correlationId
+    }
 
     // popularity of a venue with a particular user in a time segment
     val venueUserPopularity = segmentedCheckins.filter('canonicalVenueId) {
@@ -99,11 +126,8 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
     // popularity of a venue with all users in a time segment
     val venuePopularity = venueUserPopularity.groupBy('canonicalVenueId, 'venueLocation, 'timeSegment) {
         _.sum('venueUserPopularity -> 'venuePopularity)
-    }.map(Fields.ALL ->()) {
-        in: Tuple =>
-            println("AAAAAAA" + in)
     }
-
+    val ClusterSizeInMeters = 200
     // find centroids of clusters within time segments per user
     val clusterAveragesPipe = segmentedCheckins.groupBy('userGoldenId, 'timeSegment) {
         _.mapList(('checkinId, 'location) -> ('adjustedCheckinLocations)) {
@@ -114,7 +138,7 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
                         (lat, lng) -> checkinId
                 }.toMap
                 val checkinLocations = geoToCheckinIdMap.keySet
-                val clusters = LocationClusterer.cluster(checkinLocations, 50, 1)
+                val clusters = LocationClusterer.cluster(checkinLocations, ClusterSizeInMeters, 1)
                 val adjustedCheckinLocations = clusters.flatMap {
                     cluster =>
                         val dsValues = LocationClusterer.datasetValues(cluster)
@@ -123,7 +147,7 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
                         // TODO: if we need to map back to checkins: dsValues.map(geoToCheckinIdMap).map(_ -> geodata)
                         Some(geodata -> cluster.size())
                 }.toSeq
-                println("ca:" + adjustedCheckinLocations)
+                //println("Cluster contents:" + adjustedCheckinLocations)
                 adjustedCheckinLocations
         }
     }.flatten[(String, GeodataDTO)]('adjustedCheckinLocations ->( /*'checkinId,*/ 'location, 'numLocationVisits)).discard('adjustedCheckinLocations)
@@ -131,28 +155,25 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
     // ensure unique tuples for user-timesegment-location and sum up visits if there are duplicates
     val locations = clusterAveragesPipe.groupBy('userGoldenId, 'timeSegment, 'location) {
         _.sum('numLocationVisits -> 'numVisits)
-    }.map(Fields.ALL ->()) {
-        in: cascading.tuple.Tuple =>
-            println("XP" + in)
     }
     val metaFields: Fields = ('canonicalVenueId)
     val checkinIdFields: Fields = ('userGoldenId, 'location, 'timeSegment)
     // match checkins and pongs with places visited by the user
-    val withUserPopularity = matchGeo((venueUserPopularity, ('userGoldenId, 'timeSegment), 'venueLocation, 'venueUserPopularity), (locations, ('userGoldenId, 'timeSegment), 'location, checkinIdFields), 'userDistance, metaFields).rename(('userGoldenId, 'canonicalVenueId, 'location, 'timeSegment) -> (('user_userGoldenId, 'user_canonicalVenueId, 'user_location, 'user_timeSegment)))
+    val withUserPopularity = matchGeo((venueUserPopularity, ('userGoldenId, 'timeSegment), 'venueLocation, 'venueUserPopularity), (locations, ('userGoldenId, 'timeSegment), 'location, checkinIdFields), 'userDistance, metaFields, threshold = ClusterSizeInMeters).rename(('userGoldenId, 'canonicalVenueId, 'location, 'timeSegment) -> (('user_userGoldenId, 'user_canonicalVenueId, 'user_location, 'user_timeSegment)))
     // match checkins and pongs with places visited by all users
-    val withVenuePopularity = matchGeo((venuePopularity, 'timeSegment, 'venueLocation, 'venuePopularity), (locations, 'timeSegment, 'location, checkinIdFields), 'allDistance, metaFields append 'numVisits)
+    val withVenuePopularity = matchGeo((venuePopularity, 'timeSegment, 'venueLocation, 'venuePopularity), (locations, 'timeSegment, 'location, checkinIdFields), 'allDistance, metaFields append 'numVisits, threshold = ClusterSizeInMeters)
     val topScores = withVenuePopularity.leftJoinWithSmaller(('userGoldenId, 'canonicalVenueId, 'location, 'timeSegment) ->('user_userGoldenId, 'user_canonicalVenueId, 'user_location, 'user_timeSegment), withUserPopularity)
             // create composite score from user and allUser score
             .map(('venueUserPopularity, 'venuePopularity) -> 'score) {
         in: (java.lang.Double, java.lang.Double) =>
-            println("score: " + in)
+        //debug("Scores: " + in)
             if (in._1 == null) in._2 else (in._1 + in._2) / 2.0
     }
             .groupBy('userGoldenId, 'timeSegment, 'location, 'numVisits) {
         // pick the top 3 scores for each checkin
         _.sortWithTake[cascading.tuple.Tuple](('score, 'canonicalVenueId) -> 'topScores, 3) {
             (left: cascading.tuple.Tuple, right: cascading.tuple.Tuple) =>
-                println(left + " " + right)
+            //debug("Top Scores: " + left + " " + right)
                 left.getDouble(0) > right.getDouble(0)
         }
     }.flatten[cascading.tuple.Tuple]('topScores ->('score, 'canonicalVenueId))
