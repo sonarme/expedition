@@ -24,8 +24,6 @@
         <jackson.version>1.9.7</jackson.version>
         <activemq.version>5.5.0</activemq.version>
         <querydsl.version>2.2.4</querydsl.version>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <encoding>UTF-8</encoding>
     </properties>
