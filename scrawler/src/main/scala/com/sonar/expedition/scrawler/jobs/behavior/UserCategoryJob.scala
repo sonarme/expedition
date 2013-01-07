@@ -43,7 +43,7 @@ class UserCategoryJob(args: Args) extends Job(args) {
     val stats = SequenceFile(statsIn, Tuples.Behavior.UserPlaceTimeMap)
 
     val userStats = stats.read.map('timeSegments -> 'total) {
-        timeSegmentMap: Map[String, Double] => timeSegmentMap.values.sum
+        timeSegmentMap: Map[TimeSegment, Double] => timeSegmentMap.values.sum
     }
     .discard('timeSegments)
     .leftJoinWithSmaller('userGoldenId -> 'profileId, serviceProfileDtos)

@@ -33,13 +33,22 @@ class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFun
     ("esen", ServiceVenueDTO(ServiceType.foursquare, "esen", "Esen", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = new util.ArrayList[String](Seq("deli"))))
     ), Tuples.VenueIdDTO)
 
+    val checkinProbabilityIn = IterableSource(Seq(
+        ("roger", "location1", "2", "nysc", "10", new TimeSegment(true, 7)),
+        ("roger", "location1", "3", "penn", "4", new TimeSegment(true, 7)),
+        ("roger", "location1", "2", "sonar", "1", new TimeSegment(true, 7)),
+        ("roger", "location2", "1", "tracks", "8", new TimeSegment(true, 16)),
+        ("roger", "location2", "2", "sonar", "2", new TimeSegment(true, 16)),
+        ("katie", "location1", "2", "esen", "10", new TimeSegment(true, 16))
+    ), Tuples.PlaceInference)
 
-    val checkinProbabilityIn = args("checkinProbability")
+//    val checkinProbabilityIn = args("checkinProbability")
     val statsOut = args("statsOut")
     val statsOut2 = args("statsOut2")
 
-    val stats = Tsv(checkinProbabilityIn, Tuples.PlaceInference)
-        .read
+//    val stats = Tsv(checkinProbabilityIn, Tuples.PlaceInference)
+//        .read
+    val stats = checkinProbabilityIn
         .joinWithLarger('canonicalVenueId -> 'venueId, venuesIn)
         .discard('venueId)
         .map('venueDto -> ('placeType)){
@@ -53,7 +62,7 @@ class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFun
 
     val stats2 = stats.groupBy('userGoldenId, 'placeType) {
         _.mapList(('timeSegment, 'score) -> ('timeSegments)) {
-            timeSegments: List[(String, Double)] => {
+            timeSegments: List[(TimeSegment, Double)] => {
                 timeSegments.map {
                     case (timeSegment, score) =>
                         timeSegment -> score
