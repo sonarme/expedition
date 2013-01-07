@@ -16,8 +16,9 @@ import com.sonar.dossier.dto.ServiceProfileDTO
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.jobs.behavior
+import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
 
-class UserCategoryJob(args: Args) extends Job(args) {
+class UserCategoryJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
 
     var roger = ServiceProfileDTO(ServiceType.facebook, "123")
     roger.gender = Gender.male
@@ -32,11 +33,26 @@ class UserCategoryJob(args: Args) extends Job(args) {
         ("katie", katie)
     ), Tuples.ProfileIdDTO)
 
+//    val profiles = serviceProfiles(args)
+
     val categoriesIn = args("categories")
     val userCategoriesOut = args("userCategories")
     val statsIn = args("userStats")
 
-    //('ageBracket, 'gender, 'incomeBracket, 'education, 'placeType, 'placeFrequencyThreshold, 'profileCategory)
+    /*
+    profiles
+        .filter('educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree) {
+            fields: (String, String, String, String, String, String, String, String, String, String, String) => {
+                val (educ, worked, city, edegree, eyear, worktitle, workdesc, impliedGender, impliedGenderProb, age, degree) = fields
+                if (impliedGender != null) {
+                    println(impliedGender)
+                }
+                worktitle != ""
+            }
+        }
+        .write(Tsv(userCategoriesOut))
+    */
+
     val categories = Tsv(categoriesIn, Tuples.Behavior.CategoryAttributes).read
         .rename(('placeType, 'gender, 'education) -> ('categoryPlaceType, 'categoryGender, 'categoryEducation))
 
@@ -51,7 +67,7 @@ class UserCategoryJob(args: Args) extends Job(args) {
     .map('profileDto ->('gender, 'age, 'income, 'education)) {
         dto: ServiceProfileDTO =>
             val age = org.joda.time.Years.yearsBetween(new DateTime(dto.birthday.getTime), new DateTime()).getYears
-            (dto.gender, age, 55000, Education.college) //todo: calculate the income and education
+            (dto.gender, age, 55000, Education.unknown) //todo: calculate the income and education
     }
     .discard('profileDto)
     .crossWithTiny(categories)
@@ -60,12 +76,13 @@ class UserCategoryJob(args: Args) extends Job(args) {
             val (totalScore, placeFrequencyThreshold, gender, categoryGender, age, ageRangeStr, placeType, categoryPlaceType, income, incomeBracket, education, categoryEducation) = fields
             val ageRange = ProfileAttributeMapping.AgeBrackets.get(ageRangeStr).getOrElse(Range(0,125).inclusive)
             val profileGender = ProfileAttributeMapping.Gender.get(categoryGender).getOrElse(Gender.unknown)
+            val profileEducation = ProfileAttributeMapping.EducationBrackets.get(categoryEducation).getOrElse(Education.unknown)
             (
                     totalScore >= placeFrequencyThreshold &&
                     (profileGender == Gender.unknown || gender == profileGender) &&
                     placeType.equals(categoryPlaceType) && ageRange.contains(age) &&
                     ProfileAttributeMapping.IncomeBrackets.get(incomeBracket).getOrElse(Range(0,100000000).inclusive).contains(income.toInt) &&
-                    education == ProfileAttributeMapping.EducationBrackets.get(categoryEducation).getOrElse(Education.unknown)
+                    (education == Education.unknown || education == profileEducation)
             )
         }
     }
@@ -74,6 +91,7 @@ class UserCategoryJob(args: Args) extends Job(args) {
     }
 
     userStats.write(Tsv(userCategoriesOut, Tuples.Behavior.UserCategories))
+
 }
 
 object ProfileAttributeMapping {
@@ -83,29 +101,29 @@ object ProfileAttributeMapping {
         "N/A" -> com.sonar.dossier.dto.Gender.unknown
     )
     val AgeBrackets = Map(
-        "0-11" -> Range(0,11).inclusive,
-        "12-16" -> Range(12,16).inclusive,
-        "17-24" -> Range(17,24).inclusive,
-        "25-34" -> Range(25,34).inclusive,
-        "35-44" -> Range(35,44).inclusive,
-        "45-54" -> Range(45,54).inclusive,
-        "55-64" -> Range(55,64).inclusive,
-        "65-74" -> Range(65,74).inclusive,
-        "75-94" -> Range(75,94).inclusive,
-        "Over 95" -> Range(95,125).inclusive,
-        "N/A" -> Range(0,125).inclusive
+        "0-11" -> (0 to 11),
+        "12-16" -> (12 to 16),
+        "17-24" -> (17 to 24),
+        "25-34" -> (25 to 34),
+        "35-44" -> (35 to 44),
+        "45-54" -> (45 to 54),
+        "55-64" -> (55 to 64),
+        "65-74" -> (65 to 74),
+        "75-94" -> (75 to 94),
+        "Over 95" -> (95 to 125),
+        "N/A" -> (0 to 125)
     )
     val IncomeBrackets = Map(
-        "0-18k" -> Range(0,18000).inclusive,
-        "18-36k" -> Range(18000,36000).inclusive,
-        "36-50k" -> Range(36000,50000).inclusive,
-        "50-75k" -> Range(50000,75000).inclusive,
-        "75-100k" -> Range(75000,100000).inclusive,
-        "100-140k" -> Range(100000,140000).inclusive,
-        "140-200k" -> Range(140000,200000).inclusive,
-        "200-300k" -> Range(200000,300000).inclusive,
-        "Over 300k" -> Range(300000,100000000).inclusive,
-        "N/A" -> Range(0,100000000).inclusive
+        "0-18k" -> (0 to 18000),
+        "18-36k" -> (18000 to 36000),
+        "36-50k" -> (36000 to 50000),
+        "50-75k" -> (50000 to 75000),
+        "75-100k" -> (75000 to 100000),
+        "100-140k" -> (100000 to 140000),
+        "140-200k" -> (140000 to 200000),
+        "200-300k" -> (200000 to 300000),
+        "Over 300k" -> (300000 to 100000000),
+        "N/A" -> (0 to 100000000)
     )
     val EducationBrackets = Map(
         "gradeschool" -> Education.gradeschool,
