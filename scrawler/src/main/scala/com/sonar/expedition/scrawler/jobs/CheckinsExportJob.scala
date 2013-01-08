@@ -9,7 +9,7 @@ import scala.Some
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Tuples}
 import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers._
-import com.sonar.dossier.dto.CheckinDTO
+import com.sonar.dossier.dto.{ServiceType, CheckinDTO}
 import com.sonar.dossier.cassandra.converters.ServiceTypeConverter
 import me.prettyprint.hom.converters.JodaTimeHectorConverter
 import com.sonar.scalding.cassandra.CassandraSource
@@ -39,7 +39,7 @@ class CheckinsExportJob(args: Args) extends Job(args) with CheckinSource {
                 checkin.id = StringSerializer.get.fromByteBuffer(id)
                 checkin.viewingUserSonarId = StringSerializer.get.fromByteBuffer(viewingUserSonarId)
                 checkin.checkinTime = (new JodaTimeHectorConverter) convertCassTypeToObjType(null, checkinTimeBA)
-                checkin.serviceType = (new ServiceTypeConverter) convertCassTypeToObjType(null, BytesArraySerializer.get.fromByteBuffer(serviceType))
+                checkin.serviceType = ServiceType.valueOf(checkin.id.split(':')(0))
                 checkin.serviceProfileId = StringSerializer.get.fromByteBuffer(serviceProfileId)
                 checkin.latitude = DoubleSerializer.get.fromByteBuffer(latitude)
                 checkin.longitude = DoubleSerializer.get.fromByteBuffer(longitude)
