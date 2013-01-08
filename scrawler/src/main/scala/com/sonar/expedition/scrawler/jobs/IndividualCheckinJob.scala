@@ -8,7 +8,7 @@ import com.sonar.dossier.dto.CheckinDTO
 
 class IndividualCheckinJob(args: Args) extends Job(args) with CheckinSource {
     val individual = args("profileIds").split(',').toSet[String]
-    SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO).flatMapTo('checkinDto ->('lat, 'lng)) {
+    SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO).flatMapTo('checkinDto ->('lat, 'lng, 'checkinTime)) {
         checkin: CheckinDTO =>
             if (individual(checkin.profileId)) Some((checkin.latitude, checkin.longitude, checkin.checkinTime.toDate))
             else None
