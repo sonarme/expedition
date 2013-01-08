@@ -13,12 +13,12 @@
   </Prefixes>
 
   <DataSources>
-    <DataSource id="sonarfacebook" type="hadoop">
-      <Param name="path" value="s3n://AKIAJ3LQ4JXR6NFGMSRA:1e4U6x9alziFyodFa0f4iTaXd6HdpTpy3H547ZhW@scrawler/placeExtraction1018_rdf" />
+    <DataSource id="sonarfacebook" type="rdf">
+      <Param name="input" value="" />
       <Param name="format" value="N-TRIPLE" />
     </DataSource>
-    <DataSource id="sonarfoursquare" type="hadoop">
-      <Param name="path" value="s3n://AKIAJ3LQ4JXR6NFGMSRA:1e4U6x9alziFyodFa0f4iTaXd6HdpTpy3H547ZhW@scrawler/placeExtraction1018_rdf" />
+    <DataSource id="sonarfoursquare" type="rdf">
+      <Param name="input" value="" />
       <Param name="format" value="N-TRIPLE" />
     </DataSource>
   </DataSources>
@@ -55,10 +55,10 @@
 				  <Param name="additionalStopWords" value="inc,incorporated,co,ltd,llc,group,corp,corporation,company,limited,hq"/>
               </TransformInput>
             </Compare>
-          <Compare metric="wgs84" threshold="30" required="true">
+          <Compare metric="wgs84" threshold="500" required="true">
             <Input path="?a/georss:point" />
             <Input path="?b/georss:point" />
-            <Param name="unit" value="km"/>
+            <Param name="unit" value="m"/>
           </Compare>
        </Aggregate>
       </LinkageRule>
