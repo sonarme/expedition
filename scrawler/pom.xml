@@ -526,9 +526,11 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.0</version>
                 <configuration>
+                    <executable>/home/ubuntu/jdk1.6/bin</executable>
                     <source>1.6</source>
                     <!-- EMR not compatible with Java 7 -->
                     <target>1.6</target>
+                    <fork>true</fork>
                 </configuration>
             </plugin>
             <plugin>
