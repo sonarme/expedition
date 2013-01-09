@@ -17,6 +17,21 @@ import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.NarrowRowScheme
 
 class CheckinsExportJob(args: Args) extends Job(args) with CheckinSource {
+
+
+    /**
+     * By default we only set two keys:
+     * io.serializations
+     * cascading.tuple.element.comparator.default
+     * Override this class, call base and ++ your additional
+     * map to set more options
+     */
+    override def config =
+        super.config ++
+                Map("mapred.map.max.attempts" -> "20",
+                    "mapred.reduce.max.attempts" -> "20",
+                    "mapred.max.tracker.failures" -> "20")
+
     val checkins = CassandraSource(
         rpcHost = args("rpcHost"),
         additionalConfig = ppmap(args),
