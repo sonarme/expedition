@@ -12,6 +12,6 @@ class IndividualCheckinJob(args: Args) extends Job(args) with CheckinSource {
         checkin: CheckinDTO =>
             if (individual(checkin.profileId)) Some((checkin.latitude, checkin.longitude, checkin.checkinTime.toDate))
             else None
-    }.write(SequenceFile(args("filteredOut")))
+    }.write(Tsv(args("filteredOut")))
 }
 
