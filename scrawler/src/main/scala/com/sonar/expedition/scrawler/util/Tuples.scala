@@ -11,7 +11,7 @@ object Tuples extends TupleConversions {
     val VenueIdDTO = ('venueId, 'venueDto)
     val ProfileIdDTO = ('profileId, 'profileDto)
     val Checkin = ('serType, 'serProfileID, 'serCheckinID, 'venId, 'venName, 'venAddress, 'chknTime, 'lat, 'lng, 'msg)
-    val Correlation = ('correlationId, 'serviceType, 'serviceProfileId)
+    val Correlation = ('correlationId, 'correlationSPL)
 
     object Crawler extends FieldConversions {
         val Links = ('url, 'timestamp, 'referer)
@@ -31,4 +31,5 @@ object Tuples extends TupleConversions {
         val CategoryAttributes = ('ageBracket, 'gender, 'incomeBracket, 'education, 'placeType, 'placeFrequencyThreshold, 'profileCategory)
         val UserCategories = ('userGoldenId, 'categories)
     }
+
 }

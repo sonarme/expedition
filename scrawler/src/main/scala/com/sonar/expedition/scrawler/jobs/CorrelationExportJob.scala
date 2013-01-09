@@ -12,7 +12,7 @@ import com.sonar.expedition.scrawler.util.Tuples
 
 class CorrelationExportJob(args: Args) extends Job(args) with CheckinSource {
     val rpcHostArg = args("rpcHost")
-    val output = args("output")
+    val output = args("correlationOut")
     val profiles = CassandraSource(
         rpcHost = rpcHostArg,
         additionalConfig = ppmap(args),
@@ -20,12 +20,12 @@ class CorrelationExportJob(args: Args) extends Job(args) with CheckinSource {
         columnFamilyName = "Correlation",
         scheme = WideRowScheme(keyField = 'correlationIdB,
             nameValueFields = ('serviceProfileLinkB, 'someBuffer))
-    ).mapTo(('correlationIdB, 'serviceProfileLinkB) ->('correlationId, 'serviceType, 'serviceProfileId)) {
+    ).mapTo(('correlationIdB, 'serviceProfileLinkB) ->('correlationId, 'correlationSPL)) {
         in: (ByteBuffer, ByteBuffer) =>
             val (correlationIdB, serviceProfileLinkB) = in
             val correlationId = StringSerializer.get().fromByteBuffer(correlationIdB)
             val spl = ServiceProfileLinkSerializer.fromByteBuffer(serviceProfileLinkB)
-            (correlationId, spl.serviceType, spl.key)
+            (correlationId, spl)
     }.write(SequenceFile(output, Tuples.Correlation))
             .limit(180000).write(SequenceFile(output + "_small", Tuples.Correlation))
 }
