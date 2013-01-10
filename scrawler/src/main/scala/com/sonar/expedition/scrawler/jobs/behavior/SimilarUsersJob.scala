@@ -27,7 +27,7 @@ class SimilarUsersJob(args: Args) extends Job(args) {
 
     val similarityMatrix = tfidf * docWordMatrix.transpose
     val cleanedSimilarityMatrix = similarityMatrix - similarityMatrix.diagonal //remove diagonals which signify same users
-    cleanedSimilarityMatrix.write(Tsv(args("output")))
+    cleanedSimilarityMatrix.topRowElems(args("nrUsers").toInt).write(Tsv(args("output")))
 
     def log2(x: Double) = scala.math.log(x) / scala.math.log(2.0)
 }
