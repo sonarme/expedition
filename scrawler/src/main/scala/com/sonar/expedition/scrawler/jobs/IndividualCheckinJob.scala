@@ -11,7 +11,11 @@ class IndividualCheckinJob(args: Args) extends Job(args) with CheckinSource {
 
     val old = args.optional("old").map(_.toBoolean).getOrElse(false)
     if (old)
-        SequenceFile(args("checkinsIn"), Tuples.Checkin).read.project('lat, 'lng, 'chknTime).write(Tsv(args("filteredOut")))
+        SequenceFile(args("checkinsIn"), Tuples.Checkin).read.filter('serType, 'serProfileID) {
+            in: (String, String) =>
+                val profileId = in._1 + "-" + in._2
+                individual(profileId)
+        }.project('lat, 'lng, 'chknTime).write(Tsv(args("filteredOut")))
     else
         SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO).flatMapTo('checkinDto ->('lat, 'lng, 'checkinTime)) {
             checkin: CheckinDTO =>
