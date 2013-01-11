@@ -12,6 +12,7 @@ object Tuples extends TupleConversions {
     val ProfileIdDTO = ('profileId, 'profileDto)
     val Checkin = ('serType, 'serProfileID, 'serCheckinID, 'venId, 'venName, 'venAddress, 'chknTime, 'lat, 'lng, 'msg)
     val Correlation = ('correlationId, 'correlationSPL)
+    val Matrix = ('x, 'y, 'val)
 
     object Crawler extends FieldConversions {
         val Links = ('url, 'timestamp, 'referer)
