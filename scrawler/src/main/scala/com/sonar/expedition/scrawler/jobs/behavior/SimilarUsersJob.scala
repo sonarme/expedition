@@ -1,32 +1,44 @@
 package com.sonar.expedition.scrawler.jobs.behavior
 
-import com.twitter.scalding.{Tsv, Job, Args}
+import com.twitter.scalding.{IterableSource, Tsv, Job, Args}
 import com.twitter.scalding.mathematics.Matrix
+import com.sonar.expedition.scrawler.util.Tuples
 
 class SimilarUsersJob(args: Args) extends Job(args) {
 
     import Matrix._
 
-    val docWordMatrix = Tsv(args("input"), ('user, 'ip, 'count))
-            .read
-            .toMatrix[String, String, Double]('user, 'ip, 'count)
+    val userIpMatrix = IterableSource(Seq(
+            ("roger", "ip1", 3),
+            ("roger", "ip2", 2),
+            ("roger", "ip3", 0),
+            ("paul", "ip1", 2),
+            ("paul", "ip2", 0),
+            ("paul", "ip3", 1),
+            ("ben", "ip1", 0),
+            ("ben", "ip2", 0),
+            ("ben", "ip3", 2) ,
+            ("brett", "ip1", 1),
+            ("brett", "ip2", 2),
+            ("brett", "ip3", 0)
+        ), Tuples.Matrix).read.toMatrix[String, String, Double]('x, 'y, 'val)
 
-    // compute the overall document frequency of each row
-    val docFreq = docWordMatrix.sumRowVectors
 
-    // compute the inverse document frequency vector
-    val invDocFreqVct = docFreq.toMatrix(1).rowL1Normalize.mapValues(x => log2(1 / x))
+    // compute the overall user frequency of each row
+    val userFreq = userIpMatrix.sumRowVectors
 
-    // zip the row vector along the entire document - word matrix
-    val invDocFreqMat = docWordMatrix.zip(invDocFreqVct.getRow(1)).mapValues(pair => pair._2)
+    // compute the inverse user frequency vector
+    val invUserFreqVct = userFreq.toMatrix(1).rowL1Normalize.mapValues(x => log2(1 / x))
 
-    // multiply the term frequency with the inverse document frequency and keep the top nrWords
-//    docWordMatrix.hProd(invDocFreqMat).topRowElems(args("nrWords").toInt).write(Tsv(args("output")))
+    // zip the row vector along the entire user - ip matrix
+    val invUserFreqMat = userIpMatrix.zip(invUserFreqVct.getRow(1)).mapValues(pair => pair._2)
 
-    val tfidf = invDocFreqMat.hProd(docWordMatrix)
+    val tfidf = invUserFreqMat.hProd(userIpMatrix)
 
-    val similarityMatrix = tfidf * docWordMatrix.transpose
-    val cleanedSimilarityMatrix = similarityMatrix - similarityMatrix.diagonal //remove diagonals which signify same users
+    val similarityMatrix = tfidf * userIpMatrix.transpose
+
+    //remove diagonals which signify same users
+    val cleanedSimilarityMatrix = similarityMatrix - similarityMatrix.diagonal
     cleanedSimilarityMatrix.topRowElems(args("nrUsers").toInt).write(Tsv(args("output")))
 
     def log2(x: Double) = scala.math.log(x) / scala.math.log(2.0)
