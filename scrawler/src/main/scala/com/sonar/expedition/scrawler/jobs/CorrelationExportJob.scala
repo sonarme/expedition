@@ -27,5 +27,5 @@ class CorrelationExportJob(args: Args) extends Job(args) with CheckinSource {
             val spl = ServiceProfileLinkSerializer.fromByteBuffer(serviceProfileLinkB)
             (correlationId, spl)
     }.write(SequenceFile(output, Tuples.Correlation))
-            .limit(180000).write(SequenceFile(output + "_small", Tuples.Correlation))
+    //         .limit(180000).write(SequenceFile(output + "_small", Tuples.Correlation))
 }
