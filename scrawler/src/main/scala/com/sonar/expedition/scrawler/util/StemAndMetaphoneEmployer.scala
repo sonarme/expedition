@@ -5,12 +5,18 @@ import scala.transient
 import com.sonar.expedition.scrawler.pipes.JobImplicits
 import com.twitter.scalding.{FieldConversions, TupleConversions}
 import org.apache.lucene.analysis.standard.StandardAnalyzer
-import org.apache.lucene.util.{Attribute, ReaderUtil, Version}
+import org.apache.lucene.util.{Attribute, Version}
 import org.apache.commons.io.IOUtils
 import java.io.StringReader
 import collection._
 import collection.JavaConversions._
-import org.apache.lucene.analysis.tokenattributes.{CharTermAttribute, TermAttribute}
+import org.apache.lucene.analysis.tokenattributes.{CharTermAttribute}
+import org.apache.lucene.analysis.core.StopAnalyzer
+import org.apache.lucene.analysis.util.CharArraySet
+import scala.Predef._
+import scala.Tuple4
+import scala.Some
+import collection.Set
 
 object StemAndMetaphoneEmployer extends Serializable {
     @transient
@@ -19,7 +25,7 @@ object StemAndMetaphoneEmployer extends Serializable {
     @transient
     val metaphoneWithCodeLength = new DoubleMetaphone
     metaphoneWithCodeLength.setMaxCodeLen(6)
-    val StopWords = StandardAnalyzer.STOP_WORDS_SET ++ Set("inc", "incorporated", "co", "ltd", "llc", "group", "corp", "corporation", "company", "limited", "hq")
+    val StopWords = CharArraySet.copy(Version.LUCENE_40, StandardAnalyzer.STOP_WORDS_SET ++ Set(Version.LUCENE_40, Set("inc", "incorporated", "co", "ltd", "llc", "group", "corp", "corporation", "company", "limited", "hq"), true))
 
     @transient
     def metaphoner(maxCodeLength: Option[Int] = None) = {
@@ -36,7 +42,7 @@ object StemAndMetaphoneEmployer extends Serializable {
     def extractTokens(tokenString: String): Seq[String] =
         if (tokenString == null) Seq.empty[String]
         else {
-            val tokenStream = new StandardAnalyzer(Version.LUCENE_36, StopWords).tokenStream("textField", new StringReader(tokenString))
+            val tokenStream = new StandardAnalyzer(Version.LUCENE_40, StopWords).tokenStream("textField", new StringReader(tokenString))
             try {
                 val tokens = mutable.ListBuffer[String]()
                 while (tokenStream.incrementToken()) {
