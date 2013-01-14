@@ -18,7 +18,7 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
     val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
         case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = toHr)
     }
-    val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO).read
+    val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
     /*val checkinSource = IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "test1a",
@@ -95,7 +95,7 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
 
     val placeInferenceOut = Tsv(args("placeInferenceOut"), Tuples.PlaceInference)
 
-    val correlation = SequenceFile("correlationIn", Tuples.Correlation).read
+    val correlation = SequenceFile("correlationIn", Tuples.Correlation)
     /*val correlation = IterableSource(Seq(
         ("c1", ServiceType.foursquare, "ben123"),
         ("c1", ServiceType.sonar, "ben123")
