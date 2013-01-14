@@ -95,7 +95,7 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
 
     val placeInferenceOut = Tsv(args("placeInferenceOut"), Tuples.PlaceInference)
 
-    val correlation = SequenceFile("correlationIn", Tuples.Correlation)
+    val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation)
     /*val correlation = IterableSource(Seq(
         ("c1", ServiceType.foursquare, "ben123"),
         ("c1", ServiceType.sonar, "ben123")
