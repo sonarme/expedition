@@ -16,7 +16,7 @@ import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.NarrowRowScheme
 
-class CheckinsExportJob(args: Args) extends Job(args) with CheckinSource {
+class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource {
 
     val checkins = CassandraSource(
         rpcHost = args("rpcHost"),

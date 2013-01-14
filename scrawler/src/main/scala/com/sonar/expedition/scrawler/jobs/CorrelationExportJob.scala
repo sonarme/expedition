@@ -10,7 +10,7 @@ import me.prettyprint.cassandra.serializers.StringSerializer
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import com.sonar.expedition.scrawler.util.Tuples
 
-class CorrelationExportJob(args: Args) extends Job(args) with CheckinSource {
+class CorrelationExportJob(args: Args) extends DefaultJob(args) with CheckinSource {
     val rpcHostArg = args("rpcHost")
     val output = args("correlationOut")
     val profiles = CassandraSource(

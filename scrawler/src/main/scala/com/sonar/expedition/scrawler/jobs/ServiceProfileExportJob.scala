@@ -20,7 +20,7 @@ import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import com.sonar.dossier.dao.cassandra.{ServiceProfileLinkSerializer, JSONSerializer}
 import ServiceProfileExportJob._
 
-class ServiceProfileExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
+class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
     val rpcHostArg = args("rpcHost")
     val output = args("canonicalProfilesOut")
     val serviceProfiles = CassandraSource(
