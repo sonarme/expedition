@@ -32,5 +32,4 @@ class ServiceProfileExportRawJob(args: Args) extends Job(args) with DTOProfileIn
                     Some((StringSerializer.get().fromByteBuffer(userProfileIdBuffer), serviceTypeString, StringSerializer.get().fromByteBuffer(jsondataBuffer)))
             }
     }.write(SequenceFile(output, Fields.ALL))
-            .limit(180000).write(SequenceFile(output + "_small", Fields.ALL))
 }

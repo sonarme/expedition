@@ -72,5 +72,4 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
 
     val checkinsOutput = args("checkinsOut")
     checkins.write(SequenceFile(checkinsOutput, Fields.ALL))
-    //.limit(18000).write(SequenceFile(checkinsOutput + "_small", Fields.ALL))
 }

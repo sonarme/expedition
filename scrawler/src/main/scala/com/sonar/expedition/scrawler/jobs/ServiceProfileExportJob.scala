@@ -83,7 +83,6 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
 
 
     correlatedProfiles.write(SequenceFile(output, Tuples.Profile))
-            .limit(180000).write(SequenceFile(output + "_small", Tuples.Profile))
 }
 
 object ServiceProfileExportJob {
