@@ -12,13 +12,14 @@ import com.sonar.dossier.dto.GeodataDTO
 import org.scala_tools.time.Imports._
 import cascading.tuple.{Tuple, Fields}
 import grizzled.slf4j.Logging
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with CheckinInference {
+class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference {
     val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
         case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = toHr)
     }
-    //val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
-    val checkinSource = IterableSource(Seq(
+    val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO).read
+    /*val checkinSource = IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "test1a",
             GeodataDTO(40.7505800, -73.9935800),
@@ -90,15 +91,16 @@ class PlaceInferenceJob(args: Args) extends Job(args) with Normalizers with Chec
             None
         )
 
-    ).map(c => c.id -> c), Tuples.CheckinIdDTO)
+    ).map(c => c.id -> c), Tuples.CheckinIdDTO)*/
 
     val placeInferenceOut = Tsv(args("placeInferenceOut"), Tuples.PlaceInference)
 
-    val correlation = IterableSource(Seq(
+    val correlation = SequenceFile("correlationIn", Tuples.Correlation).read
+    /*val correlation = IterableSource(Seq(
         ("c1", ServiceType.foursquare, "ben123"),
         ("c1", ServiceType.sonar, "ben123")
     ), Tuples.Correlation)
-
+*/
     val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'serviceProfileId, 'serviceType, 'canonicalVenueId, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
             val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
