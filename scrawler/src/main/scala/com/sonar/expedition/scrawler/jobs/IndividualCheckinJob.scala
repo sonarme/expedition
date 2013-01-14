@@ -6,7 +6,7 @@ import cascading.tuple.Fields
 import util.Tuples
 import com.sonar.dossier.dto.CheckinDTO
 
-class IndividualCheckinJob(args: Args) extends Job(args) with CheckinSource {
+class IndividualCheckinJob(args: Args) extends DefaultJob(args) with CheckinSource {
     val individual = args("profileIds").split(',').toSet[String]
 
     val old = args.optional("old").map(_.toBoolean).getOrElse(false)
