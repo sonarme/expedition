@@ -15,12 +15,17 @@ import me.prettyprint.hom.converters.JodaTimeHectorConverter
 import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.NarrowRowScheme
+import scala.Predef._
+import com.twitter.scalding.SequenceFile
+import scala.Some
+import com.sonar.scalding.cassandra.CassandraSource
+import com.sonar.scalding.cassandra.NarrowRowScheme
 
 class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource {
 
     val checkins = CassandraSource(
         rpcHost = args("rpcHost"),
-        additionalConfig = ppmap(args),
+        additionalConfig = ppmap(args) ++ Map("cassandra.range.batch.size" -> "2048"),
         keyspaceName = "dossier",
         columnFamilyName = "Checkin",
         scheme = NarrowRowScheme(keyField = 'idB,
