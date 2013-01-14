@@ -72,7 +72,7 @@ class SearchServiceImpl extends SearchService {
     }
 
     def moreLikeThis(docNum: Int) = {
-        val moreLikeThisFields = List[IndexField](IndexField.Name, IndexField.Content, IndexField.Categories)
+        val moreLikeThisFields = List[IndexField](IndexField.Name, IndexField.Categories, IndexField.Ip)
         moreLikeThis(docNum, moreLikeThisFields)
     }
 
