@@ -10,7 +10,6 @@ class DashboardQualityJob(args: Args) extends Job(args) {
     val rpcHostArg = args("rpcHost")
     val placeClassification = SequenceFile(args("placeClassification"), PlaceClassification.PlaceClassificationOutputTuple)
     val sequenceInputStatic = args("inputStatic")
-    val output = args("output")
     val venueIds = SequenceFile(sequenceInputStatic, ('rowKey, 'columnName, 'columnValue)).read.flatMapTo(('rowKey, 'columnName, 'columnValue) -> ('venueId)) {
         in: (String, String, Double) =>
             val (rowKey, columnName, columnValue) = in

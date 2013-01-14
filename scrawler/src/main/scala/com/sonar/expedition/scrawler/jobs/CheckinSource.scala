@@ -45,7 +45,7 @@ trait CheckinSource extends ScaldingImplicits with CheckinGrouperFunction {
             case None =>
                 CassandraSource(
                     rpcHost = rpcHostArg.get,
-                    additionalConfig = ppmap(args) /* ++ Map("cassandra.range.batch.size" -> "2048")*/ ,
+                    additionalConfig = ppmap(args) ++ Map("cassandra.range.batch.size" -> "2048"),
                     keyspaceName = "dossier",
                     columnFamilyName = "Checkin",
                     scheme = NarrowRowScheme(keyField = 'rowKeyBuffer,
