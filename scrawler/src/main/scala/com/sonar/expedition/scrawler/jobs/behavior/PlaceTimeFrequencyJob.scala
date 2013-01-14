@@ -20,17 +20,18 @@ import cascading.pipe.joiner.LeftJoin
 import org.joda.time.DateMidnight
 import java.util
 import cascading.tuple.Fields
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 
-class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFunction {
+class PlaceTimeFrequencyJob(args: Args) extends DefaultJob(args) with CheckinGrouperFunction {
 
-//    val venuesIn = args("venues")
+    //    val venuesIn = args("venues")
     val venuesIn = IterableSource(Seq(
-    ("sonar", ServiceVenueDTO(ServiceType.foursquare, "sonar", "Sonar", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = new util.ArrayList[String](Seq("office")))),
-    ("tracks", ServiceVenueDTO(ServiceType.foursquare, "tracks", "Tracks", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = new util.ArrayList[String](Seq("office")))),
-    ("nysc", ServiceVenueDTO(ServiceType.foursquare, "nysc", "NYSC", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = new util.ArrayList[String](Seq("gym")))),
-    ("penn", ServiceVenueDTO(ServiceType.foursquare, "penn", "Penn", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = new util.ArrayList[String](Seq("train")))),
-    ("esen", ServiceVenueDTO(ServiceType.foursquare, "esen", "Esen", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = new util.ArrayList[String](Seq("deli"))))
+        ("sonar", ServiceVenueDTO(ServiceType.foursquare, "sonar", "Sonar", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
+        ("tracks", ServiceVenueDTO(ServiceType.foursquare, "tracks", "Tracks", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
+        ("nysc", ServiceVenueDTO(ServiceType.foursquare, "nysc", "NYSC", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("gym"))),
+        ("penn", ServiceVenueDTO(ServiceType.foursquare, "penn", "Penn", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("train"))),
+        ("esen", ServiceVenueDTO(ServiceType.foursquare, "esen", "Esen", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("deli")))
     ), Tuples.VenueIdDTO)
 
     val checkinProbabilityIn = IterableSource(Seq(
@@ -42,21 +43,23 @@ class PlaceTimeFrequencyJob(args: Args) extends Job(args) with CheckinGrouperFun
         ("katie", "location1", "2", "esen", "10", new TimeSegment(true, 16))
     ), Tuples.PlaceInference)
 
-//    val checkinProbabilityIn = args("checkinProbability")
+    //    val checkinProbabilityIn = args("checkinProbability")
     val statsOut = args("statsOut")
     val statsOut2 = args("statsOut2")
 
-//    val stats = Tsv(checkinProbabilityIn, Tuples.PlaceInference)
-//        .read
+    //    val stats = Tsv(checkinProbabilityIn, Tuples.PlaceInference)
+    //        .read
     val stats = checkinProbabilityIn
-        .joinWithLarger('canonicalVenueId -> 'venueId, venuesIn)
-        .discard('venueId)
-        .map('venueDto -> ('placeType)){
-            dto: ServiceVenueDTO =>
-                dto.category.headOption.orNull
-        }
-        .discard('venueDto)
-        .groupBy('userGoldenId, 'timeSegment, 'placeType){_.sum('score)}
+            .joinWithLarger('canonicalVenueId -> 'venueId, venuesIn)
+            .discard('venueId)
+            .map('venueDto -> ('placeType)) {
+        dto: ServiceVenueDTO =>
+            dto.category.headOption.orNull
+    }
+            .discard('venueDto)
+            .groupBy('userGoldenId, 'timeSegment, 'placeType) {
+        _.sum('score)
+    }
 
     stats.write(Tsv(statsOut))
 
