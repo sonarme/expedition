@@ -12,7 +12,7 @@ import com.sonar.dossier.dto.GeodataDTO
 import org.scala_tools.time.Imports._
 import cascading.tuple.{Tuple, Fields}
 import grizzled.slf4j.Logging
-import com.sonar.expedition.scrawler.jobs.DefaultJob
+import com.sonar.expedition.scrawler.jobs.{Csv, DefaultJob}
 import ch.hsr.geohash.{WGS84Point, BoundingBox}
 
 class VenuePopularityJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference {
@@ -94,9 +94,9 @@ class VenuePopularityJob(args: Args) extends DefaultJob(args) with Normalizers w
 
     ).map(c => c.id -> c), Tuples.CheckinIdDTO)
     else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
-    val venuePopularityOut = Tsv(args("venuePopularityOut"), ('canonicalVenueId, 'location, 'timeSegment, 'venuePopularity))
+    val venuePopularityOut = Csv(args("venuePopularityOut"), ('canonicalVenueId, 'venueName, 'location, 'timeSegment, 'venuePopularity))
     val bb = new BoundingBox(new WGS84Point(47.622364, -122.209854), new WGS84Point(47.608593, -122.184706))
-    val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'canonicalVenueId, 'location, 'timeSegment)) {
+    val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'canonicalVenueId, 'venueName, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
             if (dto.serviceProfileId == null || dto.venueId == null || dto.venueId.isEmpty || !bb.contains(dto.geohash.getBoundingBoxCenterPoint)) Iterable.empty
             else {
@@ -106,10 +106,10 @@ class VenuePopularityJob(args: Args) extends DefaultJob(args) with Normalizers w
                 val canonicalVenueId = dto.serviceVenue.canonicalId
                 // create tuples for each time segment
                 createSegments(ldt.toLocalTime, segments) map {
-                    segment => (dto.canonicalId, dto.link, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
+                    segment => (dto.canonicalId, dto.link, canonicalVenueId, dto.venueName, dto.serviceVenue.location.geodata.canonicalLatLng, TimeSegment(weekDay, segment.name))
                 }
             }
-    }.groupBy('canonicalVenueId, 'location, 'timeSegment) {
+    }.groupBy('canonicalVenueId, 'venueName, 'location, 'timeSegment) {
         _.size('venuePopularity)
     }.write(venuePopularityOut)
 
