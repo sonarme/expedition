@@ -18,8 +18,8 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
     val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
         case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = toHr)
     }
-    val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
-    /*val checkinSource = IterableSource(Seq(
+    //    val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
+    val checkinSource = IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "test1a",
             GeodataDTO(40.7505800, -73.9935800),
@@ -91,17 +91,16 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
             None
         )
 
-    ).map(c => c.id -> c), Tuples.CheckinIdDTO)*/
+    ).map(c => c.id -> c), Tuples.CheckinIdDTO)
 
     val placeInferenceOut = Tsv(args("placeInferenceOut"), Tuples.PlaceInference)
 
-    val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation)
-    /*val correlation = IterableSource(Seq(
+    //    val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation)
+    val correlation = IterableSource(Seq(
         ("c1", ServiceType.foursquare, "ben123"),
         ("c1", ServiceType.sonar, "ben123")
     ), Tuples.Correlation)
-*/
-    val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'serviceProfileId, 'serviceType, 'canonicalVenueId, 'location, 'timeSegment)) {
+    val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'canonicalVenueId, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
             val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
             val weekDay = isWeekDay(ldt)
@@ -109,13 +108,13 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
             val canonicalVenueId = if (dto.venueId == null || dto.venueId.isEmpty || dto.serviceType != ServiceType.foursquare) null else dto.serviceVenue.canonicalId
             // create tuples for each time segment
             createSegments(ldt.toLocalTime, segments) map {
-                segment => (dto.canonicalId, dto.serviceProfileId, dto.serviceType, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
+                segment => (dto.canonicalId, dto.link, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
             }
-    }.leftJoinWithSmaller(('serviceType, 'serviceProfileId) ->('_serviceType, '_serviceProfileId), correlation.read.rename(('serviceType, 'serviceProfileId) ->('_serviceType, '_serviceProfileId))).discard(('_serviceType, '_serviceProfileId)).map(('correlationId, 'serviceType, 'serviceProfileId) -> 'userGoldenId) {
-        in: (String, ServiceType, String) =>
+    }.leftJoinWithSmaller('spl -> 'correlationSPL, correlation.read).discard('correlationSPL).map(('correlationId, 'spl) -> 'userGoldenId) {
+        in: (String, ServiceProfileLink) =>
         // add some fake correlation id if there is no correlation in cassandra
-            val (correlationId, serviceType, serviceProfileId) = in
-            if (correlationId == null) serviceType.name() + ":" + serviceProfileId else correlationId
+            val (correlationId, spl) = in
+            if (correlationId == null) spl.profileId else correlationId
     }
 
     // popularity of a venue with a particular user in a time segment
