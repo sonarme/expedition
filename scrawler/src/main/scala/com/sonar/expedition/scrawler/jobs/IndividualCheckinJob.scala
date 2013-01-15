@@ -17,9 +17,9 @@ class IndividualCheckinJob(args: Args) extends DefaultJob(args) with CheckinSour
                 individual(profileId)
         }.project('lat, 'lng, 'chknTime).write(Tsv(args("filteredOut")))
     else
-        SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO).flatMapTo('checkinDto ->('lat, 'lng, 'checkinTime, 'venueId, 'serviceType)) {
+        SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO).flatMapTo('checkinDto ->('lat, 'lng, 'checkinTime, 'venueId, 'serviceType, 'venueName, 'course, 'speed, 'calculatedSpeed, 'battery)) {
             checkin: CheckinDTO =>
-                if (individual(checkin.profileId)) Some((checkin.latitude, checkin.longitude, checkin.checkinTime.toDate, checkin.venueId, checkin.serviceType))
+                if (individual(checkin.profileId)) Some((checkin.latitude, checkin.longitude, checkin.checkinTime.toDate, checkin.venueId, checkin.serviceType, checkin.venueName, checkin.course, checkin.speed, checkin.calculatedSpeed, checkin.batteryLevel))
                 else None
         }.write(Tsv(args("filteredOut")))
 }
