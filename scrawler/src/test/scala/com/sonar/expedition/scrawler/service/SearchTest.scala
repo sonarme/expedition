@@ -15,7 +15,8 @@ class SearchTest extends FlatSpec with BeforeAndAfter {
         new UserDTO("ben", "ben", List[String](), new GeodataDTO(42.3, -73), "1.2.3.4"),
         new UserDTO("katie", "katie", List[String](), new GeodataDTO(42, -73), "4.2.3.4"),
         new UserDTO("brett", "brett", List[String]("workaholic", "entrepreneur"), new GeodataDTO(42.3, -73), "1.2.34.4"),
-        new UserDTO("ximena", "ximena", List[String]("social_butterfly", "gymrat"), new GeodataDTO(42, -73), "1.2.34.4")
+        new UserDTO("ximena", "ximena", List[String]("social_butterfly", "gymrat"), new GeodataDTO(42, -73), "1.2.34.4"),
+        new UserDTO("daniel", "daniel", List[String](), null, null)
     )
 
     before {
@@ -57,12 +58,12 @@ class SearchTest extends FlatSpec with BeforeAndAfter {
         val hits = searchService.search(IndexField.Name, "roger")
 
         val more2 = searchService.moreLikeThis(hits.scoreDocs.head.doc, List[IndexField](IndexField.Name))
-        assert(more2.totalHits == 1)
+        assert(more2.totalHits == 0)
 
         val more3 = searchService.moreLikeThis(hits.scoreDocs.head.doc, List[IndexField](IndexField.Categories))
-        assert(more3.totalHits == 4)
+        assert(more3.totalHits == 3)
 
         val more4 = searchService.moreLikeThis(hits.scoreDocs.head.doc)
-        assert(more4.totalHits == 5)
+        assert(more4.totalHits == 4)
     }
 }

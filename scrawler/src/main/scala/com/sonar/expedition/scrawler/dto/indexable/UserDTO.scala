@@ -15,8 +15,8 @@ case class UserDTO(override val key: String,
         doc.add(new StringField(IndexField.Key.toString, key, Field.Store.YES))
         doc.add(new StringField(IndexField.Name.toString, name, Field.Store.YES))
         doc.add(new TextField(IndexField.Categories.toString, categories.mkString(" "), Field.Store.YES))
-        doc.add(new LongField(IndexField.Geohash.toString, geoData.geoHash, Field.Store.YES))
-        doc.add(new StringField(IndexField.Ip.toString, ip, Field.Store.YES))
+        if(geoData != null) doc.add(new LongField(IndexField.Geohash.toString, geoData.geoHash, Field.Store.YES))
+        if(ip != null) doc.add(new StringField(IndexField.Ip.toString, ip, Field.Store.YES))
         doc
     }
 }
