@@ -6,9 +6,9 @@ import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.dossier.Normalizers
 
 class ServiceVenueJob(args: Args) extends Job(args) with Normalizers {
-    val argsCheckin = args("checkins")
-    val argsVenues = args("venues")
-    val argsStats = args("stats")
+    val argsCheckin = args("checkinsIn")
+    val argsVenues = args("venuesOut")
+    val argsStats = args("statsOut")
     SequenceFile(argsCheckin, Tuples.CheckinIdDTO).read.flatMapTo(('checkinDto) ->('venueId, 'venueDto, 'nonRaw)) {
         dto: CheckinDTO =>
             if (dto.venueId == null) None
