@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding.{SequenceFile, Args, Job}
 import cascading.tuple.Fields
 
-class OldSchoolCheckinsExportJob(args: Args) extends Job(args) with CheckinSource {
+class OldSchoolCheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource {
     /*  override def config =
           super.config ++
                   Map("mapred.map.max.attempts" -> "20",
