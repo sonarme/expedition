@@ -35,12 +35,12 @@ class PlaceTimeFrequencyJob(args: Args) extends DefaultJob(args) with CheckinGro
     ), Tuples.VenueIdDTO)
 
     val checkinProbabilityIn = IterableSource(Seq(
-        ("roger", "location1", "2", "nysc", "10", new TimeSegment(true, 7)),
-        ("roger", "location1", "3", "penn", "4", new TimeSegment(true, 7)),
-        ("roger", "location1", "2", "sonar", "1", new TimeSegment(true, 7)),
-        ("roger", "location2", "1", "tracks", "8", new TimeSegment(true, 16)),
-        ("roger", "location2", "2", "sonar", "2", new TimeSegment(true, 16)),
-        ("katie", "location1", "2", "esen", "10", new TimeSegment(true, 16))
+        ("roger", "location1", "2", "nysc", "10", new TimeSegment(true, "7")),
+        ("roger", "location1", "3", "penn", "4", new TimeSegment(true, "7")),
+        ("roger", "location1", "2", "sonar", "1", new TimeSegment(true, "7")),
+        ("roger", "location2", "1", "tracks", "8", new TimeSegment(true, "16")),
+        ("roger", "location2", "2", "sonar", "2", new TimeSegment(true, "16")),
+        ("katie", "location1", "2", "esen", "10", new TimeSegment(true, "16"))
     ), Tuples.PlaceInference)
 
     //    val checkinProbabilityIn = args("checkinProbability")

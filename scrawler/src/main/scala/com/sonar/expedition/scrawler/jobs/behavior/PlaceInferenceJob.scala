@@ -16,7 +16,7 @@ import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference {
     val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
-        case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = toHr)
+        case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = fromHr + "-" + toHr)
     }
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
     val checkinSource = if (test) IterableSource(Seq(
@@ -187,8 +187,4 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
     topScores.write(placeInferenceOut)
 
 
-}
-
-case class TimeSegment(weekday: Boolean, segment: Int) extends Comparable[TimeSegment] {
-    def compareTo(o: TimeSegment) = Ordering[(Boolean, Int)].compare((weekday, segment), (o.weekday, o.segment))
 }
