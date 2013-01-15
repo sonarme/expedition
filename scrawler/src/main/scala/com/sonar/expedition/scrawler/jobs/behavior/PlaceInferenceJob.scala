@@ -101,11 +101,9 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
         ("c1", ServiceProfileLink(ServiceType.sonar, "ben123"))
     ), Tuples.Correlation)
     else SequenceFile(args("correlationIn"), Tuples.Correlation)
-    val selectPerson = Set(ServiceProfileLink(ServiceType.sonar, "4f70d1a574aa9b24aa000584"), ServiceProfileLink(ServiceType.facebook, "647955347"),
-        ServiceProfileLink(ServiceType.foursquare, "4464438"), ServiceProfileLink(ServiceType.twitter, "paultfisher"), ServiceProfileLink(ServiceType.linkedin, "S99dKAhvhx"))
     val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'canonicalVenueId, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
-            if (dto.serviceProfileId == null || !selectPerson(dto.link)) Iterable.empty
+            if (dto.serviceProfileId == null) Iterable.empty
             else {
                 val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
                 val weekDay = isWeekDay(ldt)
@@ -136,7 +134,9 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
     }
     val ClusterSizeInMeters = 200
     // find centroids of clusters within time segments per user
-    val clusterAveragesPipe = segmentedCheckins.groupBy('userGoldenId, 'timeSegment) {
+    val clusterAveragesPipe = segmentedCheckins.filter('userGoldenId) {
+        spl: ServiceProfileLink => spl == ServiceProfileLink(ServiceType.sonar, "4f70d1a574aa9b24aa000584")
+    }.groupBy('userGoldenId, 'timeSegment) {
         _.mapList(('checkinId, 'location) -> ('adjustedCheckinLocations)) {
             checkins: List[(String, GeodataDTO)] =>
                 val geoToCheckinIdMap = checkins.map {
