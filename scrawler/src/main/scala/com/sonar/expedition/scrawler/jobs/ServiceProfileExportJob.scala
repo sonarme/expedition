@@ -86,5 +86,5 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
 }
 
 object ServiceProfileExportJob {
-    val ProfileSerializer = new JSONSerializer(classOf[ServiceProfileDTO])
+    val ProfileSerializer = JsonSerializer.get[ServiceProfileDTO]
 }
