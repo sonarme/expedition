@@ -3,10 +3,11 @@ package com.sonar.expedition.scrawler.test
 import com.twitter.scalding.{TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.pipes.{EmployerFinderFunction, CheckinGrouperFunction}
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 // pipes from grouper to employer finder and gets result
 
-class EmpCheckFuncTest(args: Args) extends Job(args) with CheckinGrouperFunction with EmployerFinderFunction {
+class EmpCheckFuncTest(args: Args) extends DefaultJob(args) with CheckinGrouperFunction with EmployerFinderFunction {
 
     val serviceProfileInput = args("employerGroupedServiceProfiles")
     val checkinInput = args("userGroupedCheckins")

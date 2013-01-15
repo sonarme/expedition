@@ -3,8 +3,9 @@ package com.sonar.expedition.scrawler.crawler.parse
 import com.twitter.scalding.{Tsv, SequenceFile, Job, Args}
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.crawler.{ExtractorFactory, ParseFilter}
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class LivingSocialParseJob(args: Args) extends Job(args) with ParseFilter {
+class LivingSocialParseJob(args: Args) extends DefaultJob(args) with ParseFilter {
     val level: Int = args("level").toInt
     val srcDir = args("srcDir")
 
@@ -14,18 +15,21 @@ class LivingSocialParseJob(args: Args) extends Job(args) with ParseFilter {
     val parsedSequence = SequenceFile(srcDir + "/crawl_" + level + "/parsedSequence", Tuples.Crawler.LivingSocial)
 
     val parsedTuples = rawSequence
-            .filter('url) { url: String => url != null && isUrlIncluded(url)}
-            .mapTo(('url, 'timestamp, 'content) -> Tuples.Crawler.LivingSocial) { in: (String, String, String) => {
-                    val (url, timestamp, content) = in
-                    val extractor = ExtractorFactory.getExtractor(url, content)
+            .filter('url) {
+        url: String => url != null && isUrlIncluded(url)
+    }
+            .mapTo(('url, 'timestamp, 'content) -> Tuples.Crawler.LivingSocial) {
+        in: (String, String, String) => {
+            val (url, timestamp, content) = in
+            val extractor = ExtractorFactory.getExtractor(url, content)
 
-                    (url, timestamp, extractor.businessName(), extractor.category(), extractor.rating(), extractor.latitude(), extractor.longitude(), extractor.address(), extractor.city(), extractor.state(), extractor.zip(), extractor.phone(), extractor.priceRange(), extractor.reviewCount(), extractor.likes(), extractor.dealRegion(), extractor.price(), extractor.purchased(), extractor.savingsPercent(), extractor.dealDescription(), extractor.dealImage())
-                }
-            }
+            (url, timestamp, extractor.businessName(), extractor.category(), extractor.rating(), extractor.latitude(), extractor.longitude(), extractor.address(), extractor.city(), extractor.state(), extractor.zip(), extractor.phone(), extractor.priceRange(), extractor.reviewCount(), extractor.likes(), extractor.dealRegion(), extractor.price(), extractor.purchased(), extractor.savingsPercent(), extractor.dealDescription(), extractor.dealImage())
+        }
+    }
 
-        parsedTuples
+    parsedTuples
             .write(parsedTsv)
 
-        parsedTuples
+    parsedTuples
             .write(parsedSequence)
 }

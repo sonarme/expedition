@@ -5,7 +5,7 @@
 //import org.jsoup.nodes.Document
 //import cascading.scheme.hadoop.WritableSequenceFile
 //
-//class LinkedinFacebookCorrelation(args: Args) extends Job(args) {
+//class LinkedinFacebookCorrelation(args: Args) extends DefaultJob(args) {
 //    var crawler = new PublicProfileCrawlerUtils
 ////    val output = new WritableSequenceFile("/tmp/idkwhatimdoing.seq")
 //    var profileLinks = (TextLine("/Users/user1/smallLinkedin.txt").read.project('line))

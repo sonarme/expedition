@@ -16,7 +16,7 @@ import scala.Some
 import com.twitter.scalding.TextLine
 
 
-class RDFToEntityCache(args: Args) extends Job(args) with Logging {
+class RDFToEntityCache(args: Args) extends DefaultJob(args) with Logging {
     val silkConfigPath = args("silkConfigPath")
     val entityCachePathArg = args("entityCachePath")
     val linkSpecArg = args.optional("linkSpec")

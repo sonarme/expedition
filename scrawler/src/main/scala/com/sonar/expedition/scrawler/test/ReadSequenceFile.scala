@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.test
 import com.twitter.scalding.{TextLine, RichPipe, Args}
 import util.matching.Regex
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 /**
  * Created with IntelliJ IDEA.
@@ -20,7 +21,7 @@ input : the  file path from which the already parsed profile links are taken
 output : the file to which the non visited profile links will be written to
 
  */
-class ReadSequenceFile(args: Args) extends Job(args) {
+class ReadSequenceFile(args: Args) extends DefaultJob(args) {
     //var output= "/tmp/output"
     //var inpfile="/tmp/stagedata.seq"
     //var inpfile="/tmp/hello"

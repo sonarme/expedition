@@ -5,8 +5,9 @@ import com.twitter.scalding.{RichPipe, Args}
 import com.twitter.scalding.TextLine
 import FactualQueryByZip._
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class FactualQueryByZip(args: Args) extends Job(args) {
+class FactualQueryByZip(args: Args) extends DefaultJob(args) {
 
     val inputData = "/tmp/zipssmall.txt"
     val wrtData = TextLine("/tmp/zipsout.txt")

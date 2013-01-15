@@ -4,7 +4,7 @@ import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes.{PlacesCorrelation, CheckinGrouperFunction, BuzzFromCheckins}
 import com.twitter.scalding.SequenceFile
 
-class CountDealAnalysisCheckins(args: Args) extends Job(args) with CheckinSource with CheckinGrouperFunction with BuzzFromCheckins with PlacesCorrelation {
+class CountDealAnalysisCheckins(args: Args) extends DefaultJob(args) with CheckinSource with CheckinGrouperFunction with BuzzFromCheckins with PlacesCorrelation {
 
     val dealAnalysisInput = args("dealAnalysisInput")
     val dealsCheckinCount = args("dealsCheckinCount")

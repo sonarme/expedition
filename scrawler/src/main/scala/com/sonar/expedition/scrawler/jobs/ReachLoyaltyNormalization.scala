@@ -10,7 +10,7 @@ import scala.Some
 import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.TextLine
 
-class ReachLoyaltyNormalization(args: Args) extends Job(args) {
+class ReachLoyaltyNormalization(args: Args) extends DefaultJob(args) {
 
     val rpcHostArg = args("rpcHost")
     val sequenceInputStatic = args("sequenceInputStatic")

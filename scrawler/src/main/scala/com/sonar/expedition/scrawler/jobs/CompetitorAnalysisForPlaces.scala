@@ -14,7 +14,7 @@ import com.twitter.scalding.SequenceFile
  * and Jaccard similarity.
  *
  */
-class CompetitorAnalysisForPlaces(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinSource {
+class CompetitorAnalysisForPlaces(args: Args) extends DefaultJob(args) with LocationBehaviourAnalysePipe with PlacesCorrelation with CheckinSource {
 
     val competitiveAnalysisOutput = args("competitiveAnalysisOutput")
     val placeClassification = args("placeClassification")

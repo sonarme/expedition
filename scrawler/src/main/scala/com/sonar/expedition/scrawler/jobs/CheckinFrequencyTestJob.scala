@@ -16,7 +16,7 @@ object CheckinFrequencyTestJob {
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class CheckinFrequencyTestJob(args: Args) extends Job(args) {
+class CheckinFrequencyTestJob(args: Args) extends DefaultJob(args) {
     val rpcHostArg = args("rpcHost")
 
     CassandraSource(

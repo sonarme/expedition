@@ -7,10 +7,10 @@ import com.sonar.expedition.scrawler.apis.HttpClientRest
 import java.util
 import org.json.JSONObject
 import org.joda.time.DateTime
-import com.sonar.expedition.scrawler.jobs.DealLocation
+import com.sonar.expedition.scrawler.jobs.{DefaultJob, DealLocation}
 import com.sonar.expedition.scrawler.google.VenueSearch._
 
-class VenueSearch(args: Args) extends Job(args) {
+class VenueSearch(args: Args) extends DefaultJob(args) {
 
     val key = args("key")
     val cx = args("cx")
@@ -45,7 +45,7 @@ class VenueSearch(args: Args) extends Job(args) {
         in: (String, String, String, String) =>
             val (merchantName, address, city, state) = in
             val client = new HttpClientRest
-            val addressStr = if(address.indexOf(" ") > -1) address.substring(0, address.indexOf(" ")) else address
+            val addressStr = if (address.indexOf(" ") > -1) address.substring(0, address.indexOf(" ")) else address
             val query = (merchantName + " " + addressStr + " " + city + " " + state).toLowerCase.replace(" ", "+")
             println("getting: " + query)
             Thread.sleep(1000)

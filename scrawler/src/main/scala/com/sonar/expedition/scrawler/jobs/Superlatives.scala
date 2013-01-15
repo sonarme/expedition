@@ -5,7 +5,7 @@ import com.sonar.expedition.scrawler.pipes.{DTOProfileInfoPipe, CheckinGrouperFu
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
-class Superlatives(args: Args) extends Job(args) {
+class Superlatives(args: Args) extends DefaultJob(args) {
 
     /*
     //analyse profile based on profile info and checkins info

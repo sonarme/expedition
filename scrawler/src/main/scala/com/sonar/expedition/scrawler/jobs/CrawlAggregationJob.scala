@@ -7,7 +7,7 @@ import cascading.scheme.Scheme
 import org.apache.hadoop.mapred.{OutputCollector, RecordReader, JobConf}
 import cascading.scheme.hadoop.{TextLine => CHTextLine, TextDelimited => CHTextDelimited, SequenceFile => CHSequenceFile}
 
-class CrawlAggregationJob(args: Args) extends Job(args) {
+class CrawlAggregationJob(args: Args) extends DefaultJob(args) {
     args("inputs").split(',').map {
         input =>
             val Array(serviceType, file) = input.split('@')

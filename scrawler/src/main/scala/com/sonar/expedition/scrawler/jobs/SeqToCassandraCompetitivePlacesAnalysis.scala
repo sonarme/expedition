@@ -15,7 +15,7 @@ import org.apache.cassandra.utils.ByteBufferUtil
 import com.fasterxml.jackson.databind.{DeserializationConfig, SerializationConfig, PropertyNamingStrategy, ObjectMapper}
 import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
 
-class SeqToCassandraCompetitivePlacesAnalysis(args: Args) extends Job(args) {
+class SeqToCassandraCompetitivePlacesAnalysis(args: Args) extends DefaultJob(args) {
     val analysisType = CompetitiveAnalysisType.competitor
 
     val rpcHostArg = args("rpcHost")

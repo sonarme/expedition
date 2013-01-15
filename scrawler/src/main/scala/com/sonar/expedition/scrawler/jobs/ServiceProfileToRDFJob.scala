@@ -27,7 +27,7 @@ import com.hp.hpl.jena.vocabulary._
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class ServiceProfileToRDFJob(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendGrouperFunction {
+class ServiceProfileToRDFJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val outputDir = args("output")
     val profileInput = args("profiles")
     val friendshipInput = args("friendships")

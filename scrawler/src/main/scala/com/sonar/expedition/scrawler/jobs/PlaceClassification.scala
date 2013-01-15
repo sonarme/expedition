@@ -4,7 +4,7 @@ import com.twitter.scalding.{SequenceFile, Tsv, Job, Args}
 import com.sonar.expedition.scrawler.pipes.PlacesCorrelation
 import PlaceClassification._
 
-class PlaceClassification(args: Args) extends Job(args) with PlacesCorrelation with CheckinSource {
+class PlaceClassification(args: Args) extends DefaultJob(args) with PlacesCorrelation with CheckinSource {
 
     val bayesmodel = args("bayesmodelforvenuetype")
     val placesData = null

@@ -10,7 +10,7 @@ import org.apache.cassandra.utils.ByteBufferUtil
 import me.prettyprint.cassandra.serializers.StringSerializer
 import cascading.tuple.Fields
 
-class ServiceProfileExportRawJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
+class ServiceProfileExportRawJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
     val rpcHostArg = args("rpcHost")
     val output = args("output")
     val profiles = CassandraSource(

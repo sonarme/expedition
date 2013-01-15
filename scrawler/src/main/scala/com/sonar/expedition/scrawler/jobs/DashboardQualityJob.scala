@@ -6,7 +6,7 @@ import me.prettyprint.hector.api.beans.Composite
 import com.sonar.dossier.service.PrecomputationSettings
 import com.sonar.scalding.cassandra.{CassandraSource, WideRowScheme}
 
-class DashboardQualityJob(args: Args) extends Job(args) {
+class DashboardQualityJob(args: Args) extends DefaultJob(args) {
     val rpcHostArg = args("rpcHost")
     val placeClassification = SequenceFile(args("placeClassification"), PlaceClassification.PlaceClassificationOutputTuple)
     val sequenceInputStatic = args("inputStatic")

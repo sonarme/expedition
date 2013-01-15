@@ -4,8 +4,9 @@ import com.sonar.dossier.dto.CheckinDTO
 import com.twitter.scalding.{Tsv, SequenceFile, Job, Args}
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.dossier.Normalizers
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class ServiceVenueJob(args: Args) extends Job(args) with Normalizers {
+class ServiceVenueJob(args: Args) extends DefaultJob(args) with Normalizers {
     val argsCheckin = args("checkinsIn")
     val argsVenues = args("venuesOut")
     val argsStats = args("statsOut")

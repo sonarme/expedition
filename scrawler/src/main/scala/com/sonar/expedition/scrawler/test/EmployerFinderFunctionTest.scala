@@ -3,9 +3,10 @@ package com.sonar.expedition.scrawler.test
 import com.twitter.scalding.{TextLine, RichPipe, Args}
 import com.sonar.expedition.scrawler.pipes.EmployerFinderFunction
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 // reads in checkingrouped and employergrouped to output matches
-class EmployerFinderFunctionTest(args: Args) extends Job(args) with EmployerFinderFunction {
+class EmployerFinderFunctionTest(args: Args) extends DefaultJob(args) with EmployerFinderFunction {
 
     val serviceProfileInput = args("employerGroupedServiceProfiles")
     val checkinInput = args("userGroupedCheckins")

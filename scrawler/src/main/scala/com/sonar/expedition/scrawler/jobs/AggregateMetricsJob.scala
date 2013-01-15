@@ -9,7 +9,7 @@ import com.twitter.scalding.SequenceFile
 import cascading.scheme.Scheme
 import org.apache.hadoop.mapred.{OutputCollector, RecordReader, JobConf}
 
-class AggregateMetricsJob(args: Args) extends Job(args) {
+class AggregateMetricsJob(args: Args) extends DefaultJob(args) {
     val staticInputFiles = args("staticInputFiles").split(',')
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")

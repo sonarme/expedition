@@ -9,10 +9,11 @@ import scala.Some
 import scala.Some
 import scala.Some
 import com.twitter.scalding.TextLine
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 // currently checks employerGroupedServiceProfiles and userGroupedCheckins to find matches for work location names, and prints out sonar id, location name, lat, and long
 // JUST FOR TESTING
-class EmployerFinder(args: Args) extends Job(args) {
+class EmployerFinder(args: Args) extends DefaultJob(args) {
 
     val serviceProfileInput = args("employerGroupedServiceProfiles")
     val checkinInput = args("userGroupedCheckins")

@@ -10,9 +10,9 @@ import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
 import ProfileAttributeMapping._
-import com.sonar.expedition.scrawler.jobs.Csv
+import com.sonar.expedition.scrawler.jobs.{DefaultJob, Csv}
 
-class UserCategoryJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
+class UserCategoryJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
 
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 

@@ -3,8 +3,9 @@ package com.sonar.expedition.scrawler.test
 import com.twitter.scalding.{RichPipe, Args}
 import com.sonar.expedition.scrawler.pipes.CoworkerFinderFunction
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class CoworkerFinderFunctionTest(args: Args) extends Job(args) {
+class CoworkerFinderFunctionTest(args: Args) extends DefaultJob(args) {
     /*
     val serviceProfileInput = "/tmp/employerGroupedServiceProfiles.txt"
     val friendsInput = "/tmp/userGroupedFriends.txt"

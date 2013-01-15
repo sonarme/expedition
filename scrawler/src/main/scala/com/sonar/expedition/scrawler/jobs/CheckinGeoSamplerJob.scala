@@ -11,7 +11,7 @@ import Numeric.Implicits._
 import Ordering.Implicits._
 import ch.hsr.geohash.GeoHash
 
-class CheckinGeoSamplerJob(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
+class CheckinGeoSamplerJob(args: Args) extends DefaultJob(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
     val (newCheckins, allCheckinsWithGoldenId) = checkinSource(args, false, true)
     /*

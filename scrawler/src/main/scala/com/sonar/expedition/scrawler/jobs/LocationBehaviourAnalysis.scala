@@ -34,7 +34,7 @@ import java.text.DecimalFormat
  --timedifference "24" --geohashsectorsize "20"
 */
 // not finished, find type of places that people come from and go to
-class LocationBehaviourAnalysis(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with CheckinGrouperFunction {
+class LocationBehaviourAnalysis(args: Args) extends DefaultJob(args) with LocationBehaviourAnalysePipe with CheckinGrouperFunction {
 
     val chkindata = TextLine(args("checkindata"))
     val chkindataoutput = TextLine(args("output"))

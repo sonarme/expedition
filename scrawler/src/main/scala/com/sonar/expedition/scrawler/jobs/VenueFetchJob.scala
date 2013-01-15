@@ -11,7 +11,7 @@ import com.twitter.scalding.Tsv
 import ch.hsr.geohash.util.VincentyGeodesy
 import ch.hsr.geohash.WGS84Point
 
-class VenueFetchJob(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
+class VenueFetchJob(args: Args) extends DefaultJob(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val venueOutput = args("venueOutput")

@@ -9,7 +9,7 @@ import me.prettyprint.cassandra.serializers.StringSerializer
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import FriendshipFileExportJob._
 
-class FriendshipFileExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendGrouperFunction {
+class FriendshipFileExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val output = args("output")
     TextLine(args("input")).read.flatMapTo('line -> FriendTuple) {
         line: String =>

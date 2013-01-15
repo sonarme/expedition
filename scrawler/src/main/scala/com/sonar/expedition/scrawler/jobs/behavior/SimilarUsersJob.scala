@@ -3,25 +3,26 @@ package com.sonar.expedition.scrawler.jobs.behavior
 import com.twitter.scalding.{IterableSource, Tsv, Job, Args}
 import com.twitter.scalding.mathematics.Matrix
 import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class SimilarUsersJob(args: Args) extends Job(args) {
+class SimilarUsersJob(args: Args) extends DefaultJob(args) {
 
     import Matrix._
 
     val userIpMatrix = IterableSource(Seq(
-            ("roger", "ip1", 3),
-            ("roger", "ip2", 2),
-            ("roger", "ip3", 0),
-            ("paul", "ip1", 2),
-            ("paul", "ip2", 0),
-            ("paul", "ip3", 1),
-            ("ben", "ip1", 0),
-            ("ben", "ip2", 0),
-            ("ben", "ip3", 2) ,
-            ("brett", "ip1", 1),
-            ("brett", "ip2", 2),
-            ("brett", "ip3", 0)
-        ), Tuples.Matrix).read.toMatrix[String, String, Double]('x, 'y, 'val)
+        ("roger", "ip1", 3),
+        ("roger", "ip2", 2),
+        ("roger", "ip3", 0),
+        ("paul", "ip1", 2),
+        ("paul", "ip2", 0),
+        ("paul", "ip3", 1),
+        ("ben", "ip1", 0),
+        ("ben", "ip2", 0),
+        ("ben", "ip3", 2),
+        ("brett", "ip1", 1),
+        ("brett", "ip2", 2),
+        ("brett", "ip3", 0)
+    ), Tuples.Matrix).read.toMatrix[String, String, Double]('x, 'y, 'val)
 
 
     // compute the overall user frequency of each row

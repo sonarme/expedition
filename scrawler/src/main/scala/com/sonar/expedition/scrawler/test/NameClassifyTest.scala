@@ -8,7 +8,7 @@ import util.matching.Regex
 import NameClassifyTest._
 
 //com.sonar.expedition.scrawler.test.NameClassifyTest --hdfs
-class NameClassifyTest(args: Args) extends Job(args) {
+class NameClassifyTest(args: Args) extends DefaultJob(args) {
 
     var genderprob: GenderFromNameProbablity = new GenderFromNameProbablity()
 

@@ -5,7 +5,7 @@ import com.sonar.expedition.scrawler.apis.HttpClientRest
 import org.json.JSONObject
 import io.Source
 import com.twitter.scalding.Tsv
-import com.sonar.expedition.scrawler.jobs.{DealLocation, DealAnalysis}
+import com.sonar.expedition.scrawler.jobs.{DefaultJob, DealLocation, DealAnalysis}
 import com.fasterxml.jackson.core.`type`.TypeReference
 import java.net.URLEncoder
 import org.jsoup.Jsoup
@@ -15,7 +15,7 @@ import com.sonar.expedition.scrawler.util.{VenueMatcher, Venue}
 import cascading.tuple.Fields
 import util.Random
 
-class YelpCrawl(args: Args) extends Job(args) with Fetcher {
+class YelpCrawl(args: Args) extends DefaultJob(args) with Fetcher {
 
     val outputDir = args("output")
     val src = args("src")

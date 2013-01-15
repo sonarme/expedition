@@ -10,7 +10,7 @@ import org.apache.cassandra.utils.ByteBufferUtil
 import me.prettyprint.cassandra.serializers.StringSerializer
 import cascading.tuple.Fields
 
-class NotificationFixJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
+class NotificationFixJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
     val nameMap = Map(
         """Posizioni Attuali""" -> "Current Positions", """Posizioni Passate""" -> "Past Positions", """Istruzione""" -> "Education", """Connessioni in comune""" -> "Shared Connections", """Impieghi in comune""" -> "Shared Employments", """Istruzione in comune""" -> "Shared Educations", """Citt\u00e0 di residenza in comune""" -> "Shared Hometowns", """Luogo in comune""" -> "Shared Location", """Amici in comune""" -> "Shared Friends", """Gruppi in comune""" -> "Shared Groups", """"Mi piace" in comune""" -> "Shared Likes", """Altri "Mi piace"""" -> "Other Likes", """Info""" -> "Info",
         """Postes actuels""" -> "Current Positions", """Postes ant\u00e9rieurs""" -> "Past Positions", """Formation""" -> "Education", """Connexions partag\u00e9es""" -> "Shared Connections", """Emplois partag\u00e9s""" -> "Shared Employments", """Formations partag\u00e9es""" -> "Shared Educations", """Villes natales partag\u00e9es""" -> "Shared Hometowns", """Lieu partag\u00e9""" -> "Shared Location", """Amis en commun""" -> "Shared Friends", """Groupes partag\u00e9s""" -> "Shared Groups", """"J'aime" en commun""" -> "Shared Likes", """Autres "J'aime"""" -> "Other Likes", """Infos""" -> "Info",

@@ -5,8 +5,9 @@ import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.crawler.{ExtractorFactory, ParseFilter}
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class ParseJob(args: Args) extends Job(args) with ParseFilter {
+class ParseJob(args: Args) extends DefaultJob(args) with ParseFilter {
 
     val level: Int = args("level").toInt
     val srcDir = args("srcDir")
@@ -17,19 +18,22 @@ class ParseJob(args: Args) extends Job(args) with ParseFilter {
     val parsedSequence = SequenceFile(srcDir + "/crawl_" + level + "/parsedSequence", Tuples.Crawler.BaseVenue)
 
     val parsedTuples = rawSequence
-            .filter('url) { url: String => url != null && isUrlIncluded(url)}
-            .mapTo(('url, 'timestamp, 'content) -> Tuples.Crawler.BaseVenue) { in: (String, String, String) => {
-                    val (url, timestamp, content) = in
-                    val extractor = ExtractorFactory.getExtractor(url, content)
+            .filter('url) {
+        url: String => url != null && isUrlIncluded(url)
+    }
+            .mapTo(('url, 'timestamp, 'content) -> Tuples.Crawler.BaseVenue) {
+        in: (String, String, String) => {
+            val (url, timestamp, content) = in
+            val extractor = ExtractorFactory.getExtractor(url, content)
 
-                    (url, timestamp, extractor.businessName(), extractor.category(), extractor.rating(), extractor.latitude(), extractor.longitude(), extractor.address(), extractor.city(), extractor.state(), extractor.zip(), extractor.phone())
-                }
-            }
+            (url, timestamp, extractor.businessName(), extractor.category(), extractor.rating(), extractor.latitude(), extractor.longitude(), extractor.address(), extractor.city(), extractor.state(), extractor.zip(), extractor.phone())
+        }
+    }
 
-        parsedTuples
+    parsedTuples
             .write(parsedTsv)
 
-        parsedTuples
+    parsedTuples
             .write(parsedSequence)
 
 }

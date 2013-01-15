@@ -9,7 +9,7 @@ import me.prettyprint.hector.api.factory.HFactory
 import me.prettyprint.cassandra.model.HSlicePredicate
 import java.util.concurrent.atomic.AtomicInteger
 
-class SpotCheckJob(args: Args) extends Job(args) with CheckinSource {
+class SpotCheckJob(args: Args) extends DefaultJob(args) with CheckinSource {
     val input = args("input")
     SequenceFile(input, Tuples.Profile).read.project('serType, 'serCheckinID).filter(
         'serType, 'serCheckinID) {

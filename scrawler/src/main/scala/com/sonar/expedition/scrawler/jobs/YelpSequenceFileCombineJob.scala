@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding.{Tsv, SequenceFile, Args, Job}
 import cascading.tuple.Fields
 
-class YelpSequenceFileCombineJob(args: Args) extends Job(args) {
+class YelpSequenceFileCombineJob(args: Args) extends DefaultJob(args) {
     val merged = args("inputs").split(',').map {
         file => SequenceFile(file, NewAggregateMetricsJob.Reviews).read
     }.reduce(_ ++ _)

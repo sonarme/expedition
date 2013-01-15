@@ -20,7 +20,7 @@ and run TrainBayesModel
 
 add contents to the file
  */
-class TrainBayesModel(args: Args) extends Job(args) with BayesModelPipe {
+class TrainBayesModel(args: Args) extends DefaultJob(args) with BayesModelPipe {
 
     val input = args("jobtraininginput")
     val trainingmodel = args("bayesmodel")

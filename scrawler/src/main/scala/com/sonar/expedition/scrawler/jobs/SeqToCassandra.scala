@@ -12,7 +12,7 @@ import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.WideRowScheme
 import com.sonar.scalding.cassandra.CassandraSource
 
-class SeqToCassandra(args: Args) extends Job(args) {
+class SeqToCassandra(args: Args) extends DefaultJob(args) {
 
     val rpcHostArg = args("rpcHost")
     val sequenceInputStaticOpt = args.optional("inputStatics")

@@ -4,7 +4,7 @@ import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
 import cascading.tuple.Fields
 
-class CheckinSamplerJob(args: Args) extends Job(args) with CheckinSource with DTOProfileInfoPipe {
+class CheckinSamplerJob(args: Args) extends DefaultJob(args) with CheckinSource with DTOProfileInfoPipe {
     val venues = args("venues").split(',').toSet[String]
     val (checkins, checkinsWithVenue) = checkinSource(args, false, true)
     val profiles = serviceProfiles(args)

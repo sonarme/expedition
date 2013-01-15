@@ -11,7 +11,7 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import com.sonar.expedition.scrawler.util.Tuples
 
-class SonarFriendsExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendGrouperFunction {
+class SonarFriendsExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val rpcHostArg = args("rpcHost")
     val output = args("output")
     val profiles = CassandraSource(

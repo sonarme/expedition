@@ -13,7 +13,7 @@ import com.sonar.expedition.scrawler.rdf.RDFConversion
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 
-class PlacesToRDF(args: Args) extends Job(args) with RDFConversion {
+class PlacesToRDF(args: Args) extends DefaultJob(args) with RDFConversion {
     val input = args("iPlaces")
     val output = args("oPlacesRDF")
 

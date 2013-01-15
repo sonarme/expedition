@@ -9,11 +9,12 @@ import util.matching.Regex
 import scala.Some
 import scala.Some
 import com.twitter.scalding.TextLine
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 //TODO add service type to each friend serviceid when exporting
 
 // JUST FOR TESTING
-class FriendGrouper(args: Args) extends Job(args) {
+class FriendGrouper(args: Args) extends DefaultJob(args) {
     val inputData = args("friendData")
     val out = args("userGroupedFriendsOutput")
     val data = (TextLine(inputData).read.project('line).flatMap(('line) ->('userProfileId, 'serviceType, 'serviceProfileId)) {

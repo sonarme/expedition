@@ -6,7 +6,7 @@ import cascading.tuple.Fields
 import com.twitter.scalding.SequenceFile
 import com.sonar.expedition.scrawler.util.{StemAndMetaphoneEmployer, CommonFunctions}
 
-class ComputeBuzzScoreJob(args: Args) extends Job(args) with CheckinSource with CheckinGrouperFunction with BuzzFromCheckins with PlacesCorrelation {
+class ComputeBuzzScoreJob(args: Args) extends DefaultJob(args) with CheckinSource with CheckinGrouperFunction with BuzzFromCheckins with PlacesCorrelation {
 
     val output = args("output")
     val (checkins, _) = checkinSource(args, false, false)

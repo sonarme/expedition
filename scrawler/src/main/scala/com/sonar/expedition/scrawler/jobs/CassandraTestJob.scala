@@ -13,7 +13,7 @@ import grizzled.slf4j.Logging
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
 // STAG deploy: --rpcHost 10.4.103.222
-class CassandraTestJob(args: Args) extends Job(args) with Logging {
+class CassandraTestJob(args: Args) extends DefaultJob(args) with Logging {
     val rpcHostArg = args("rpcHost")
     val ppmapStr = args.getOrElse("ppmap", "")
     val ppmap = ppmapStr.split(" *, *").map {

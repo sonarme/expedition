@@ -5,7 +5,7 @@
 //import util.matching.Regex
 //import JobClassification._
 //
-//class JobClassification(args: Args) extends Job(args) {
+//class JobClassification(args: Args) extends DefaultJob(args) {
 //
 //    def getJobTypePipes(path: RichPipe): RichPipe = {
 //        //val chkininputData1 = TextLine(path)

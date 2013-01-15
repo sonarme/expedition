@@ -13,7 +13,7 @@ import DatasetJobClassify._
 import scala.collection.JavaConversions._
 
 // not finished, crawling gov data for job classification
-class DatasetJobClassify(args: Args) extends Job(args) {
+class DatasetJobClassify(args: Args) extends DefaultJob(args) {
 
     val jobpipe = TextLine("/tmp/links").read.project('line)
             .mapTo('line -> 'link) {

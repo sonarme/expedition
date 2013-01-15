@@ -8,9 +8,10 @@ import cascading.pipe.joiner.LeftJoin
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import cascading.tuple.Fields
 import com.twitter.scalding.TextLine
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 // JUST FOR TESTING
-class HomeAnalyzer(args: Args) extends Job(args) with DTOProfileInfoPipe with CheckinGrouperFunction with CheckinInfoPipe {
+class HomeAnalyzer(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with CheckinGrouperFunction with CheckinInfoPipe {
 
     val inputData = args("serviceProfileData")
     val chkininputData = args("checkinData")

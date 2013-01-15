@@ -16,7 +16,7 @@ import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import scala.Option
 
-class DealAnalysis(args: Args) extends Job(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
+class DealAnalysis(args: Args) extends DefaultJob(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")
     val dealsInput = args("dealsInput")
     val dealsOutput = args("dealsOutput")

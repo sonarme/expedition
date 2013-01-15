@@ -5,8 +5,9 @@ import com.sonar.expedition.scrawler.util.StemAndMetaphoneEmployer
 import com.sonar.expedition.scrawler.pipes.BayesModelPipe
 import cascading.tuple.Fields
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class CrawlGovtDataJobsBayesionModel(args: Args) extends Job(args) with BayesModelPipe {
+class CrawlGovtDataJobsBayesionModel(args: Args) extends DefaultJob(args) with BayesModelPipe {
 
     val trainingmodel = args.getOrElse("bayesmodelforsalary", "/tmp/bayesmodelforsalary")
     val jobsdata = "/tmp/datajobs"

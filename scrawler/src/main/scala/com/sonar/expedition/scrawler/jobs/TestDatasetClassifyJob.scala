@@ -7,7 +7,7 @@ import com.twitter.scalding.{Job, Tsv, TextLine, Args}
 //then copy the file to occupations
 //cp /tmp/jobsdata5 /tmp/occupationCodetsv.txt and run the training model TrainBayesModel
 
-class TestDatasetClassifyJob(args: Args) extends Job(args) {
+class TestDatasetClassifyJob(args: Args) extends DefaultJob(args) {
     val jobDataOutput = args("jobDataOutput")
     val jobpipe = TextLine(args("jobsdata1")).read.project('line)
             .mapTo('line -> 'link) {

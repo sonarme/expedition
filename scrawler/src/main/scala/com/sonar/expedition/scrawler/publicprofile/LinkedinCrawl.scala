@@ -7,7 +7,7 @@
 //import com.sonar.dossier.dto.ServiceProfileDTO
 //
 //
-//class LinkedinCrawl(args: Args) extends Job(args) {
+//class LinkedinCrawl(args: Args) extends DefaultJob(args) {
 //    //    LinkedinCrawler.importLinks("/tmp/linkedinSitemapData2teeeeest.txt")
 //    var crawler = new PublicProfileCrawlerUtils
 //    var profileLinks = (TextLine("/tmp/linkedinSitemapData2teeeeest.txt").read.project('line))

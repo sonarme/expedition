@@ -2,8 +2,9 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{Tsv, TextLine, Args, Job}
 import java.io.File
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class DeleteSlf4jJob(args: Args) extends Job(args) {
+class DeleteSlf4jJob(args: Args) extends DefaultJob(args) {
 
     val dummyFile = args.getOrElse("dummyFile", "s3n://scrawler/dummyFile.txt")
 

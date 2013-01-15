@@ -2,8 +2,9 @@ package com.sonar.expedition.scrawler.test
 
 import com.twitter.scalding.{TextLine, RichPipe, Args}
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class SampleListTuple(args: Args) extends Job(args) {
+class SampleListTuple(args: Args) extends DefaultJob(args) {
 
     var inputData = args("sample")
     var out = args("out")

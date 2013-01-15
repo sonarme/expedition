@@ -11,7 +11,7 @@ import com.twitter.scalding.TextLine
 com.sonar.expedition.scrawler.jobs.LocationBehaviourAnalysisBayesModel --hdfs --placesData "/tmp/places_dump_US.geojson.txt" --bayesmodelforvenuetype "/tmp/bayesmodelforvenuetype"
 
  */
-class TrainBayesModelForVenueType(args: Args) extends Job(args) with LocationBehaviourAnalysePipe with BayesModelPipe {
+class TrainBayesModelForVenueType(args: Args) extends DefaultJob(args) with LocationBehaviourAnalysePipe with BayesModelPipe {
 
     val trainingmodel = args("bayesmodelforvenuetype")
     val placesData = args("placesData")

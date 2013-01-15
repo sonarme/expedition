@@ -3,7 +3,7 @@
 //import com.twitter.scalding.{TextLine, Args}
 //import org.jsoup.nodes.Document
 //
-//class FacebookPublicProfileParse(args: Args) extends Job(args) {
+//class FacebookPublicProfileParse(args: Args) extends DefaultJob(args) {
 //    var crawler = new PublicProfileCrawlerUtils
 //    var profileLinks = (TextLine("/tmp/facebookUserHandles.txt").read.project('line))
 //            .mapTo('line -> 'link) {

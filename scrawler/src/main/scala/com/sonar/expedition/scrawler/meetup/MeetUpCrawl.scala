@@ -2,6 +2,7 @@ package com.sonar.expedition.scrawler.meetup
 
 import com.twitter.scalding.{TextLine, RichPipe, Args}
 import com.twitter.scalding.Job
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 /**
  * Created with IntelliJ IDEA.
@@ -19,7 +20,7 @@ input : the  file path from which the already parsed profile links are taken
 output : the file to which the non visited profile links will be written to
 
  */
-class MeetUpCrawl(args: Args) extends Job(args) {
+class MeetUpCrawl(args: Args) extends DefaultJob(args) {
     //val input = TextLine(args("input"))
     //read the inout file , the inout file is created after donwlaod the files manually from sitemap.xml and unziping them , finaaly a combined file is prepared out of all the unzippied files, these combined file contains all the urls in 1st and 2nd level of depth obtained from sitemap.xml
 

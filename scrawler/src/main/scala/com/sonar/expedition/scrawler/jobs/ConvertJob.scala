@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding.{SequenceFile, Job, Args}
 import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
 
-class ConvertJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
+class ConvertJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
     val input = args("input")
     val output = args("output")
     SequenceFile(input, ProfileTuple).mapTo(('key, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc)

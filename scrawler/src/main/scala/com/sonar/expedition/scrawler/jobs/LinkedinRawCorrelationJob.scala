@@ -13,7 +13,7 @@ import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import org.apache.cassandra.utils.ByteBufferUtil
 import collection.JavaConversions._
 
-class LinkedinRawCorrelationJob(args: Args) extends Job(args) {
+class LinkedinRawCorrelationJob(args: Args) extends DefaultJob(args) {
     val rpcHostArg = args("rpcHost")
 
     CassandraSource(

@@ -9,7 +9,7 @@ import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.StringSerializer
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 
-class FriendshipExportJob(args: Args) extends Job(args) with DTOProfileInfoPipe with FriendGrouperFunction {
+class FriendshipExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val rpcHostArg = args("rpcHost")
     val output = args("output")
     val profiles = CassandraSource(

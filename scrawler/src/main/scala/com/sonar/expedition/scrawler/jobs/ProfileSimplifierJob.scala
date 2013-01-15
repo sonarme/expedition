@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs
 import com.twitter.scalding.{SequenceFile, Args, Job}
 import com.sonar.expedition.scrawler.pipes.{AgeEducationPipe, DTOProfileInfoPipe, GenderFromNameProbability}
 
-class ProfileSimplifierJob(args: Args) extends Job(args) with DTOProfileInfoPipe with AgeEducationPipe {
+class ProfileSimplifierJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with AgeEducationPipe {
 
     val total = getTotalProfileTuples(args).map('uname ->('impliedGender, 'impliedGenderProb)) {
         name: String =>

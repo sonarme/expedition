@@ -10,7 +10,7 @@ import org.apache.hadoop.mapred.{OutputCollector, RecordReader, JobConf}
 import com.fasterxml.jackson.databind.{SerializationFeature, DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 
-class NewAggregateMetricsJob(args: Args) extends Job(args) {
+class NewAggregateMetricsJob(args: Args) extends DefaultJob(args) {
     val dealsOutput = args("dealsOutput")
     val metricsOut = args("metricsOut")
     val numCheckins = Tsv(args("numOutput"), ('goldenId, 'numCheckins, 'numPeople)).read

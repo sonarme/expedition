@@ -3,8 +3,9 @@ package com.sonar.expedition.scrawler.crawler.parse
 import com.twitter.scalding.{Tsv, SequenceFile, Job, Args}
 import com.sonar.expedition.scrawler.crawler.{ExtractorFactory, ParseFilter}
 import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class YelpParseJob(args: Args) extends Job(args) with ParseFilter {
+class YelpParseJob(args: Args) extends DefaultJob(args) with ParseFilter {
     val level: Int = args("level").toInt
     val srcDir = args("srcDir")
 
@@ -14,18 +15,21 @@ class YelpParseJob(args: Args) extends Job(args) with ParseFilter {
     val parsedSequence = SequenceFile(srcDir + "/crawl_" + level + "/parsedSequence", Tuples.Crawler.Yelp)
 
     val parsedTuples = rawSequence
-            .filter('url) { url: String => url != null && isUrlIncluded(url)}
-            .mapTo(('url, 'timestamp, 'content) -> Tuples.Crawler.Yelp) { in: (String, String, String) => {
-                    val (url, timestamp, content) = in
-                    val extractor = ExtractorFactory.getExtractor(url, content)
+            .filter('url) {
+        url: String => url != null && isUrlIncluded(url)
+    }
+            .mapTo(('url, 'timestamp, 'content) -> Tuples.Crawler.Yelp) {
+        in: (String, String, String) => {
+            val (url, timestamp, content) = in
+            val extractor = ExtractorFactory.getExtractor(url, content)
 
-                    (url, timestamp, extractor.businessName(), extractor.category(), extractor.rating(), extractor.latitude(), extractor.longitude(), extractor.address(), extractor.city(), extractor.state(), extractor.zip(), extractor.phone(), extractor.priceRange(), extractor.reviewCount(), extractor.reviews())
-                }
-            }
+            (url, timestamp, extractor.businessName(), extractor.category(), extractor.rating(), extractor.latitude(), extractor.longitude(), extractor.address(), extractor.city(), extractor.state(), extractor.zip(), extractor.phone(), extractor.priceRange(), extractor.reviewCount(), extractor.reviews())
+        }
+    }
 
-        parsedTuples
+    parsedTuples
             .write(parsedTsv)
 
-        parsedTuples
+    parsedTuples
             .write(parsedSequence)
 }
