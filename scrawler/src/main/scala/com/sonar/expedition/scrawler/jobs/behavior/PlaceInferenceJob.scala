@@ -18,7 +18,7 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
     val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
         case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = toHr)
     }
-    val test = false
+    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
     val checkinSource = if (test) IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "test1a",
@@ -97,20 +97,23 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
 
 
     val correlation = if (test) IterableSource(Seq(
-        ("c1", ServiceType.foursquare, "ben123"),
-        ("c1", ServiceType.sonar, "ben123")
+        ("c1", ServiceProfileLink(ServiceType.foursquare, "ben123")),
+        ("c1", ServiceProfileLink(ServiceType.sonar, "ben123"))
     ), Tuples.Correlation)
     else SequenceFile(args("correlationIn"), Tuples.Correlation)
 
     val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'canonicalVenueId, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
-            val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
-            val weekDay = isWeekDay(ldt)
-            // only treat foursquare venues as venues
-            val canonicalVenueId = if (dto.venueId == null || dto.venueId.isEmpty || dto.serviceType != ServiceType.foursquare) null else dto.serviceVenue.canonicalId
-            // create tuples for each time segment
-            createSegments(ldt.toLocalTime, segments) map {
-                segment => (dto.canonicalId, dto.link, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
+            if (dto.serviceProfileId == null) Iterable.empty
+            else {
+                val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
+                val weekDay = isWeekDay(ldt)
+                // only treat foursquare venues as venues
+                val canonicalVenueId = if (dto.venueId == null || dto.venueId.isEmpty || dto.serviceType != ServiceType.foursquare) null else dto.serviceVenue.canonicalId
+                // create tuples for each time segment
+                createSegments(ldt.toLocalTime, segments) map {
+                    segment => (dto.canonicalId, dto.link, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
+                }
             }
     }.leftJoinWithSmaller('spl -> 'correlationSPL, correlation.read).discard('correlationSPL).map(('correlationId, 'spl) -> 'userGoldenId) {
         in: (String, ServiceProfileLink) =>
