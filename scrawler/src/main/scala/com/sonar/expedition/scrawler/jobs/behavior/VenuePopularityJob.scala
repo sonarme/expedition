@@ -94,7 +94,7 @@ class VenuePopularityJob(args: Args) extends DefaultJob(args) with Normalizers w
 
     ).map(c => c.id -> c), Tuples.CheckinIdDTO)
     else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
-    val venuePopularityOut = Csv(args("venuePopularityOut"), ('canonicalVenueId, 'venueName, 'location, 'timeSegment, 'venuePopularity))
+    val venuePopularityOut = Tsv(args("venuePopularityOut"), ('canonicalVenueId, 'venueName, 'location, 'timeSegment, 'venuePopularity))
     val bb = new BoundingBox(new WGS84Point(47.622364, -122.209854), new WGS84Point(47.608593, -122.184706))
     val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'canonicalVenueId, 'venueName, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
