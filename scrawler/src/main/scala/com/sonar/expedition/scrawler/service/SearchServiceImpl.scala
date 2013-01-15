@@ -1,18 +1,20 @@
 package com.sonar.expedition.scrawler.service
 
-import org.apache.lucene.store.{RAMDirectory, Directory}
+import org.apache.lucene.store.{FSDirectory, RAMDirectory, Directory}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.util.Version
-import org.apache.lucene.index.{DirectoryReader, IndexWriter, IndexWriterConfig}
+import org.apache.lucene.index.{Term, DirectoryReader, IndexWriter, IndexWriterConfig}
 import org.apache.lucene.index.IndexWriterConfig.OpenMode
 import java.util.Date
-import org.apache.lucene.search.{TopDocs, Query, NumericRangeQuery, IndexSearcher}
+import org.apache.lucene.search._
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.queries.mlt.MoreLikeThis
 import com.sonar.expedition.scrawler.dto.indexable.IndexField.IndexField
 import com.sonar.expedition.scrawler.dto.indexable.IndexField
 import com.sonar.expedition.scrawler.dto.indexable.UserDTO
+import com.sonar.expedition.scrawler.dto.indexable.UserDTO
+import org.apache.lucene.queries.{FilterClause, TermsFilter, BooleanFilter}
 
 //TODO: Spring
 class SearchServiceImpl extends SearchService {
@@ -20,6 +22,16 @@ class SearchServiceImpl extends SearchService {
     val analyzer: Analyzer = new StandardAnalyzer(Version.LUCENE_40)
     val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, analyzer).setOpenMode(OpenMode.CREATE)
     val writer: IndexWriter = new IndexWriter(directory, iwc)
+
+    def index(user: UserDTO) {
+        val start = new Date()
+
+        user.index(writer)
+        writer.close()
+
+        val end = new Date()
+        println(end.getTime - start.getTime + " total milliseconds")
+    }
 
     def index(users: Seq[UserDTO]) {
         val start = new Date()
@@ -56,7 +68,7 @@ class SearchServiceImpl extends SearchService {
         val reader = DirectoryReader.open(directory)
 
         val mlt = new MoreLikeThis(reader)
-        mlt.setBoost(true)
+//        mlt.setBoost(true)
         mlt.setAnalyzer(analyzer)
         mlt.setMinTermFreq(1)
         mlt.setMinDocFreq(1)
@@ -64,8 +76,14 @@ class SearchServiceImpl extends SearchService {
 
         val q = mlt.like(docNum)
         val is = new IndexSearcher(reader)
+        val doc = is.doc(docNum)
+        val docKey = doc.get(IndexField.Key.toString)
+        val docFilter = new BooleanFilter
+        val tf = new TermsFilter()
+        tf.addTerm(new Term(IndexField.Key.toString, docKey))
+        docFilter.add(new FilterClause(tf, BooleanClause.Occur.MUST_NOT))
 
-        val more = is.search(q, 10)
+        val more = is.search(q, docFilter, 10)
 
         explain(is, q, more)
         more
