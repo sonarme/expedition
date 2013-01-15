@@ -18,8 +18,8 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
     val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
         case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = toHr)
     }
-    //    val checkinSource = SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
-    val checkinSource = IterableSource(Seq(
+    val test = false
+    val checkinSource = if (test) IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "test1a",
             GeodataDTO(40.7505800, -73.9935800),
@@ -92,14 +92,16 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
         )
 
     ).map(c => c.id -> c), Tuples.CheckinIdDTO)
-
+    else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
     val placeInferenceOut = Tsv(args("placeInferenceOut"), Tuples.PlaceInference)
 
-    //    val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation)
-    val correlation = IterableSource(Seq(
+
+    val correlation = if (test) IterableSource(Seq(
         ("c1", ServiceType.foursquare, "ben123"),
         ("c1", ServiceType.sonar, "ben123")
     ), Tuples.Correlation)
+    else SequenceFile(args("correlationIn"), Tuples.Correlation)
+
     val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'canonicalVenueId, 'location, 'timeSegment)) {
         dto: CheckinDTO =>
             val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
