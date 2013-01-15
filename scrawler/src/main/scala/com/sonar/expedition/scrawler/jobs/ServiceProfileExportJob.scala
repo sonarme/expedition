@@ -1,23 +1,15 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
-import com.sonar.scalding.cassandra._
 import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
-import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.scalding.cassandra.WideRowScheme
 import com.sonar.scalding.cassandra.CassandraSource
-import com.sonar.scalding.cassandra.WideRowScheme
-import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.SequenceFile
 import java.nio.ByteBuffer
-import me.prettyprint.cassandra.serializers.StringSerializer
-import com.sonar.expedition.scrawler.json.ScrawlerObjectMapper
-import com.sonar.dossier.dto.{ServiceProfileLink, RecentCheckin, ServiceProfileDTO}
-import com.sonar.dossier.jackson.CassandraObjectMapperJava
+import com.sonar.dossier.dto.{ServiceProfileLink, ServiceProfileDTO}
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
-import com.sonar.dossier.dao.cassandra.{ServiceProfileLinkSerializer, JSONSerializer}
 import ServiceProfileExportJob._
 
 class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
@@ -86,5 +78,5 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
 }
 
 object ServiceProfileExportJob {
-    val ProfileSerializer = JsonSerializer.get[ServiceProfileDTO]
+    val ProfileSerializer = JsonSerializer.get[ServiceProfileDTO](None)
 }
