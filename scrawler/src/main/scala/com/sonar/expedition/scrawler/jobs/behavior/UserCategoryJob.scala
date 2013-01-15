@@ -3,90 +3,73 @@ package com.sonar.expedition.scrawler.jobs.behavior
 import com.twitter.scalding._
 import com.sonar.dossier.dto._
 import org.scala_tools.time.Imports._
-import scala.Some
-import scala.Some
-import com.sonar.dossier.dto.ServiceVenueDTO
-import com.sonar.dossier.dto.LocationDTO
-import scala.Some
-import com.sonar.dossier.dto.GeodataDTO
 import com.sonar.expedition.scrawler.util.Tuples
-import cascading.pipe.joiner.{OuterJoin, LeftJoin}
 import org.joda.time.DateMidnight
 import com.sonar.dossier.dto.ServiceProfileDTO
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
-import com.sonar.expedition.scrawler.jobs.behavior
 import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
+import ProfileAttributeMapping._
+import com.sonar.expedition.scrawler.jobs.Csv
 
 class UserCategoryJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
 
-    var roger = ServiceProfileDTO(ServiceType.facebook, "123")
-    roger.gender = Gender.male
-    roger.birthday = new DateMidnight(1981, 2, 24).toDate
+    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
-    var katie = ServiceProfileDTO(ServiceType.foursquare, "234")
-    katie.gender = Gender.female
-    katie.birthday = new DateMidnight(1999, 1, 1).toDate
-
-    val serviceProfileDtos = IterableSource(Seq(
-        ("roger", roger),
-        ("katie", katie)
+    val serviceProfileDtos = if (test) IterableSource(Seq(
+        ("roger", {
+            val roger = ServiceProfileDTO(ServiceType.facebook, "123")
+            roger.gender = Gender.male
+            roger.birthday = new DateMidnight(1981, 2, 24).toDate
+            roger
+        }),
+        ("katie", {
+            val katie = ServiceProfileDTO(ServiceType.foursquare, "234")
+            katie.gender = Gender.female
+            katie.birthday = new DateMidnight(1999, 1, 1).toDate
+            katie
+        })
     ), Tuples.ProfileIdDTO)
+    else SequenceFile(args("serviceProfilesIn"), Tuples.ProfileIdDTO)
 
-//    val profiles = serviceProfiles(args)
+    val categoriesIn = args("categoriesIn")
+    val userCategoriesOut = args("userCategoriesOut")
+    val statsIn = args("userStatsIn")
 
-    val categoriesIn = args("categories")
-    val userCategoriesOut = args("userCategories")
-    val statsIn = args("userStats")
-
-    /*
-    profiles
-        .filter('educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree) {
-            fields: (String, String, String, String, String, String, String, String, String, String, String) => {
-                val (educ, worked, city, edegree, eyear, worktitle, workdesc, impliedGender, impliedGenderProb, age, degree) = fields
-                if (impliedGender != null) {
-                    println(impliedGender)
-                }
-                worktitle != ""
-            }
-        }
-        .write(Tsv(userCategoriesOut))
-    */
-
-    val categories = Tsv(categoriesIn, Tuples.Behavior.CategoryAttributes).read
-        .rename(('placeType, 'gender, 'education) -> ('categoryPlaceType, 'categoryGender, 'categoryEducation))
+    val categories = Csv(categoriesIn, Tuples.Behavior.CategoryAttributes).read
+            .rename(('placeType, 'gender, 'education) ->('categoryPlaceType, 'categoryGender, 'categoryEducation))
 
     val stats = SequenceFile(statsIn, Tuples.Behavior.UserPlaceTimeMap)
 
     val userStats = stats.read.map('timeSegments -> 'total) {
         timeSegmentMap: Map[TimeSegment, Double] => timeSegmentMap.values.sum
     }
-    .discard('timeSegments)
-    .leftJoinWithSmaller('userGoldenId -> 'profileId, serviceProfileDtos)
-    .discard('profileId)
-    .map('profileDto ->('gender, 'age, 'income, 'education)) {
+            .discard('timeSegments)
+            .leftJoinWithSmaller('userGoldenId -> 'profileId, serviceProfileDtos)
+            .discard('profileId)
+            .map('profileDto ->('gender, 'age, 'income, 'education)) {
         dto: ServiceProfileDTO =>
-            val age = org.joda.time.Years.yearsBetween(new DateTime(dto.birthday.getTime), new DateTime()).getYears
+            val age = org.joda.time.Years.yearsBetween(new DateTime(dto.birthday), DateTime.now).getYears
             (dto.gender, age, 55000, Education.unknown) //todo: calculate the income and education
     }
-    .discard('profileDto)
-    .crossWithTiny(categories)
-    .filter('total, 'placeFrequencyThreshold, 'gender, 'categoryGender, 'age, 'ageBracket, 'placeType, 'categoryPlaceType, 'income, 'incomeBracket, 'education, 'categoryEducation) {
-        fields: (Double, Double, Gender, String, Int, String, String, String, String, String, Education, String) => {
-            val (totalScore, placeFrequencyThreshold, gender, categoryGender, age, ageRangeStr, placeType, categoryPlaceType, income, incomeBracket, education, categoryEducation) = fields
-            val ageRange = ProfileAttributeMapping.AgeBrackets.get(ageRangeStr).getOrElse((0 to 125))
-            val profileGender = ProfileAttributeMapping.Gender.get(categoryGender).getOrElse(Gender.unknown)
-            val profileEducation = ProfileAttributeMapping.EducationBrackets.get(categoryEducation).getOrElse(Education.unknown)
-            (
-                    totalScore >= placeFrequencyThreshold &&
+            .discard('profileDto)
+            .joinWithTiny('placeType -> 'categoryPlaceType, categories)
+            .filter('total, 'placeFrequencyThreshold, 'gender, 'categoryGender, 'age, 'ageBracket, 'income, 'incomeBracket, 'education, 'categoryEducation) {
+        fields: (Double, Double, Gender, String, Int, String, Int, String, Education, String) => {
+            val (totalScore, placeFrequencyThreshold, gender, categoryGender, age, ageRangeStr, income, incomeBracket, education, categoryEducation) = fields
+            lazy val ageRange = AgeBrackets(ageRangeStr)
+            lazy val profileGender = GenderBrackets(categoryGender)
+            lazy val profileEducation = EducationBrackets(categoryEducation)
+            lazy val incomeRange = IncomeBrackets(incomeBracket)
+            totalScore >= placeFrequencyThreshold &&
                     (profileGender == Gender.unknown || gender == profileGender) &&
-                    placeType.equals(categoryPlaceType) && ageRange.contains(age) &&
-                    ProfileAttributeMapping.IncomeBrackets.get(incomeBracket).getOrElse((0 to 100000000)).contains(income.toInt) &&
-                    (education == Education.unknown || education == profileEducation)
-            )
+                    (education == Education.unknown || education == profileEducation) &&
+                    ageRange.contains(age) &&
+                    incomeRange.contains(income)
+
         }
     }
-    .groupBy('userGoldenId) {
+            .groupBy('userGoldenId) {
         _.toList[String]('profileCategory -> 'categories)
     }
 
@@ -95,11 +78,10 @@ class UserCategoryJob(args: Args) extends Job(args) with DTOProfileInfoPipe {
 }
 
 object ProfileAttributeMapping {
-    val Gender = Map(
-        "m" -> com.sonar.dossier.dto.Gender.male,
-        "f" -> com.sonar.dossier.dto.Gender.female,
-        "N/A" -> com.sonar.dossier.dto.Gender.unknown
-    )
+    val GenderBrackets = Map(
+        "m" -> Gender.male,
+        "f" -> Gender.female
+    ) withDefaultValue (Gender.unknown)
     val AgeBrackets = Map(
         "0-11" -> (0 to 11),
         "12-16" -> (12 to 16),
@@ -110,9 +92,8 @@ object ProfileAttributeMapping {
         "55-64" -> (55 to 64),
         "65-74" -> (65 to 74),
         "75-94" -> (75 to 94),
-        "Over 95" -> (95 to 125),
-        "N/A" -> (0 to 125)
-    )
+        "Over 95" -> (95 to Int.MaxValue)
+    ) withDefaultValue (0 to Int.MaxValue)
     val IncomeBrackets = Map(
         "0-18k" -> (0 to 18000),
         "18-36k" -> (18000 to 36000),
@@ -122,9 +103,8 @@ object ProfileAttributeMapping {
         "100-140k" -> (100000 to 140000),
         "140-200k" -> (140000 to 200000),
         "200-300k" -> (200000 to 300000),
-        "Over 300k" -> (300000 to 100000000),
-        "N/A" -> (0 to 100000000)
-    )
+        "Over 300k" -> (300000 to Int.MaxValue)
+    ) withDefaultValue (0 to Int.MaxValue)
     val EducationBrackets = Map(
         "gradeschool" -> Education.gradeschool,
         "highschool" -> Education.highschool,
@@ -132,7 +112,6 @@ object ProfileAttributeMapping {
         "mastersdegree" -> Education.masters,
         "doc_jd" -> Education.doctorate,
         "postdoc" -> Education.postdoc,
-        "omniscient" -> Education.omniscient,
-        "N/A" -> Education.unknown
-    )
+        "omniscient" -> Education.omniscient
+    ) withDefaultValue (Education.unknown)
 }

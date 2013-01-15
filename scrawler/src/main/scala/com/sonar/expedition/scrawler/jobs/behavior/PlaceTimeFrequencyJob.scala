@@ -24,17 +24,18 @@ import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 
 class PlaceTimeFrequencyJob(args: Args) extends DefaultJob(args) with CheckinGrouperFunction {
+    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
-    //    val venuesIn = args("venues")
-    val venuesIn = IterableSource(Seq(
+    val venuesIn = if (test) IterableSource(Seq(
         ("sonar", ServiceVenueDTO(ServiceType.foursquare, "sonar", "Sonar", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
         ("tracks", ServiceVenueDTO(ServiceType.foursquare, "tracks", "Tracks", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
         ("nysc", ServiceVenueDTO(ServiceType.foursquare, "nysc", "NYSC", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("gym"))),
         ("penn", ServiceVenueDTO(ServiceType.foursquare, "penn", "Penn", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("train"))),
         ("esen", ServiceVenueDTO(ServiceType.foursquare, "esen", "Esen", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("deli")))
     ), Tuples.VenueIdDTO)
+    else SequenceFile(args("venuesIn"), Tuples.VenueIdDTO)
 
-    val checkinProbabilityIn = IterableSource(Seq(
+    val checkinProbabilityIn = if (test) IterableSource(Seq(
         ("roger", "location1", "2", "nysc", "10", new TimeSegment(true, "7")),
         ("roger", "location1", "3", "penn", "4", new TimeSegment(true, "7")),
         ("roger", "location1", "2", "sonar", "1", new TimeSegment(true, "7")),
@@ -42,37 +43,26 @@ class PlaceTimeFrequencyJob(args: Args) extends DefaultJob(args) with CheckinGro
         ("roger", "location2", "2", "sonar", "2", new TimeSegment(true, "16")),
         ("katie", "location1", "2", "esen", "10", new TimeSegment(true, "16"))
     ), Tuples.PlaceInference)
+    else Tsv(args("checkinProbabilityIn"), Tuples.PlaceInference)
 
-    //    val checkinProbabilityIn = args("checkinProbability")
-    val statsOut = args("statsOut")
-    val statsOut2 = args("statsOut2")
+    val userPlaceTimeMapOut = args("userPlaceTimeMapOut")
 
-    //    val stats = Tsv(checkinProbabilityIn, Tuples.PlaceInference)
-    //        .read
     val stats = checkinProbabilityIn
-            .joinWithLarger('canonicalVenueId -> 'venueId, venuesIn)
+            .joinWithSmaller('canonicalVenueId -> 'venueId, venuesIn)
             .discard('venueId)
-            .map('venueDto -> ('placeType)) {
-        dto: ServiceVenueDTO =>
-            dto.category.headOption.orNull
+            .flatMap('venueDto -> 'placeType) {
+        dto: ServiceVenueDTO => dto.category.headOption
     }
             .discard('venueDto)
             .groupBy('userGoldenId, 'timeSegment, 'placeType) {
         _.sum('score)
     }
 
-    stats.write(Tsv(statsOut))
-
     val stats2 = stats.groupBy('userGoldenId, 'placeType) {
         _.mapList(('timeSegment, 'score) -> ('timeSegments)) {
-            timeSegments: List[(TimeSegment, Double)] => {
-                timeSegments.map {
-                    case (timeSegment, score) =>
-                        timeSegment -> score
-                }.toMap
-            }
+            timeSegments: List[(TimeSegment, Double)] => timeSegments.toMap
         }
     }
 
-    stats2.write(SequenceFile(statsOut2, Tuples.Behavior.UserPlaceTimeMap))
+    stats2.write(SequenceFile(userPlaceTimeMapOut, Tuples.Behavior.UserPlaceTimeMap))
 }
