@@ -135,7 +135,7 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
     val ClusterSizeInMeters = 200
     // find centroids of clusters within time segments per user
     val clusterAveragesPipe = segmentedCheckins.filter('userGoldenId) {
-        spl: ServiceProfileLink => spl == ServiceProfileLink(ServiceType.sonar, "4f70d1a574aa9b24aa000584")
+        spl: String => spl == ServiceProfileLink(ServiceType.sonar, "4f70d1a574aa9b24aa000584").profileId
     }.groupBy('userGoldenId, 'timeSegment) {
         _.mapList(('checkinId, 'location) -> ('adjustedCheckinLocations)) {
             checkins: List[(String, GeodataDTO)] =>
