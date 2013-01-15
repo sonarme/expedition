@@ -16,7 +16,7 @@ import com.sonar.dossier.service.PrecomputationSettings
 
 trait CheckinInference extends ScaldingImplicits {
     val WeekDays = Set(MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
-    val GeoSectorSizeInBits = 25
+    val GeoSectorSizeInBits = 30
 
     def localDateTime(lat: Double, lng: Double, checkinTime: Date) = {
         val localTz = TimezoneLookup.getClosestTimeZone(lat, lng)
