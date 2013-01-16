@@ -14,7 +14,13 @@ class ServiceVenueJob(args: Args) extends DefaultJob(args) with Normalizers {
         dto: CheckinDTO =>
             if (dto.venueId == null || dto.serviceType != ServiceType.foursquare) None
             else {
-                val rawNormalizedVenue = deserializeFromRaw(dto.serviceType, dto.raw) flatMap normalizeVenueFromCheckin
+
+                val rawNormalizedVenue =
+                    try {
+                        deserializeFromRaw(dto.serviceType, dto.raw) flatMap normalizeVenueFromCheckin
+                    } catch {
+                        case npe: NullPointerException => throw new RuntimeException("from raw: " + dto.raw, npe)
+                    }
                 val venue = rawNormalizedVenue getOrElse dto.serviceVenue
                 Some((venue.canonicalId, venue, rawNormalizedVenue.isEmpty))
             }
