@@ -51,7 +51,8 @@ class PlaceTimeFrequencyJob(args: Args) extends DefaultJob(args) with CheckinGro
             .joinWithSmaller('canonicalVenueId -> 'venueId, venuesIn)
             .discard('venueId)
             .flatMap('venueDto -> 'placeType) {
-        dto: ServiceVenueDTO => dto.category.headOption
+        // TODO: handle multiple categories
+        dto: ServiceVenueDTO => if (dto.category == null) None else dto.category.headOption
     }
             .discard('venueDto)
             .groupBy('userGoldenId, 'timeSegment, 'placeType) {
