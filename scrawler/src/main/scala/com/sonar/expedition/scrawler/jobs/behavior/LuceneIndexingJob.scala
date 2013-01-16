@@ -29,7 +29,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
         fields: (String, List[String]) => {
             val (userGoldenId, categories) = fields
             val user = new UserDTO(userGoldenId, userGoldenId, categories, null, null)
-            val searchService = new SearchServiceImpl("index", false)
+            val searchService = new SearchServiceImpl(args("index"), false)
             searchService.index(user)
             searchService.search(IndexField.Categories, "gymrat")
             "success"
