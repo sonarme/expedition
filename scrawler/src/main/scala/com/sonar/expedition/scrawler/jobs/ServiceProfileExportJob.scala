@@ -1,16 +1,17 @@
 package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
-import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
+import com.sonar.expedition.scrawler.pipes.{GenderFromNameProbability, DTOProfileInfoPipe}
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.util.CommonFunctions._
 import com.sonar.scalding.cassandra.WideRowScheme
 import com.sonar.scalding.cassandra.CassandraSource
 import com.twitter.scalding.SequenceFile
 import java.nio.ByteBuffer
-import com.sonar.dossier.dto.{ServiceProfileLink, ServiceProfileDTO}
+import com.sonar.dossier.dto.{Gender, ServiceProfileLink, ServiceProfileDTO}
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import ServiceProfileExportJob._
+import me.prettyprint.cassandra.serializers.StringSerializer
 
 class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
     val rpcHostArg = args("rpcHost")
@@ -38,7 +39,12 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
             jsondataBuffer: ByteBuffer =>
                 if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
                 else {
-                    val profile = ProfileSerializer.fromByteBuffer(jsondataBuffer)
+                    val profile = try {
+                        ProfileSerializer.fromByteBuffer(jsondataBuffer)
+                    } catch {
+                        case jpe: com.fasterxml.jackson.core.JsonParseException =>
+                            throw new RuntimeException("reading profile: " + StringSerializer.get().fromByteBuffer(jsondataBuffer), jpe)
+                    }
                     require(profile.serviceType != null)
                     require(profile.userId != null)
                     Some((profile.link, profile))
@@ -64,6 +70,12 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
                     populateNonEmpty(profileAgg, profile)
             }
         }.rename('combinedProfile -> 'profile)
+                .map('profile -> 'profile) {
+            profile: ServiceProfileDTO =>
+                if (profile.gender == Gender.unknown)
+                    profile.gender = GenderFromNameProbability.gender(profile.fullName)._1
+                profile
+        }
 
     // expand correlation
     val expandedProfiles =
