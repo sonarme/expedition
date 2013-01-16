@@ -19,10 +19,10 @@ import java.io.File
 import reflect.BeanProperty
 
 //TODO: Spring
-class SearchServiceImpl(@BeanProperty indexPath: String) extends SearchService {
+class SearchServiceImpl(@BeanProperty indexPath: String, @BeanProperty create: Boolean) extends SearchService {
     val directory: Directory = FSDirectory.open(new File(indexPath))
     val analyzer: Analyzer = new StandardAnalyzer(Version.LUCENE_40)
-    val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, analyzer).setOpenMode(OpenMode.CREATE_OR_APPEND)
+    val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, analyzer).setOpenMode( if(create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
     val writer: IndexWriter = new IndexWriter(directory, iwc)
 
     def index(user: UserDTO) {
