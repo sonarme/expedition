@@ -15,18 +15,20 @@ import com.sonar.expedition.scrawler.dto.indexable.IndexField
 import com.sonar.expedition.scrawler.dto.indexable.UserDTO
 import com.sonar.expedition.scrawler.dto.indexable.UserDTO
 import org.apache.lucene.queries.{FilterClause, TermsFilter, BooleanFilter}
+import java.io.File
+import reflect.BeanProperty
 
 //TODO: Spring
-class SearchServiceImpl extends SearchService {
-    val directory: Directory = new RAMDirectory
+class SearchServiceImpl(@BeanProperty indexPath: String, @BeanProperty create: Boolean) extends SearchService {
+    val directory: Directory = FSDirectory.open(new File(indexPath))
     val analyzer: Analyzer = new StandardAnalyzer(Version.LUCENE_40)
-    val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, analyzer).setOpenMode(OpenMode.CREATE)
+    val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, analyzer).setOpenMode( if(create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
     val writer: IndexWriter = new IndexWriter(directory, iwc)
 
     def index(user: UserDTO) {
         val start = new Date()
 
-        user.index(writer)
+        user.index(writer) //todo: implement some kind of locking
         writer.close()
 
         val end = new Date()
