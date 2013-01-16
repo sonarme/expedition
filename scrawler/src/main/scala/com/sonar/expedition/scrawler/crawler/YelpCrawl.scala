@@ -1,7 +1,6 @@
 package com.sonar.expedition.scrawler.crawler
 
 import com.twitter.scalding._
-import com.sonar.expedition.scrawler.apis.HttpClientRest
 import org.json.JSONObject
 import io.Source
 import com.twitter.scalding.Tsv

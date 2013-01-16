@@ -2,15 +2,9 @@ package com.sonar.expedition.scrawler
 
 import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
-import util.{CommonFunctions, Haversine, LocationClusterer}
-import com.sonar.dossier.dto.{UserEducation, Gender, ServiceProfileDTO, ServiceType}
-import reflect.BeanProperty
-import org.dozer.DozerBeanMapper
-import org.dozer.loader.api.BeanMappingBuilder
-import org.dozer.loader.api.TypeMappingOptions._
+import util.CommonFunctions
+import com.sonar.dossier.dto.{UserEducation, ServiceProfileDTO, ServiceType}
 import collection.JavaConversions._
-import org.apache.commons.beanutils.{BeanUtils, PropertyUtils}
-import java.util
 
 class ServiceProfileDTOMergeTest extends FlatSpec with ShouldMatchers {
 

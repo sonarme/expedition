@@ -21,13 +21,18 @@
         <camel.version>2.9.2</camel.version>
         <scala.version>2.9.2</scala.version>
         <testng.version>6.3</testng.version>
-        <jackson.version>1.9.7</jackson.version>
+        <jackson.version>2.1.0</jackson.version>
         <activemq.version>5.5.0</activemq.version>
         <querydsl.version>2.2.4</querydsl.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <encoding>UTF-8</encoding>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>com.sonar</groupId>
+            <artifactId>dossier-dto</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
 
         <dependency>
             <groupId>net.sourceforge</groupId>
@@ -151,41 +156,7 @@
             <artifactId>commons-logging</artifactId>
             <version>1.1.1</version>
         </dependency>
-        <dependency>
-            <groupId>com.sonar</groupId>
-            <artifactId>dossier-dto</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-core-asl</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml</groupId>
-            <artifactId>jackson-module-scala</artifactId>
-            <version>1.9.3</version>
-        </dependency>
+
         <dependency>
             <groupId>com.lambdaworks</groupId>
             <artifactId>jacks</artifactId>
@@ -261,28 +232,6 @@
             <artifactId>logback-classic</artifactId>
             <version>0.9.17</version>
         </dependency>
-
-
-        <dependency>
-            <groupId>com.factual</groupId>
-            <artifactId>factual-java-driver</artifactId>
-            <version>1.4.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
-                    <artifactId>jackson-core-lgpl</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
-                    <artifactId>jackson-core-asl</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.jackson</groupId>
-                    <artifactId>jackson-mapper-asl</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
 
         <dependency>
             <groupId>commons-codec</groupId>

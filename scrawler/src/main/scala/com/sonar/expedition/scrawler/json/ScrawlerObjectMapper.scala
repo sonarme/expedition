@@ -1,15 +1,6 @@
 package com.sonar.expedition.scrawler.json
 
-import com.fasterxml.jackson.databind.module.SimpleModule
-import com.fasterxml.jackson.core.{JsonParser, Version}
-import com.fasterxml.jackson.databind.Module.SetupContext
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind._
-import com.sonar.dossier.dto.{Checkin, UserEducation, UserEmployment, ServiceProfileDTO}
-import deser.DeserializationProblemHandler
-import grizzled.slf4j.Logging
-import org.codehaus.jackson.annotate.JsonProperty
-import scala.collection.JavaConversions._
 
 
 object ScrawlerObjectMapper extends ObjectMapper {

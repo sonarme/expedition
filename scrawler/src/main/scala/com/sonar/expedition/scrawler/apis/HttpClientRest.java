@@ -1,11 +1,5 @@
 package com.sonar.expedition.scrawler.apis;
 
-//import com.factual.driver.*;
-
-import com.factual.driver.Circle;
-import com.factual.driver.Factual;
-import com.factual.driver.Query;
-import com.factual.driver.ReadResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -17,8 +11,8 @@ import java.net.URLConnection;
 
 import java.io.IOException;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 public class HttpClientRest {
@@ -109,14 +103,6 @@ public class HttpClientRest {
 
     }
 
-    public String getFactualWorkplaceLatLongWithKeys(String workplace, String citylocationLat, String citylocationLong) {
-        Factual factual = new Factual("xxFiqmh1H26jMWUXmmVrexYbwIIL3RE269Dk8hUx", "mFEshzJuARYclNyoBPmeOZr9wyduWGq9LTm5aQpT");
-        int radius = 10000;
-        ReadResponse resp = factual.fetch("places", new Query().within(new Circle(Double.parseDouble(citylocationLat), Double.parseDouble(citylocationLong), radius)).search("" + workplace + "").field("name").beginsWith("" + workplace + ""));
-        String factualResp = resp.toString();
-        return parseResponseToMap(factualResp, workplace);
-
-    }
 
     private static String parseResponseToMap(String factualResp, String workplace) {
         String latitude = "-1";
@@ -144,34 +130,6 @@ public class HttpClientRest {
 
     }
 
-
-    public String getFactualLocsFrmZip(String zip) {
-        Factual factual = new Factual("xxFiqmh1H26jMWUXmmVrexYbwIIL3RE269Dk8hUx", "mFEshzJuARYclNyoBPmeOZr9wyduWGq9LTm5aQpT");
-        int iter = 1;
-        String results = "";
-        String factualResp = "";
-        ReadResponse resp = null;
-        int maxRequests = 0;
-
-        resp = factual.fetch("places", new Query().field("postcode").equal(zip).limit(50).includeRowCount(true));
-        factualResp = resp.getJson();
-        maxRequests = getMaxRows(factualResp);
-        results += getListOfLocations(factualResp);
-
-        System.out.print(maxRequests);
-        for (int i = 1; i < maxRequests; i++) {
-            try {
-                resp = factual.fetch("places", new Query().field("postcode").equal(zip).limit(50).offset(50 * i));
-                factualResp = resp.getJson();
-                results += getListOfLocations(factualResp);
-
-            } catch (Exception e) {
-                return results;
-            }
-        }
-
-        return results;
-    }
 
     private static int getMaxRows(String factualResp) {
         JsonFactory factory = new JsonFactory();
