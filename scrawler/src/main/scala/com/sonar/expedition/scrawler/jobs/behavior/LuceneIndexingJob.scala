@@ -7,8 +7,9 @@ import com.sonar.expedition.scrawler.dto.indexable.{IndexField, UserDTO}
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import com.sonar.dossier.dto.{GeodataDTO, LocationDTO, ServiceType, ServiceVenueDTO}
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
-class LuceneIndexingJob(args: Args) extends Job(args) {
+class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
 //    val userCategories = args("userCategories")
 
     val userCategories = IterableSource(Seq(
