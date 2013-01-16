@@ -64,8 +64,10 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
                     populateNonEmpty(profileAgg, profile)
             }
         }.rename('combinedProfile -> 'profile)
-                // expand correlation
-                .leftJoinWithSmaller('correlationId -> '_correlationId, correlation.rename('correlationId -> '_correlationId)).discard('_correlationId)
+
+    // expand correlation
+    val expandedProfiles =
+        correlatedProfiles.leftJoinWithSmaller('correlationId -> '_correlationId, correlation.rename('correlationId -> '_correlationId)).discard('_correlationId)
                 .map(('correlationId, 'correlationSPL) -> 'profileId) {
             in: (ServiceProfileLink, ServiceProfileLink) =>
                 val (profileId, correlationProfileId) = in
@@ -74,7 +76,12 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
         }
 
 
-    correlatedProfiles.write(SequenceFile(output, Tuples.Profile))
+    expandedProfiles.write(SequenceFile(output, Tuples.Profile))
+
+    correlatedProfiles.groupAll {
+        _.size
+    }.write(Tsv(output + "_stats", ('size)))
+
 }
 
 object ServiceProfileExportJob {
