@@ -1,6 +1,7 @@
 package com.sonar.expedition.scrawler.pipes
 
 import util.matching.Regex
+import com.sonar.dossier.dto.Gender
 
 object GenderFromNameProbability {
 
@@ -31,11 +32,11 @@ object GenderFromNameProbability {
         val prob = maleprob / (maleprob + femaleprob)
 
         if (maleprob > femaleprob) {
-            "male" -> prob
+            Gender.male -> prob
         } else if (maleprob < femaleprob) {
-            "female" -> (1 - prob)
+            Gender.female -> (1 - prob)
         } else {
-            "unknown" -> 0.0
+            Gender.unknown -> 0.0
         }
 
     }

@@ -2,7 +2,7 @@ package com.sonar.expedition.scrawler.util
 
 import java.security.MessageDigest
 import util.matching.Regex
-import com.sonar.dossier.dto.ServiceType
+import com.sonar.dossier.dto.{Gender, ServiceType}
 import com.twitter.scalding.{Args, RichDate}
 import org.apache.commons.beanutils.{PropertyUtils, BeanUtils}
 import collection.JavaConversions._
@@ -62,6 +62,7 @@ object CommonFunctions {
                 case juMap: java.util.Map[_, _] => juMap.isEmpty
                 case collection: java.util.Collection[_] => collection.isEmpty
                 case iterable: Iterable[_] => iterable.isEmpty
+                case gender: Gender => gender == Gender.unknown
                 case _ => false
             }
         })
