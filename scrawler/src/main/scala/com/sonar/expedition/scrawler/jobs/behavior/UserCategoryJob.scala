@@ -93,7 +93,7 @@ object ProfileAttributeMapping {
         "65-74" -> (65 to 74),
         "75-94" -> (75 to 94),
         "Over 95" -> (95 to Int.MaxValue)
-    ) withDefaultValue (0 to Int.MaxValue)
+    ) withDefaultValue (0 to Int.MaxValue-1)
     val IncomeBrackets = Map(
         "0-18k" -> (0 to 18000),
         "18-36k" -> (18000 to 36000),
@@ -104,7 +104,7 @@ object ProfileAttributeMapping {
         "140-200k" -> (140000 to 200000),
         "200-300k" -> (200000 to 300000),
         "Over 300k" -> (300000 to Int.MaxValue)
-    ) withDefaultValue (0 to Int.MaxValue)
+    ) withDefaultValue (0 to Int.MaxValue-1)
     val EducationBrackets = Map(
         "gradeschool" -> Education.gradeschool,
         "highschool" -> Education.highschool,
