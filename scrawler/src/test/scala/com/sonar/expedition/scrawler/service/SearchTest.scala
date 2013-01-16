@@ -20,7 +20,7 @@ class SearchTest extends FlatSpec with BeforeAndAfter {
     )
 
     before {
-        searchService = new SearchServiceImpl
+        searchService = new SearchServiceImpl("index")
     }
 
     "Lucene" should "index a User" in {
