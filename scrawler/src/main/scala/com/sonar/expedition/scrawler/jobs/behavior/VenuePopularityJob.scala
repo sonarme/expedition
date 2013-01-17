@@ -17,7 +17,7 @@ import ch.hsr.geohash.{WGS84Point, BoundingBox}
 
 class VenuePopularityJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference {
     val segments = Seq(0 -> 8, 7 -> 12, 11 -> 15, 14 -> 17, 16 -> 21, 20 -> 0) map {
-        case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = fromHr + "-" + toHr)
+        case (fromHr, toHr) => Segment(from = fromHr, to = toHr, name = fromHr + "-" + toHr)
     }
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
     val checkinSource = if (test) IterableSource(Seq(
@@ -105,7 +105,7 @@ class VenuePopularityJob(args: Args) extends DefaultJob(args) with Normalizers w
                 // only treat foursquare venues as venues
                 val canonicalVenueId = dto.serviceVenue.canonicalId
                 // create tuples for each time segment
-                createSegments(ldt.toLocalTime, segments) map {
+                createSegments(ldt.toLocalTime.getHourOfDay, segments, Some((24, 0))) map {
                     segment => (dto.canonicalId, dto.link, canonicalVenueId, dto.venueName, dto.serviceVenue.location.geodata.canonicalLatLng, TimeSegment(weekDay, segment.name))
                 }
             }

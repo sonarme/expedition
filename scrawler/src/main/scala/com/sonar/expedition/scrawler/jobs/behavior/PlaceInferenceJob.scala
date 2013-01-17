@@ -15,8 +15,8 @@ import grizzled.slf4j.Logging
 import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference {
-    val segments = Seq(0 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 0) map {
-        case (fromHr, toHr) => Segment(from = new LocalTime(fromHr, 0, 0), to = new LocalTime(toHr, 0, 0), name = fromHr + "-" + toHr)
+    val segments = Seq(1 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 1) map {
+        case (fromHr, toHr) => Segment(from = fromHr, to = toHr, name = fromHr + "-" + toHr)
     }
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
     val checkinSource = if (test) IterableSource(Seq(
@@ -110,7 +110,7 @@ class PlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers wi
                 // only treat foursquare venues as venues
                 val canonicalVenueId = if (dto.venueId == null || dto.venueId.isEmpty || dto.serviceType != ServiceType.foursquare) null else dto.serviceVenue.canonicalId
                 // create tuples for each time segment
-                createSegments(ldt.toLocalTime, segments) map {
+                createSegments(ldt.toLocalTime.getHourOfDay, segments, Some((24, 0))) map {
                     segment => (dto.canonicalId, dto.link, canonicalVenueId, dto.serviceVenue.location.geodata, TimeSegment(weekDay, segment.name))
                 }
             }
