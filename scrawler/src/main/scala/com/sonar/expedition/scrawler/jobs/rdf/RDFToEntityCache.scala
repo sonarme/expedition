@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.jobs.rdf
 
 import org.apache.hadoop.fs.{Path, FileSystem}
 import com.twitter.scalding._
@@ -14,6 +14,7 @@ import de.fuberlin.wiwiss.silk.plugins.Plugins
 import de.fuberlin.wiwiss.silk.plugins.jena.RdfDataSource
 import scala.Some
 import com.twitter.scalding.TextLine
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 
 class RDFToEntityCache(args: Args) extends DefaultJob(args) with Logging {
