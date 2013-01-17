@@ -31,7 +31,22 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
             val columnName = StringSerializer.get().fromByteBuffer(columnNameBuffer)
             // filter out id and link columns
             columnName.startsWith("data:") || columnName.contains(":data:")
-    }
+    }.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
+        jsondataBuffer: ByteBuffer =>
+            if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
+            else {
+                val profile = try {
+                    ProfileSerializer.fromByteBuffer(jsondataBuffer)
+                } catch {
+                    case jpe: com.fasterxml.jackson.core.JsonParseException =>
+                        throw new RuntimeException("reading profile: " + StringSerializer.get().fromByteBuffer(jsondataBuffer), jpe)
+                }
+                require(profile.serviceType != null)
+                require(profile.userId != null)
+                Some((profile.link, profile, profile.serviceType))
+            }
+
+    }.write(SequenceFile(output + "_ServiceProfile", ('profileId, 'profile, 'serviceType)))
 
     // Load ProfileView CF
     val profileViews = CassandraSource(
@@ -41,84 +56,99 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
         columnFamilyName = "ProfileView",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
             nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
-    ).read
-
-    // Combine profile pipes
-    val jsonData = serviceProfiles ++ profileViews
-
-    // Read JSON data into DTO
-    val allProfiles =
-        jsonData.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
-            jsondataBuffer: ByteBuffer =>
-                if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
-                else {
-                    val profile = try {
-                        ProfileSerializer.fromByteBuffer(jsondataBuffer)
-                    } catch {
-                        case jpe: com.fasterxml.jackson.core.JsonParseException =>
-                            throw new RuntimeException("reading profile: " + StringSerializer.get().fromByteBuffer(jsondataBuffer), jpe)
-                    }
-                    require(profile.serviceType != null)
-                    require(profile.userId != null)
-                    Some((profile.link, profile, profile.serviceType))
+    ).read.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
+        jsondataBuffer: ByteBuffer =>
+            if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
+            else {
+                val profile = try {
+                    ProfileSerializer.fromByteBuffer(jsondataBuffer)
+                } catch {
+                    case jpe: com.fasterxml.jackson.core.JsonParseException =>
+                        throw new RuntimeException("reading profile: " + StringSerializer.get().fromByteBuffer(jsondataBuffer), jpe)
                 }
-
-        }
-
-    // Read Correlation CF
-    val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation).read
-
-    val correlatedProfiles =
-    // join correlation
-        allProfiles.leftJoinWithSmaller('profileId -> 'correlationSPL, correlation).discard('correlationSPL)
-                // replace non-existing correlation with profile id temporary correlation id
-                .map(('profileId, 'correlationId) -> 'correlationId) {
-            in: (ServiceProfileLink, ServiceProfileLink) =>
-                val (profileId, correlationId) = in
-                if (correlationId == null) profileId else correlationId
-        }
-                // aggregate profiles in the correlation
-                .groupBy('correlationId) {
-            _.reduce('profile -> 'combinedProfile) {
-                (profileAgg: ServiceProfileDTO, profile: ServiceProfileDTO) =>
-                    populateNonEmpty(profileAgg, profile)
+                require(profile.serviceType != null)
+                require(profile.userId != null)
+                Some((profile.link, profile, profile.serviceType))
             }
-        }.rename('combinedProfile -> 'profile)
-                .map('profile -> 'profile) {
-            profile: ServiceProfileDTO =>
-            // infer gender from name if unknown
-                if (profile.gender == Gender.unknown)
-                    profile.gender = GenderFromNameProbability.gender(profile.fullName)._1
-                profile
-        }
 
-    // expand correlation
-    val expandedProfiles =
-        correlatedProfiles.leftJoinWithSmaller('correlationId -> '_correlationId, correlation.rename('correlationId -> '_correlationId)).discard('_correlationId)
-                .map(('correlationId, 'correlationSPL) -> 'profileId) {
-            in: (ServiceProfileLink, ServiceProfileLink) =>
-                val (profileId, correlationProfileId) = in
-                val spl = if (correlationProfileId == null) profileId else correlationProfileId
-                spl
-        }
+    }.write(SequenceFile(output + "_ProfileView", ('profileId, 'profile, 'serviceType)))
+    /*
+        // Combine profile pipes
+        val jsonData = serviceProfiles ++ profileViews
+
+        // Read JSON data into DTO
+        val allProfiles =
+            jsonData.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
+                jsondataBuffer: ByteBuffer =>
+                    if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
+                    else {
+                        val profile = try {
+                            ProfileSerializer.fromByteBuffer(jsondataBuffer)
+                        } catch {
+                            case jpe: com.fasterxml.jackson.core.JsonParseException =>
+                                throw new RuntimeException("reading profile: " + StringSerializer.get().fromByteBuffer(jsondataBuffer), jpe)
+                        }
+                        require(profile.serviceType != null)
+                        require(profile.userId != null)
+                        Some((profile.link, profile, profile.serviceType))
+                    }
+
+            }
+
+        // Read Correlation CF
+        val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation).read
+
+        val correlatedProfiles =
+        // join correlation
+            allProfiles.leftJoinWithSmaller('profileId -> 'correlationSPL, correlation).discard('correlationSPL)
+                    // replace non-existing correlation with profile id temporary correlation id
+                    .map(('profileId, 'correlationId) -> 'correlationId) {
+                in: (ServiceProfileLink, ServiceProfileLink) =>
+                    val (profileId, correlationId) = in
+                    if (correlationId == null) profileId else correlationId
+            }
+                    // aggregate profiles in the correlation
+                    .groupBy('correlationId) {
+                _.reduce('profile -> 'combinedProfile) {
+                    (profileAgg: ServiceProfileDTO, profile: ServiceProfileDTO) =>
+                        populateNonEmpty(profileAgg, profile)
+                }
+            }.rename('combinedProfile -> 'profile)
+                    .map('profile -> 'profile) {
+                profile: ServiceProfileDTO =>
+                // infer gender from name if unknown
+                    if (profile.gender == Gender.unknown)
+                        profile.gender = GenderFromNameProbability.gender(profile.fullName)._1
+                    profile
+            }
+
+        // expand correlation
+        val expandedProfiles =
+            correlatedProfiles.leftJoinWithSmaller('correlationId -> '_correlationId, correlation.rename('correlationId -> '_correlationId)).discard('_correlationId)
+                    .map(('correlationId, 'correlationSPL) -> 'profileId) {
+                in: (ServiceProfileLink, ServiceProfileLink) =>
+                    val (profileId, correlationProfileId) = in
+                    val spl = if (correlationProfileId == null) profileId else correlationProfileId
+                    spl
+            }
 
 
-    expandedProfiles.write(SequenceFile(output, Tuples.Profile))
+        expandedProfiles.write(SequenceFile(output, Tuples.Profile))
 
-    // Statistics about profiles
-    val numCorrelated =
-        correlatedProfiles.groupAll {
-            _.size
-        }.map(() -> 'statName) {
-            u: Unit => "num_correlated"
-        }.project('statName, 'size)
-    val numServiceType =
-        allProfiles.unique('profileId, 'serviceType).groupBy('serviceType) {
-            _.size
-        }.map('serviceType -> 'statName) {
-            serviceType: ServiceType => "num_" + serviceType.name()
-        }.project('statName, 'size)
-    (numCorrelated ++ numServiceType).write(Tsv(output + "_stats", ('statName, 'size)))
+        // Statistics about profiles
+        val numCorrelated =
+            correlatedProfiles.groupAll {
+                _.size
+            }.map(() -> 'statName) {
+                u: Unit => "num_correlated"
+            }.project('statName, 'size)
+        val numServiceType =
+            allProfiles.unique('profileId, 'serviceType).groupBy('serviceType) {
+                _.size
+            }.map('serviceType -> 'statName) {
+                serviceType: ServiceType => "num_" + serviceType.name()
+            }.project('statName, 'size)
+        (numCorrelated ++ numServiceType).write(Tsv(output + "_stats", ('statName, 'size)))*/
 
 }
 
