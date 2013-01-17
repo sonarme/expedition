@@ -43,7 +43,7 @@ class DataVerificationJob(args: Args) extends DefaultJob(args) with CheckinSourc
     val newPipe =
         (dataType match {
             case "checkin" =>
-                SequenceFile(newIn, Tuples.CheckinIdDTO).read.project('id)
+                SequenceFile(newIn, Tuples.CheckinIdDTO).read.project('checkinId).rename('checkinId -> 'id)
             case "profile" =>
                 SequenceFile(newIn, Tuples.ProfileIdDTO).read.project('profileId).mapTo('profileId -> 'id) {
                     profileId: ServiceProfileLink => profileId.profileId
