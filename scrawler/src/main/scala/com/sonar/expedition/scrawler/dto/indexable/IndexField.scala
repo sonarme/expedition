@@ -7,4 +7,8 @@ object IndexField extends Enumeration {
     val Categories = Value("categories")
     val Geohash = Value("geohash")
     val Ip = Value("ip")
+
+    val User = Value("user")
+    val Geosector = Value("geosector")
+    val TimeSegment = Value("timesegment")
 }

@@ -11,34 +11,33 @@ import org.apache.lucene.search._
 import org.apache.lucene.queryparser.classic.QueryParser
 import org.apache.lucene.queries.mlt.MoreLikeThis
 import com.sonar.expedition.scrawler.dto.indexable.IndexField.IndexField
-import com.sonar.expedition.scrawler.dto.indexable.IndexField
-import com.sonar.expedition.scrawler.dto.indexable.UserDTO
-import com.sonar.expedition.scrawler.dto.indexable.UserDTO
+import com.sonar.expedition.scrawler.dto.indexable.{Indexable, IndexField, UserDTO}
 import org.apache.lucene.queries.{FilterClause, TermsFilter, BooleanFilter}
 import java.io.File
 import reflect.BeanProperty
 
 //TODO: Spring
-class SearchServiceImpl(@BeanProperty indexPath: String, @BeanProperty create: Boolean) extends SearchService {
-    val directory: Directory = FSDirectory.open(new File(indexPath))
+class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create: Boolean = false) extends SearchService {
     val analyzer: Analyzer = new StandardAnalyzer(Version.LUCENE_40)
     val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, analyzer).setOpenMode( if(create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
-    val writer: IndexWriter = new IndexWriter(directory, iwc)
 
-    def index(user: UserDTO) {
+    def index(indexable: Indexable) = {
         val start = new Date()
 
-        user.index(writer) //todo: implement some kind of locking
+        val writer: IndexWriter = new IndexWriter(directory, iwc)
+        val doc = indexable.index(writer) //todo: implement some kind of locking
         writer.close()
 
         val end = new Date()
         println(end.getTime - start.getTime + " total milliseconds")
+        doc
     }
 
-    def index(users: Seq[UserDTO]) {
+    def index(indexables: Seq[Indexable]) {
         val start = new Date()
 
-        users.foreach(_.index(writer))
+        val writer: IndexWriter = new IndexWriter(directory, iwc)
+        indexables.foreach(_.index(writer))
         writer.close()
 
         val end = new Date()
@@ -68,7 +67,7 @@ class SearchServiceImpl(@BeanProperty indexPath: String, @BeanProperty create: B
 
     def moreLikeThis(docNum: Int, moreLikeThisfields: List[IndexField]) = {
         val reader = DirectoryReader.open(directory)
-
+        val start = new Date()
         val mlt = new MoreLikeThis(reader)
 //        mlt.setBoost(true)
         mlt.setAnalyzer(analyzer)
@@ -87,16 +86,19 @@ class SearchServiceImpl(@BeanProperty indexPath: String, @BeanProperty create: B
 
         val more = is.search(q, docFilter, 10)
 
+        val end = new Date()
+        println(end.getTime - start.getTime + " total milliseconds (more like this)")
         explain(is, q, more)
         more
     }
 
     def moreLikeThis(docNum: Int) = {
-        val moreLikeThisFields = List[IndexField](IndexField.Name, IndexField.Categories, IndexField.Ip)
+        val moreLikeThisFields = List[IndexField](IndexField.Name, IndexField.Categories, IndexField.Ip, IndexField.Geosector, IndexField.TimeSegment)
         moreLikeThis(docNum, moreLikeThisFields)
     }
 
     def explain(indexSearcher: IndexSearcher, query: Query, hits: TopDocs) {
+        /*
         hits.scoreDocs.foreach(hit => {
             val doc = indexSearcher.doc(hit.doc)
             val key = doc.get(IndexField.Key.toString)
@@ -104,6 +106,7 @@ class SearchServiceImpl(@BeanProperty indexPath: String, @BeanProperty create: B
             val explanation = indexSearcher.explain(query, hit.doc)
             println(explanation.toString)
         })
+        */
     }
 
     def numDocs = DirectoryReader.open(directory).numDocs()

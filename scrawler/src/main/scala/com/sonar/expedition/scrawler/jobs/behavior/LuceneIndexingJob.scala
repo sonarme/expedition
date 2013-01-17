@@ -8,6 +8,8 @@ import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import com.sonar.dossier.dto.{GeodataDTO, LocationDTO, ServiceType, ServiceVenueDTO}
 import com.sonar.expedition.scrawler.jobs.DefaultJob
+import org.apache.lucene.store.FSDirectory
+import java.io.File
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
 //    val userCategories = args("userCategories")
@@ -28,10 +30,11 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
         .map(('userGoldenId, 'categories) -> ('indexed)) {
         fields: (String, List[String]) => {
             val (userGoldenId, categories) = fields
-            val user = new UserDTO(userGoldenId, userGoldenId, categories, null, null)
-            val searchService = new SearchServiceImpl(args("index"), false)
+            val user = new UserDTO(userGoldenId, categories, null, null)
+            val searchService = new SearchServiceImpl(FSDirectory.open(new File(args("index"))), true)
+
             searchService.index(user)
-            searchService.search(IndexField.Categories, "gymrat")
+//            searchService.search(IndexField.Categories, "gymrat")
             "success"
         }
     }.write(Tsv(args("output"), Tuples.Behavior.UserCategories append ('indexed)))
