@@ -20,18 +20,15 @@ class DataVerificationJob(args: Args) extends DefaultJob(args) with CheckinSourc
                     in: (String, String) => in._1 + ":" + in._2
                 }
             case "profile" =>
-                SequenceFile(oldIn, ('userProfileId, 'serviceType, 'json)).read.mapTo('json -> 'id) {
-                    json: String =>
-                        val om = new CassandraObjectMapperJava
-                        val dto = om.readValue(json, classOf[ServiceProfileDTO])
-                        dto.link
-                }
+                SequenceFile(oldIn, Tuples.Profile).read.project('profileId).rename('profileId -> 'id)
         }
     val newPipe = dataType match {
         case "checkin" =>
             SequenceFile(newIn, Tuples.CheckinIdDTO).read.project('id)
         case "profile" =>
-            SequenceFile(newIn, Tuples.ProfileIdDTO).read.project('profileId).rename('profileId -> 'id)
+            SequenceFile(newIn, Tuples.ProfileIdDTO).read.project('profileId).mapTo('profileId -> 'id) {
+                profileId: ServiceProfileLink => profileId.profileId
+            }
     }
     val oldStat = oldPipe.groupAll {
         _.size
