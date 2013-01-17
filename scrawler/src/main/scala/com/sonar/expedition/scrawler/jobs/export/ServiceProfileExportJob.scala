@@ -19,7 +19,7 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
     val output = args("canonicalProfilesOut")
 
     val export = args.optional("export").map(_.toBoolean).getOrElse(true)
-    val profileViewsOnly = args.optional("profileViewsOnly").map(_.toBoolean).getOrElse(true)
+    val profileViews = args.optional("profileViews").map(_.toBoolean).getOrElse(true)
 
     val serviceProfileFile = SequenceFile(output + "_ServiceProfile", ('profileId, 'profile, 'serviceType))
     val profileViewFile = SequenceFile(output + "_ProfileView", ('profileId, 'profile, 'serviceType))
@@ -41,7 +41,7 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
     }
 
     if (export) {
-        if (!profileViewsOnly) {
+        if (!profileViews) {
             // Load ServiceProfile CF
             val serviceProfiles = CassandraSource(
                 rpcHost = rpcHostArg,
@@ -57,18 +57,19 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
                     columnName.startsWith("data:") || columnName.contains(":data:")
             }
             parseProfiles(serviceProfiles).write(serviceProfileFile)
-        }
+        } else {
 
-        // Load ProfileView CF
-        val profileViews = CassandraSource(
-            rpcHost = rpcHostArg,
-            additionalConfig = ppmap(args),
-            keyspaceName = "dossier",
-            columnFamilyName = "ProfileView",
-            scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
-                nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
-        ).read
-        parseProfiles(profileViews).write(profileViewFile)
+            // Load ProfileView CF
+            val profileViews = CassandraSource(
+                rpcHost = rpcHostArg,
+                additionalConfig = ppmap(args),
+                keyspaceName = "dossier",
+                columnFamilyName = "ProfileView",
+                scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
+                    nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
+            ).read
+            parseProfiles(profileViews).write(profileViewFile)
+        }
     }
     else {
 
