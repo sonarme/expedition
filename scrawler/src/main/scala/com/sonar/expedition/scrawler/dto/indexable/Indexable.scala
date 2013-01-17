@@ -1,22 +1,20 @@
 package com.sonar.expedition.scrawler.dto.indexable
 
 import reflect.BeanProperty
-import org.apache.lucene.document.Document
+import org.apache.lucene.document.{Field, StringField, Document}
 import org.apache.lucene.index.{Term, IndexWriter}
 import org.apache.lucene.index.IndexWriterConfig.OpenMode
+import java.util.UUID
 
-abstract class Indexable(@BeanProperty val key: String) {
+abstract class Indexable {
 
+    val key: String = UUID.randomUUID.toString.replaceAll("-", "")
     def getDocument(): Document
 
-    def index(writer: IndexWriter) {
+    def index(writer: IndexWriter) = {
         val doc = getDocument()
-        if (writer.getConfig.getOpenMode == OpenMode.CREATE) {
-            println("    adding " + key)
-            writer.addDocument(doc)
-        } else {
-            println("    updating " + key)
-            writer.updateDocument(new Term("key", key), doc)
-        }
+        doc.add(new StringField(IndexField.Key.toString, key, Field.Store.YES))
+        writer.addDocument(doc)
+        doc
     }
 }
