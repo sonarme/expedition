@@ -3,8 +3,7 @@ package com.sonar.expedition.scrawler.jobs.export
 import com.twitter.scalding.{Tsv, Args, SequenceFile}
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.jobs.{CheckinSource, DefaultJob}
-import com.sonar.dossier.dto.{ServiceProfileDTO, ServiceProfileLink}
-import com.sonar.dossier.jackson.CassandraObjectMapperJava
+import com.sonar.dossier.dto.ServiceProfileLink
 
 class DataVerificationJob(args: Args) extends DefaultJob(args) with CheckinSource {
     val newIn = args("newIn")
@@ -16,17 +15,17 @@ class DataVerificationJob(args: Args) extends DefaultJob(args) with CheckinSourc
     val oldPipe =
         dataType match {
             case "checkin" =>
-                SequenceFile(oldIn, Tuples.Checkin).read.mapTo(('serType, 'serCheckinID) -> 'id) {
+                SequenceFile(oldIn, ('serType, 'serCheckinID)).read.mapTo(('serType, 'serCheckinID) -> 'id) {
                     in: (String, String) => in._1 + ":" + in._2
                 }
             case "profile" =>
-                SequenceFile(oldIn, Tuples.Profile).read.project('profileId).rename('profileId -> 'id)
+                SequenceFile(oldIn, 'profileId).read.rename('profileId -> 'id)
         }
     val newPipe = dataType match {
         case "checkin" =>
-            SequenceFile(newIn, Tuples.CheckinIdDTO).read.project('id)
+            SequenceFile(newIn, 'id).read
         case "profile" =>
-            SequenceFile(newIn, Tuples.ProfileIdDTO).read.project('profileId).mapTo('profileId -> 'id) {
+            SequenceFile(newIn, 'profileId).read.mapTo('profileId -> 'id) {
                 profileId: ServiceProfileLink => profileId.profileId
             }
     }
