@@ -13,10 +13,6 @@ object CommonFunctions {
     val pay: Regex = """(.*)([\d\,]+)(\s+)(per year)(.*)""".r
     val BuzzFromText: Regex = """(.*)\t([\d\.]+)\t([\d\.]+)\t(.*)""".r
 
-    val College: Regex = """(A|B|O)""".r
-    val NoCollege: Regex = """(H)""".r
-    val Grad: Regex = """(D|M|MBA|J|P)""".r
-
     val NONE_VALUE = "none"
 
     def md5SumString(bytes: Array[Byte]) = {

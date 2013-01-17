@@ -8,11 +8,11 @@ import org.joda.time.DateMidnight
 import com.sonar.dossier.dto.ServiceProfileDTO
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
-import com.sonar.expedition.scrawler.pipes.DTOProfileInfoPipe
+import com.sonar.expedition.scrawler.pipes.{AgeEducationPipe, DTOProfileInfoPipe}
 import ProfileAttributeMapping._
 import com.sonar.expedition.scrawler.jobs.{DefaultJob, Csv}
 
-class UserCategoryJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
+class UserCategoryJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with AgeEducationPipe {
 
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
@@ -49,8 +49,20 @@ class UserCategoryJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPi
             .discard('profileId)
             .map('profileDto ->('gender, 'age, 'income, 'education)) {
         dto: ServiceProfileDTO =>
-            val age = org.joda.time.Years.yearsBetween(new DateTime(dto.birthday), DateTime.now).getYears
-            (dto.gender, age, 55000, Education.unknown) //todo: calculate the income and education
+            val educations = for (education <- dto.education) yield {
+                val parsedDegree = parseDegree(education.degree, education.schoolName)
+                val age = getAge(education.year, parsedDegree, education.degree)
+                (parsedDegree, age)
+            }
+
+            val highestEducation = if (educations.isEmpty) Education.unknown else educations.map(_._1).flatten.maxBy(AgeEducationPipe.EducationPriority)
+            val age = if (dto.birthday == null) {
+                if (educations.isEmpty) None
+                else educations.map(_._2).flatten.max
+            }
+            else Some(org.joda.time.Years.yearsBetween(new DateTime(dto.birthday), DateTime.now).getYears)
+
+            (dto.gender, age, 55000, highestEducation) //todo: calculate the income and education
     }
             .discard('profileDto)
             .joinWithTiny('placeType -> 'categoryPlaceType, categories)
@@ -93,7 +105,7 @@ object ProfileAttributeMapping {
         "65-74" -> (65 to 74),
         "75-94" -> (75 to 94),
         "Over 95" -> (95 to Int.MaxValue)
-    ) withDefaultValue (0 to Int.MaxValue-1)
+    ) withDefaultValue (0 to Int.MaxValue - 1)
     val IncomeBrackets = Map(
         "0-18k" -> (0 to 18000),
         "18-36k" -> (18000 to 36000),
@@ -104,7 +116,7 @@ object ProfileAttributeMapping {
         "140-200k" -> (140000 to 200000),
         "200-300k" -> (200000 to 300000),
         "Over 300k" -> (300000 to Int.MaxValue)
-    ) withDefaultValue (0 to Int.MaxValue-1)
+    ) withDefaultValue (0 to Int.MaxValue - 1)
     val EducationBrackets = Map(
         "gradeschool" -> Education.gradeschool,
         "highschool" -> Education.highschool,

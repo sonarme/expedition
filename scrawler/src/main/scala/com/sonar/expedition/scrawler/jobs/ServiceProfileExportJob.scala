@@ -23,7 +23,11 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
         columnFamilyName = "ServiceProfile",
         scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
             nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
-    ).read
+    ).read.filter('columnNameBuffer) {
+        columnNameBuffer: ByteBuffer =>
+            val columnName = StringSerializer.get().fromByteBuffer(columnNameBuffer)
+            columnName.startsWith("data:") || columnName.contains(":data:")
+    }
     val profileViews = CassandraSource(
         rpcHost = rpcHostArg,
         additionalConfig = ppmap(args),

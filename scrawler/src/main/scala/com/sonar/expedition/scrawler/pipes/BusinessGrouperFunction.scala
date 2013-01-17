@@ -2,8 +2,6 @@ package com.sonar.expedition.scrawler.pipes
 
 import com.twitter.scalding.{RichPipe, Args}
 import java.util.{Date, Calendar}
-import util.matching.Regex
-import com.sonar.expedition.scrawler.util.CommonFunctions._
 
 
 trait BusinessGrouperFunction extends ScaldingImplicits {
@@ -69,14 +67,15 @@ trait BusinessGrouperFunction extends ScaldingImplicits {
             _.size
         }
 
+    import com.sonar.dossier.dto.Education
+
     def groupByDegree(combinedInput: RichPipe) =
-        combinedInput
-                .map('degree -> 'degreeCat) {
-            degree: String =>
+        combinedInput.map('degree -> 'degreeCat) {
+            degree: Education =>
                 degree match {
-                    case College(str) => "College"
-                    case NoCollege(str) => "No College"
-                    case Grad(str) => "Grad School"
+                    case Education.college => "College"
+                    case Education.gradeschool | Education.highschool => "NoCollege"
+                    case Education.doctorate | Education.masters | Education.postdoc => "GradSchool"
                     case _ => "unknown"
                 }
         }.filter('degreeCat) {

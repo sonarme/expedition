@@ -10,6 +10,7 @@ import collection.immutable.TreeMap
 import Numeric.Implicits._
 import Ordering.Implicits._
 import ch.hsr.geohash.GeoHash
+import com.sonar.dossier.dto.Education
 
 class FeatureExtractions(args: Args) extends DefaultJob(args) with CheckinSource with DTOProfileInfoPipe with CheckinGrouperFunction with FriendGrouperFunction with BusinessGrouperFunction with AgeEducationPipe with ReachLoyaltyAnalysis with CoworkerFinderFunction with CheckinInfoPipe with PlacesCorrelation with BayesModelPipe {
 
@@ -45,11 +46,11 @@ class FeatureExtractions(args: Args) extends DefaultJob(args) with CheckinSource
     peopleCheckins.joinWithSmaller(('goldenId, 'keyid) ->('goldenId1, 'keyid1), loyalty.rename(('goldenId, 'keyid) ->('goldenId1, 'keyid1))).discard('goldenId1, 'keyid1)
             .joinWithSmaller('keyid -> 'key, serviceProfiles(args)).discard('key)
             .map('degree -> 'degreeCat) {
-        degree: String =>
+        degree: Education =>
             degree match {
-                case College(str) => "College"
-                case NoCollege(str) => "NoCollege"
-                case Grad(str) => "GradSchool"
+                case Education.college => "College"
+                case Education.gradeschool | Education.highschool => "NoCollege"
+                case Education.doctorate | Education.masters | Education.postdoc => "GradSchool"
                 case _ => "unknown"
             }
     }.leftJoinWithSmaller('worktitle -> 'worktitle1, income.rename('worktitle -> 'worktitle1)).discard('worktitle1)
