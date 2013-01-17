@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.jobs.export
 
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes.{GenderFromNameProbability, DTOProfileInfoPipe}
@@ -12,6 +12,7 @@ import com.sonar.dossier.dto.{ServiceType, Gender, ServiceProfileLink, ServicePr
 import com.sonar.dossier.domain.cassandra.converters.JsonSerializer
 import ServiceProfileExportJob._
 import me.prettyprint.cassandra.serializers.StringSerializer
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe {
     val rpcHostArg = args("rpcHost")

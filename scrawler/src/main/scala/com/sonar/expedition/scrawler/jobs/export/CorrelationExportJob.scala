@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.jobs.export
 
 import com.twitter.scalding.{SequenceFile, Args, Job}
 import cascading.tuple.Fields
@@ -9,6 +9,7 @@ import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.StringSerializer
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.expedition.scrawler.jobs.{CheckinSource, DefaultJob}
 
 class CorrelationExportJob(args: Args) extends DefaultJob(args) with CheckinSource {
     val rpcHostArg = args("rpcHost")

@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs.behavior
+package com.sonar.expedition.scrawler.jobs.export
 
 import com.sonar.dossier.dto.{ServiceVenueDTO, ServiceType, CheckinDTO}
 import com.twitter.scalding.{Tsv, SequenceFile, Job, Args}

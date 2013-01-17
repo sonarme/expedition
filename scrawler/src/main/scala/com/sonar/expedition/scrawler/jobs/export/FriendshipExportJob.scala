@@ -1,4 +1,4 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.jobs.export
 
 import com.twitter.scalding.{Args, Job}
 import com.sonar.scalding.cassandra._
@@ -8,6 +8,7 @@ import com.sonar.scalding.cassandra.CassandraSource
 import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.StringSerializer
 import com.sonar.expedition.scrawler.util.CommonFunctions._
+import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 class FriendshipExportJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val rpcHostArg = args("rpcHost")

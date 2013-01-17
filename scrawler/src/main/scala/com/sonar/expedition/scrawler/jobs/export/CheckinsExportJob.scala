@@ -1,10 +1,9 @@
-package com.sonar.expedition.scrawler.jobs
+package com.sonar.expedition.scrawler.jobs.export
 
-import com.twitter.scalding.{SequenceFile, Args, Job}
+import com.twitter.scalding._
 import cascading.tuple.Fields
 import com.sonar.scalding.cassandra.{NarrowRowScheme, CassandraSource}
 import com.sonar.expedition.scrawler.util.CommonFunctions._
-import com.twitter.scalding.SequenceFile
 import scala.{None, Some}
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Tuples}
 import java.nio.ByteBuffer
@@ -13,13 +12,16 @@ import com.sonar.dossier.dto.{ServiceType, CheckinDTO}
 import com.sonar.dossier.cassandra.converters.ServiceTypeConverter
 import me.prettyprint.hom.converters.JodaTimeHectorConverter
 import com.sonar.scalding.cassandra.CassandraSource
-import com.twitter.scalding.SequenceFile
 import com.sonar.scalding.cassandra.NarrowRowScheme
 import scala.Predef._
+import scala.Some
+import com.sonar.scalding.cassandra.CassandraSource
+import com.sonar.scalding.cassandra.NarrowRowScheme
 import com.twitter.scalding.SequenceFile
 import scala.Some
 import com.sonar.scalding.cassandra.CassandraSource
 import com.sonar.scalding.cassandra.NarrowRowScheme
+import com.sonar.expedition.scrawler.jobs.{CheckinSource, DefaultJob}
 
 class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource {
 
@@ -31,7 +33,7 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
         scheme = NarrowRowScheme(keyField = 'idB,
             valueFields = ('viewingUserSonarIdB, 'checkinTimeB, 'serviceTypeB, 'serviceProfileIdB, 'latitudeB, 'longitudeB, 'venueNameB, 'venueAddressB, 'venueSiteUrlB, 'venueIdB, 'messageB, 'serviceCheckinIdB, 'notPublicB, 'clientIdB, 'rawB, 'horizontalAccuracyB, 'verticalAccuracyB, 'batteryLevelB, 'courseB, 'speedB, 'calculatedSpeedB),
             columnNames = List("viewingUserSonarId", "checkinTime", "serviceType", "serviceProfileId", "latitude", "longitude", "venueName", "venueAddress", "venueSiteUrl", "venueId", "message", "serviceCheckinId", "notPublic", "clientId", "raw", "horizontalAccuracy", "verticalAccuracy", "batteryLevel", "course", "speed", "calculatedSpeed"))
-    ).flatMapTo(('idB, 'viewingUserSonarIdB, 'checkinTimeB, 'serviceTypeB, 'serviceProfileIdB, 'latitudeB, 'longitudeB, 'venueNameB, 'venueAddressB, 'venueSiteUrlB, 'venueIdB, 'messageB, 'serviceCheckinIdB, 'notPublicB, 'clientIdB, 'rawB, 'horizontalAccuracyB, 'verticalAccuracyB, 'batteryLevelB, 'courseB, 'speedB, 'calculatedSpeedB) -> Tuples.CheckinIdDTO) {
+    ).flatMapTo(('idB, 'viewingUserSonarIdB, 'checkinTimeB, 'serviceTypeB, 'serviceProfileIdB, 'latitudeB, 'longitudeB, 'venueNameB, 'venueAddressB, 'venueSiteUrlB, 'venueIdB, 'messageB, 'serviceCheckinIdB, 'notPublicB, 'clientIdB, 'rawB, 'horizontalAccuracyB, 'verticalAccuracyB, 'batteryLevelB, 'courseB, 'speedB, 'calculatedSpeedB) -> (Tuples.CheckinIdDTO append ('serviceType))) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
@@ -65,11 +67,16 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
                 checkin.course = DoubleSerializer.get.fromByteBuffer(course)
                 checkin.speed = DoubleSerializer.get.fromByteBuffer(speed)
                 checkin.calculatedSpeed = DoubleSerializer.get.fromByteBuffer(calculatedSpeed)
-                Some((checkin.id, checkin))
+                Some((checkin.id, checkin, checkin.serviceType))
             }
         }
     }
 
     val checkinsOutput = args("checkinsOut")
     checkins.write(SequenceFile(checkinsOutput, Fields.ALL))
+
+    // write stats
+    checkins.groupBy('serviceType) {
+        _.size
+    }.write(Tsv(checkinsOutput + "_stats", ('serviceType, 'size)))
 }
