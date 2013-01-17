@@ -21,8 +21,8 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
     val export = args.optional("export").map(_.toBoolean).getOrElse(true)
     val profileViews = args.optional("profileViews").map(_.toBoolean).getOrElse(true)
 
-    val serviceProfileFile = SequenceFile(output + "_ServiceProfile", ('profileId, 'profile, 'serviceType))
-    val profileViewFile = SequenceFile(output + "_ProfileView", ('profileId, 'profile, 'serviceType))
+    val serviceProfileFile = SequenceFile(output + "_ServiceProfile", Tuples.ProfileIdDTO)
+    val profileViewFile = SequenceFile(output + "_ProfileView", Tuples.ProfileIdDTO)
 
     def parseProfiles(pipe: RichPipe) = pipe.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
         jsondataBuffer: ByteBuffer =>

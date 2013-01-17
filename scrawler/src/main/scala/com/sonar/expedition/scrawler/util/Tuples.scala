@@ -9,7 +9,7 @@ object Tuples extends TupleConversions {
     val PlaceInference = ('userGoldenId, 'location, 'numVisits, 'canonicalVenueId, 'score, 'timeSegment)
     val CheckinIdDTO = ('checkinId, 'checkinDto)
     val VenueIdDTO = ('venueId, 'venueDto)
-    val ProfileIdDTO = ('profileId, 'profileDto)
+    val ProfileIdDTO = ('profileId, 'profileDto, 'serviceType)
     val Checkin = ('serType, 'serProfileID, 'serCheckinID, 'venId, 'venName, 'venAddress, 'chknTime, 'lat, 'lng, 'msg)
     val Correlation = ('correlationId, 'correlationSPL)
     val Matrix = ('x, 'y, 'val)
