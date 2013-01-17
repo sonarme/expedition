@@ -18,7 +18,7 @@ case class UserLocationDTO(@BeanProperty user: String,
         doc.add(new StringField(IndexField.User.toString, user, Field.Store.YES))
         if (geoData != null) doc.add(new StringField(IndexField.Geosector.toString, GeoHash.withBitPrecision(geoData.latitude, geoData.longitude, 32).longValue().toString, Field.Store.YES))
         if (ip != null) doc.add(new StringField(IndexField.Ip.toString, ip, Field.Store.YES))
-        if (timeSegment != null) doc.add(new StringField(IndexField.TimeSegment.toString, timeSegment.toString, Field.Store.YES))
+        if (timeSegment != null) doc.add(new StringField(IndexField.TimeSegment.toString, timeSegment.toIndexableString, Field.Store.YES))
         doc
     }
 }
