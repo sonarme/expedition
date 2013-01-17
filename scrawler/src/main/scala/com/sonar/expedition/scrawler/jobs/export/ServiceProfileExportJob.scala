@@ -18,20 +18,13 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
     val rpcHostArg = args("rpcHost")
     val output = args("canonicalProfilesOut")
 
-    // Load ServiceProfile CF
-    val serviceProfiles = CassandraSource(
-        rpcHost = rpcHostArg,
-        additionalConfig = ppmap(args),
-        keyspaceName = "dossier",
-        columnFamilyName = "ServiceProfile",
-        scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
-            nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
-    ).read.filter('columnNameBuffer) {
-        columnNameBuffer: ByteBuffer =>
-            val columnName = StringSerializer.get().fromByteBuffer(columnNameBuffer)
-            // filter out id and link columns
-            columnName.startsWith("data:") || columnName.contains(":data:")
-    }.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
+    val export = args.optional("export").map(_.toBoolean).getOrElse(true)
+    val profileViewsOnly = args.optional("profileViewsOnly").map(_.toBoolean).getOrElse(true)
+
+    val serviceProfileFile = SequenceFile(output + "_ServiceProfile", ('profileId, 'profile, 'serviceType))
+    val profileViewFile = SequenceFile(output + "_ProfileView", ('profileId, 'profile, 'serviceType))
+
+    def parseProfiles(pipe: RichPipe) = pipe.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
         jsondataBuffer: ByteBuffer =>
             if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
             else {
@@ -45,55 +38,42 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
                 require(profile.userId != null)
                 Some((profile.link, profile, profile.serviceType))
             }
+    }
 
-    }.write(SequenceFile(output + "_ServiceProfile", ('profileId, 'profile, 'serviceType)))
-
-    // Load ProfileView CF
-    val profileViews = CassandraSource(
-        rpcHost = rpcHostArg,
-        additionalConfig = ppmap(args),
-        keyspaceName = "dossier",
-        columnFamilyName = "ProfileView",
-        scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
-            nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
-    ).read.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
-        jsondataBuffer: ByteBuffer =>
-            if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
-            else {
-                val profile = try {
-                    ProfileSerializer.fromByteBuffer(jsondataBuffer)
-                } catch {
-                    case jpe: com.fasterxml.jackson.core.JsonParseException =>
-                        throw new RuntimeException("reading profile: " + StringSerializer.get().fromByteBuffer(jsondataBuffer), jpe)
-                }
-                require(profile.serviceType != null)
-                require(profile.userId != null)
-                Some((profile.link, profile, profile.serviceType))
+    if (export) {
+        if (!profileViewsOnly) {
+            // Load ServiceProfile CF
+            val serviceProfiles = CassandraSource(
+                rpcHost = rpcHostArg,
+                additionalConfig = ppmap(args),
+                keyspaceName = "dossier",
+                columnFamilyName = "ServiceProfile",
+                scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
+                    nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
+            ).read.filter('columnNameBuffer) {
+                columnNameBuffer: ByteBuffer =>
+                    val columnName = StringSerializer.get().fromByteBuffer(columnNameBuffer)
+                    // filter out id and link columns
+                    columnName.startsWith("data:") || columnName.contains(":data:")
             }
+            parseProfiles(serviceProfiles).write(serviceProfileFile)
+        }
 
-    }.write(SequenceFile(output + "_ProfileView", ('profileId, 'profile, 'serviceType)))
-    /*
+        // Load ProfileView CF
+        val profileViews = CassandraSource(
+            rpcHost = rpcHostArg,
+            additionalConfig = ppmap(args),
+            keyspaceName = "dossier",
+            columnFamilyName = "ProfileView",
+            scheme = WideRowScheme(keyField = 'userProfileIdBuffer,
+                nameValueFields = ('columnNameBuffer, 'jsondataBuffer))
+        ).read
+        parseProfiles(profileViews).write(profileViewFile)
+    }
+    else {
+
         // Combine profile pipes
-        val jsonData = serviceProfiles ++ profileViews
-
-        // Read JSON data into DTO
-        val allProfiles =
-            jsonData.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
-                jsondataBuffer: ByteBuffer =>
-                    if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
-                    else {
-                        val profile = try {
-                            ProfileSerializer.fromByteBuffer(jsondataBuffer)
-                        } catch {
-                            case jpe: com.fasterxml.jackson.core.JsonParseException =>
-                                throw new RuntimeException("reading profile: " + StringSerializer.get().fromByteBuffer(jsondataBuffer), jpe)
-                        }
-                        require(profile.serviceType != null)
-                        require(profile.userId != null)
-                        Some((profile.link, profile, profile.serviceType))
-                    }
-
-            }
+        val allProfiles = serviceProfileFile.read ++ profileViewFile.read
 
         // Read Correlation CF
         val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation).read
@@ -148,8 +128,8 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
             }.map('serviceType -> 'statName) {
                 serviceType: ServiceType => "num_" + serviceType.name()
             }.project('statName, 'size)
-        (numCorrelated ++ numServiceType).write(Tsv(output + "_stats", ('statName, 'size)))*/
-
+        (numCorrelated ++ numServiceType).write(Tsv(output + "_stats", ('statName, 'size)))
+    }
 }
 
 object ServiceProfileExportJob {
