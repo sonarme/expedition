@@ -19,27 +19,28 @@ object GenderFromNameProbability {
     val splitName = """([a-zA-Z\d]+)\s*(.*)""".r
 
     @transient
-    def gender(name: String) = {
+    def gender(name: String) =
+        if (name == null) Gender.unknown -> 0.0
+        else {
+            val firstName = name match {
+                case splitName(first, second) => first
+                case name => name //firstname always exists, it will come here only if name is null or an empty string in which case "unknown::0.0" will be returned.
+            }
+            val upperCaseName = firstName.toUpperCase
+            val maleprob = malelist.getOrElse(upperCaseName, 0.0)
+            val femaleprob = femalelist.getOrElse(upperCaseName, 0.0)
 
-        val firstName = name match {
-            case splitName(first, second) => first
-            case name => name //firstname always exists, it will come here only if name is null or an empty string in which case "unknown::0.0" will be returned.
+            val prob = maleprob / (maleprob + femaleprob)
+
+            if (maleprob > femaleprob) {
+                Gender.male -> prob
+            } else if (maleprob < femaleprob) {
+                Gender.female -> (1 - prob)
+            } else {
+                Gender.unknown -> 0.0
+            }
         }
-        val upperCaseName = firstName.toUpperCase
-        val maleprob = malelist.getOrElse(upperCaseName, 0.0)
-        val femaleprob = femalelist.getOrElse(upperCaseName, 0.0)
 
-        val prob = maleprob / (maleprob + femaleprob)
-
-        if (maleprob > femaleprob) {
-            Gender.male -> prob
-        } else if (maleprob < femaleprob) {
-            Gender.female -> (1 - prob)
-        } else {
-            Gender.unknown -> 0.0
-        }
-
-    }
 }
 
 

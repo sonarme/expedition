@@ -24,7 +24,7 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
     val serviceProfileFile = SequenceFile(output + "_ServiceProfile", Tuples.ProfileIdDTO)
     val profileViewFile = SequenceFile(output + "_ProfileView", Tuples.ProfileIdDTO)
 
-    def parseProfiles(pipe: RichPipe) = pipe.flatMapTo('jsondataBuffer ->('profileId, 'profile, 'serviceType)) {
+    def parseProfiles(pipe: RichPipe) = pipe.flatMapTo('jsondataBuffer -> Tuples.ProfileIdDTO) {
         jsondataBuffer: ByteBuffer =>
             if (jsondataBuffer == null || !jsondataBuffer.hasRemaining) None
             else {
@@ -74,19 +74,25 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
     else {
 
         // Combine profile pipes
-        val allProfiles = serviceProfileFile.read ++ profileViewFile.read
+        val allProfiles =
+            IterableSource(Seq(
+                (ServiceProfileLink(ServiceType.foursquare, "x"), ServiceProfileDTO(ServiceType.foursquare, "sonar"), ServiceType.sonar)
+            ), Tuples.ProfileIdDTO).read
+
+        //serviceProfileFile.read ++ profileViewFile.read
 
         // Read Correlation CF
-        val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation).read
+        val correlation = IterableSource(Seq(("x", ServiceProfileLink(ServiceType.foursquare, "x"))), Tuples.Correlation).read
+        //SequenceFile(args("correlationIn"), Tuples.Correlation).read
 
         val correlatedProfiles =
         // join correlation
             allProfiles.leftJoinWithSmaller('profileId -> 'correlationSPL, correlation).discard('correlationSPL)
                     // replace non-existing correlation with profile id temporary correlation id
                     .map(('profileId, 'correlationId) -> 'correlationId) {
-                in: (ServiceProfileLink, ServiceProfileLink) =>
+                in: (ServiceProfileLink, String) =>
                     val (profileId, correlationId) = in
-                    if (correlationId == null) profileId else correlationId
+                    if (correlationId == null) profileId.profileId else correlationId
             }
                     // aggregate profiles in the correlation
                     .groupBy('correlationId) {
@@ -106,11 +112,11 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
         // expand correlation
         val expandedProfiles =
             correlatedProfiles.leftJoinWithSmaller('correlationId -> '_correlationId, correlation.rename('correlationId -> '_correlationId)).discard('_correlationId)
-                    .map(('correlationId, 'correlationSPL) -> 'profileId) {
-                in: (ServiceProfileLink, ServiceProfileLink) =>
-                    val (profileId, correlationProfileId) = in
-                    val spl = if (correlationProfileId == null) profileId else correlationProfileId
-                    spl
+                    .map(('profileDto, 'correlationSPL) ->('profileId, 'serviceType)) {
+                in: (ServiceProfileDTO, ServiceProfileLink) =>
+                    val (profile, correlationSPL) = in
+                    val spl = if (correlationSPL == null) profile.link else correlationSPL
+                    (spl, spl.serviceType)
             }
 
 
