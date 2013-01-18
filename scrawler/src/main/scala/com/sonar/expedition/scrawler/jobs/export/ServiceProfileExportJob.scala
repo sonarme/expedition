@@ -125,7 +125,7 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
             }.project('statName, 'size)
         val numServiceType =
             allProfiles.discard('profileDto).unique('profileId, 'serviceType).groupBy('serviceType) {
-                _.size
+                _.size.reducers(1)
             }.map('serviceType -> 'statName) {
                 serviceType: ServiceType => "num_" + serviceType.name()
             }.project('statName, 'size)

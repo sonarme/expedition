@@ -81,12 +81,12 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
         }
         // write stats
         val serviceTypeStats = reducedCheckins.groupBy('serviceType) {
-            _.size
+            _.size.reducers(1)
         }.map(('serviceType) -> 'statName) {
             serviceType: ServiceType => "num_" + serviceType.name()
         }.project('statName, 'size)
         val hasIpStats = reducedCheckins.groupBy('hasIp) {
-            _.size
+            _.size.reducers(1)
         }.map('hasIp -> 'statName) {
             hasIp: Boolean => "num_hasIp_" + hasIp
         }.project('statName, 'size)

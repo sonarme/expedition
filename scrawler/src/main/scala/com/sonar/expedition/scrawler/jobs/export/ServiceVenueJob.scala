@@ -34,7 +34,7 @@ class ServiceVenueJob(args: Args) extends DefaultJob(args) with Normalizers {
     venues.write(SequenceFile(argsVenues, Tuples.VenueIdDTO))
     venues.discard('venueDto).groupBy('raw) {
         // write some stats so we know how many venues from raw we have
-        _.size
+        _.size.reducers(1)
     }.write(Tsv(argsStats, ('raw, 'size)))
 
 
