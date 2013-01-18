@@ -33,7 +33,7 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
         scheme = NarrowRowScheme(keyField = 'idB,
             valueFields = ('viewingUserSonarIdB, 'checkinTimeB, 'serviceTypeB, 'serviceProfileIdB, 'latitudeB, 'longitudeB, 'venueNameB, 'venueAddressB, 'venueSiteUrlB, 'venueIdB, 'messageB, 'serviceCheckinIdB, 'notPublicB, 'clientIdB, 'rawB, 'horizontalAccuracyB, 'verticalAccuracyB, 'batteryLevelB, 'courseB, 'speedB, 'calculatedSpeedB),
             columnNames = List("viewingUserSonarId", "checkinTime", "serviceType", "serviceProfileId", "latitude", "longitude", "venueName", "venueAddress", "venueSiteUrl", "venueId", "message", "serviceCheckinId", "notPublic", "clientId", "raw", "horizontalAccuracy", "verticalAccuracy", "batteryLevel", "course", "speed", "calculatedSpeed"))
-    ).flatMapTo(('idB, 'viewingUserSonarIdB, 'checkinTimeB, 'serviceTypeB, 'serviceProfileIdB, 'latitudeB, 'longitudeB, 'venueNameB, 'venueAddressB, 'venueSiteUrlB, 'venueIdB, 'messageB, 'serviceCheckinIdB, 'notPublicB, 'clientIdB, 'rawB, 'horizontalAccuracyB, 'verticalAccuracyB, 'batteryLevelB, 'courseB, 'speedB, 'calculatedSpeedB) -> (Tuples.CheckinIdDTO append ('serviceType))) {
+    ).flatMapTo(('idB, 'viewingUserSonarIdB, 'checkinTimeB, 'serviceTypeB, 'serviceProfileIdB, 'latitudeB, 'longitudeB, 'venueNameB, 'venueAddressB, 'venueSiteUrlB, 'venueIdB, 'messageB, 'serviceCheckinIdB, 'notPublicB, 'clientIdB, 'rawB, 'horizontalAccuracyB, 'verticalAccuracyB, 'batteryLevelB, 'courseB, 'speedB, 'calculatedSpeedB) -> (Tuples.CheckinIdDTO append('hasIp, 'serviceType))) {
         in: (ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
                 ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer, ByteBuffer,
@@ -67,16 +67,26 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
                 checkin.course = DoubleSerializer.get.fromByteBuffer(course)
                 checkin.speed = DoubleSerializer.get.fromByteBuffer(speed)
                 checkin.calculatedSpeed = DoubleSerializer.get.fromByteBuffer(calculatedSpeed)
-                Some((checkin.id, checkin, checkin.serviceType))
+                Some((checkin.id, checkin, checkin.ip != null, checkin.serviceType))
             }
         }
     }
 
     val checkinsOutput = args("checkinsOut")
-    checkins.write(SequenceFile(checkinsOutput, Fields.ALL))
+    checkins.write(SequenceFile(checkinsOutput, Tuples.CheckinIdDTO))
 
+    val reducedCheckins = checkins.discard('checkinDto)
     // write stats
-    checkins.groupBy('serviceType) {
+    val serviceTypeStats = reducedCheckins.groupBy('serviceType) {
         _.size
-    }.write(Tsv(checkinsOutput + "_stats", ('serviceType, 'size)))
+    }.map(('serviceType) -> 'statName) {
+        serviceType: ServiceType => "num_" + serviceType.name()
+    }.project('statName, 'size)
+    val hasIpStats = reducedCheckins.groupBy('hasIp) {
+        _.size
+    }.map('hasIp -> 'statName) {
+        hasIp: Boolean => "num_hasIp_" + hasIp
+    }.project('statName, 'size)
+
+    (serviceTypeStats ++ hasIpStats).write(Tsv(checkinsOutput + "_stats", ('statName, 'size)))
 }

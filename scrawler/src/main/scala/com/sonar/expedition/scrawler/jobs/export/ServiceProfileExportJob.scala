@@ -74,16 +74,10 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
     else {
 
         // Combine profile pipes
-        val allProfiles =
-            IterableSource(Seq(
-                (ServiceProfileLink(ServiceType.foursquare, "x"), ServiceProfileDTO(ServiceType.foursquare, "sonar"), ServiceType.sonar)
-            ), Tuples.ProfileIdDTO).read
-
-        //serviceProfileFile.read ++ profileViewFile.read
+        val allProfiles = serviceProfileFile.read ++ profileViewFile.read
 
         // Read Correlation CF
-        val correlation = IterableSource(Seq(("x", ServiceProfileLink(ServiceType.foursquare, "x"))), Tuples.Correlation).read
-        //SequenceFile(args("correlationIn"), Tuples.Correlation).read
+        val correlation = SequenceFile(args("correlationIn"), Tuples.Correlation).read
 
         val correlatedProfiles =
         // join correlation
@@ -124,13 +118,13 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
 
         // Statistics about profiles
         val numCorrelated =
-            correlatedProfiles.groupAll {
+            correlatedProfiles.discard('profileDto).groupAll {
                 _.size
             }.map(() -> 'statName) {
                 u: Unit => "num_correlated"
             }.project('statName, 'size)
         val numServiceType =
-            allProfiles.unique('profileId, 'serviceType).groupBy('serviceType) {
+            allProfiles.discard('profileDto).unique('profileId, 'serviceType).groupBy('serviceType) {
                 _.size
             }.map('serviceType -> 'statName) {
                 serviceType: ServiceType => "num_" + serviceType.name()
