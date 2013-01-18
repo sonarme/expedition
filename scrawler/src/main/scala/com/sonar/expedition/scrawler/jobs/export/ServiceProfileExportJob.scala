@@ -90,12 +90,12 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
             }
                     // aggregate profiles in the correlation
                     .groupBy('correlationId) {
-                _.reduce('profile -> 'combinedProfile) {
+                _.reduce('profileDto -> 'combinedProfile) {
                     (profileAgg: ServiceProfileDTO, profile: ServiceProfileDTO) =>
                         populateNonEmpty(profileAgg, profile)
                 }
-            }.rename('combinedProfile -> 'profile)
-                    .map('profile -> 'profile) {
+            }.rename('combinedProfile -> 'profileDto)
+                    .map('profileDto -> 'profileDto) {
                 profile: ServiceProfileDTO =>
                 // infer gender from name if unknown
                     if (profile.gender == Gender.unknown)
@@ -114,7 +114,7 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
             }
 
 
-        expandedProfiles.write(SequenceFile(output, Tuples.Profile))
+        expandedProfiles.write(SequenceFile(output, Tuples.ProfileIdDTO))
 
         // Statistics about profiles
         val numCorrelated =
