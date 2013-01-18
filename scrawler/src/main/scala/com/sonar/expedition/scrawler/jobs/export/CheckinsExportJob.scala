@@ -34,7 +34,7 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
             scheme = NarrowRowScheme(keyField = 'idB,
                 valueFields = ('viewingUserSonarIdB, 'checkinTimeB, 'serviceTypeB, 'serviceProfileIdB, 'latitudeB, 'longitudeB, 'venueNameB, 'venueAddressB, 'venueSiteUrlB, 'venueIdB, 'messageB, 'serviceCheckinIdB, 'notPublicB, 'clientIdB, 'rawB, 'horizontalAccuracyB, 'verticalAccuracyB, 'batteryLevelB, 'courseB, 'speedB, 'calculatedSpeedB, 'ipB),
                 columnNames = List("viewingUserSonarId", "checkinTime", "serviceType", "serviceProfileId", "latitude", "longitude", "venueName", "venueAddress", "venueSiteUrl", "venueId", "message", "serviceCheckinId", "notPublic", "clientId", "raw", "horizontalAccuracy", "verticalAccuracy", "batteryLevel", "course", "speed", "calculatedSpeed", "ipB"))
-        ).flatMapTo(Fields.ALL -> (Tuples.CheckinIdDTO append('hasIp, 'serviceType))) {
+        ).flatMapTo(Fields.ALL -> Tuples.CheckinIdDTO) {
             in: Tuple => {
                 val tuple = new TupleWrapper(in)
                 val latitude = tuple(5)
@@ -68,7 +68,7 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
                     checkin.speed = DoubleSerializer.get.fromByteBuffer(tuple(20))
                     checkin.calculatedSpeed = DoubleSerializer.get.fromByteBuffer(tuple(21))
                     checkin.ip = StringSerializer.get.fromByteBuffer(tuple(22))
-                    Some((checkin.id, checkin, checkin.ip != null, checkin.serviceType))
+                    Some((checkin.id, checkin))
                 }
             }
         }
@@ -76,7 +76,9 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
         checkins.write(SequenceFile(checkinsOutput, Tuples.CheckinIdDTO))
     } else {
         val checkins = SequenceFile(checkinsOutput, Tuples.CheckinIdDTO).read
-        val reducedCheckins = checkins.discard('checkinDto)
+        val reducedCheckins = checkins.mapTo('checkinDto ->('hasIp, 'serviceType)) {
+            checkin: CheckinDTO => (checkin.ip != null, checkin.serviceType)
+        }
         // write stats
         val serviceTypeStats = reducedCheckins.groupBy('serviceType) {
             _.size
