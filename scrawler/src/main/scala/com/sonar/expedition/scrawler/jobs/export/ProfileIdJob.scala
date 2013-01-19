@@ -3,6 +3,7 @@ package com.sonar.expedition.scrawler.jobs.export
 import com.sonar.expedition.scrawler.jobs.DefaultJob
 import com.twitter.scalding.{Tsv, SequenceFile, Args}
 import com.sonar.expedition.scrawler.util.Tuples
+import com.sonar.dossier.dto.ServiceProfileLink
 
 class ProfileIdJob(args: Args) extends DefaultJob(args) {
     val in = args("in")
@@ -11,5 +12,7 @@ class ProfileIdJob(args: Args) extends DefaultJob(args) {
 
     // Combine profile pipes
     val allProfiles = serviceProfileFile.read ++ profileViewFile.read
-    allProfiles.unique('profileId).write(Tsv(in + "_ids"))
+    allProfiles.map('profileId -> 'profileIdStr) {
+        spl: ServiceProfileLink => spl.profileId
+    }.unique('profileIdStr).write(Tsv(in + "_ids"))
 }
