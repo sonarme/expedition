@@ -4,22 +4,21 @@ import org.apache.lucene.store.{FSDirectory, RAMDirectory, Directory}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.util.Version
-import org.apache.lucene.index.{Term, DirectoryReader, IndexWriter, IndexWriterConfig}
+import org.apache.lucene.index.{IndexReader, Term, DirectoryReader, IndexWriterConfig}
 import org.apache.lucene.index.IndexWriterConfig.OpenMode
 import java.util.Date
 import org.apache.lucene.search._
-import org.apache.lucene.queryparser.classic.QueryParser
-import org.apache.lucene.queries.mlt.MoreLikeThis
 import com.sonar.expedition.scrawler.dto.indexable.IndexField.IndexField
 import com.sonar.expedition.scrawler.dto.indexable.{Indexable, IndexField, UserDTO}
-import org.apache.lucene.queries.{FilterClause, TermsFilter, BooleanFilter}
-import java.io.File
 import reflect.BeanProperty
+import org.apache.blur.index.IndexWriter
+import similar.MoreLikeThis
+import org.apache.lucene.queryParser.QueryParser
 
 //TODO: Spring
 class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create: Boolean = false) extends SearchService {
-    val analyzer: Analyzer = new StandardAnalyzer(Version.LUCENE_40)
-    val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_40, analyzer).setOpenMode( if(create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
+    val analyzer: Analyzer = new StandardAnalyzer(Version.LUCENE_36)
+    val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_36, analyzer).setOpenMode( if(create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
 
     def index(indexable: Indexable) = {
         val start = new Date()
@@ -45,9 +44,9 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
     }
 
     def search(field: IndexField, queryStr: String) = {
-        val indexReader = DirectoryReader.open(directory)
+        val indexReader = IndexReader.open(directory)
         val indexSearcher = new IndexSearcher(indexReader)
-        val queryParser = new QueryParser(Version.LUCENE_40, field.toString, analyzer)
+        val queryParser = new QueryParser(Version.LUCENE_36, field.toString, analyzer)
 
         val query = field match {
             case IndexField.Geohash => NumericRangeQuery.newLongRange(IndexField.Geohash.toString, queryStr.toLong, queryStr.toLong, true, true)
@@ -66,7 +65,7 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
     }
 
     def moreLikeThis(docNum: Int, moreLikeThisfields: List[IndexField]) = {
-        val reader = DirectoryReader.open(directory)
+        val reader = IndexReader.open(directory)
         val start = new Date()
         val mlt = new MoreLikeThis(reader)
 //        mlt.setBoost(true)
@@ -109,5 +108,5 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
         */
     }
 
-    def numDocs = DirectoryReader.open(directory).numDocs()
+    def numDocs = IndexReader.open(directory).numDocs()
 }
