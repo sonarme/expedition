@@ -33,6 +33,7 @@ object Tuples extends TupleConversions {
         val UserPlaceTimeMap = ('userGoldenId, 'placeType, 'timeSegments)
         val CategoryAttributes = ('ageBracket, 'gender, 'incomeBracket, 'education, 'placeType, 'placeFrequencyThreshold, 'profileCategory)
         val UserCategories = ('userGoldenId, 'categories)
+        val UserLocation = ('userLocation)
     }
 
 }

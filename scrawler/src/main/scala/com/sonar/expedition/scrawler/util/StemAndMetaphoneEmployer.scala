@@ -11,8 +11,6 @@ import java.io.StringReader
 import collection._
 import collection.JavaConversions._
 import org.apache.lucene.analysis.tokenattributes.{CharTermAttribute}
-import org.apache.lucene.analysis.core.StopAnalyzer
-import org.apache.lucene.analysis.util.CharArraySet
 import scala.Predef._
 import scala.Tuple4
 import scala.Some
@@ -25,7 +23,7 @@ object StemAndMetaphoneEmployer extends Serializable {
     @transient
     val metaphoneWithCodeLength = new DoubleMetaphone
     metaphoneWithCodeLength.setMaxCodeLen(6)
-    val StopWords = CharArraySet.copy(Version.LUCENE_40, StandardAnalyzer.STOP_WORDS_SET ++ Set(Version.LUCENE_40, Set("inc", "incorporated", "co", "ltd", "llc", "group", "corp", "corporation", "company", "limited", "hq"), true))
+    val StopWords = StandardAnalyzer.STOP_WORDS_SET ++ Set("inc", "incorporated", "co", "ltd", "llc", "group", "corp", "corporation", "company", "limited", "hq")
 
     @transient
     def metaphoner(maxCodeLength: Option[Int] = None) = {
@@ -42,7 +40,7 @@ object StemAndMetaphoneEmployer extends Serializable {
     def extractTokens(tokenString: String): Seq[String] =
         if (tokenString == null) Seq.empty[String]
         else {
-            val tokenStream = new StandardAnalyzer(Version.LUCENE_40, StopWords).tokenStream("textField", new StringReader(tokenString))
+            val tokenStream = new StandardAnalyzer(Version.LUCENE_36, StopWords).tokenStream("textField", new StringReader(tokenString))
             try {
                 val tokens = mutable.ListBuffer[String]()
                 while (tokenStream.incrementToken()) {
