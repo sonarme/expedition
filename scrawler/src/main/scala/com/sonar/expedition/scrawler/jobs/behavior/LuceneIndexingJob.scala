@@ -47,9 +47,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
         .map(('userLocation) -> ('indexed)) {
         userlocation: UserLocationDTO => {
 
-            val filePath = new Path("hdfs://localhost:8020/lucene")
-//            val fs = FileSystem.get(filePath.toUri, new Configuration())
-//            fs.delete(filePath, true)
+            val filePath = new Path(args("hdfsPath"))
 
             val hdfsDirectory = new HdfsDirectory(filePath)
             hdfsDirectory.setLockFactory(NoLockFactory.getNoLockFactory)
@@ -58,22 +56,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
             indexWriter.addDocument(userlocation.getDocument())
             indexWriter.close()
 
-            val indexReader = IndexReader.open(hdfsDirectory)
-            val indexSearcher = new IndexSearcher(indexReader)
-            val queryParser = new QueryParser(Version.LUCENE_36, IndexField.Ip.toString, new StandardAnalyzer(Version.LUCENE_36))
-            val query = queryParser.parse("1.2.3.4")
-            val hits = indexSearcher.search(query, 10)
-
-            println("numDocs: " + IndexReader.open(hdfsDirectory).numDocs())
-            println("  Searching for: " + query.toString(IndexField.Ip.toString))
-            println("hits: " + hits.totalHits)
-
             hdfsDirectory.close()
-//            fs.close()
-//            val searchService = new SearchServiceImpl(hdfsDirectory, true)
-
-//            searchService.index(user)
-//            searchService.search(IndexField.Categories, "gymrat")
 
             "success"
         }
