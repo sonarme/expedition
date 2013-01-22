@@ -11,15 +11,16 @@ class ProfileIdJob(args: Args) extends DefaultJob(args) {
     val profileViewFile = SequenceFile(in + "_ProfileView", Tuples.ProfileIdDTO)
 
     // Combine profile pipes
-    val allProfiles = (serviceProfileFile.read ++ profileViewFile.read).map('profileId -> 'profileId) {
-        spl: ServiceProfileLink => spl.profileId
-    }
+    val allProfiles = (serviceProfileFile.read ++ profileViewFile.read).mapTo(('profileId, 'serviceType) ->('profileId, 'serviceType)) {
+        in: (ServiceProfileLink, ServiceType) => (in._1.profileId, in._2.name())
+    }.write(Tsv(in + "_allids", ('profileId, 'serviceType)))
+
     val numServiceType =
-        allProfiles.discard('profileDto).unique('profileId, 'serviceType).groupBy('serviceType) {
-            _.size.reducers(1)
+        allProfiles.unique('profileId, 'serviceType).write(Tsv(in + "_allids_unique", ('profileId, 'serviceType))).groupBy('serviceType) {
+            _.size
         }.map('serviceType -> 'statName) {
             serviceType: ServiceType => "num_" + serviceType.name()
         }.project('statName, 'size)
-    numServiceType.write(Tsv(in + "_stats2", ('statName, 'size)))
+    numServiceType.write(Tsv(in + "_stats", ('statName, 'size)))
 
 }
