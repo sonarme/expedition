@@ -64,11 +64,6 @@
         </dependency>
         <dependency>
             <groupId>com.twitter</groupId>
-            <artifactId>chill_2.9.2</artifactId>
-            <version>0.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.twitter</groupId>
             <artifactId>scalding_2.9.2</artifactId>
             <version>0.8.2</version>
             <exclusions>
