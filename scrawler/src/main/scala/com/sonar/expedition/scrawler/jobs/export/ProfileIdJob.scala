@@ -19,7 +19,7 @@ class ProfileIdJob(args: Args) extends DefaultJob(args) {
         allProfiles.unique('profileId, 'serviceType).write(Tsv(in + "_allids_unique", ('profileId, 'serviceType))).groupBy('serviceType) {
             _.size
         }.map('serviceType -> 'statName) {
-            serviceType: ServiceType => "num_" + serviceType.name()
+            serviceType: String => "num_" + serviceType
         }.project('statName, 'size)
     numServiceType.write(Tsv(in + "_stats", ('statName, 'size)))
 
