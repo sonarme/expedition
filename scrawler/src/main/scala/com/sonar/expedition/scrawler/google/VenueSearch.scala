@@ -9,6 +9,7 @@ import org.json.JSONObject
 import org.joda.time.DateTime
 import com.sonar.expedition.scrawler.jobs.{DefaultJob, DealLocation}
 import com.sonar.expedition.scrawler.google.VenueSearch._
+import collection.JavaConversions._
 
 class VenueSearch(args: Args) extends DefaultJob(args) {
 

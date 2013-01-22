@@ -1,18 +1,20 @@
 package com.sonar.expedition.scrawler.jobs.export
 
-import com.twitter.scalding.{Tsv, Args, SequenceFile}
+import com.twitter.scalding._
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.jobs.{CheckinSource, DefaultJob}
 import com.sonar.dossier.dto.{CheckinDTO, ServiceProfileDTO, ServiceProfileLink}
 import cascading.tuple.Fields
 import cascading.kryo.KryoFactory
 import org.scala_tools.time.Imports._
-import com.twitter.scalding.SequenceFile
-import com.twitter.scalding.Tsv
 import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer
 import com.sonar.expedition.scrawler.serializer.{HashMapSerializer, HashSetSerializer, ArrayListSerializer}
 import com.esotericsoftware.kryo.{Kryo, Serializer}
 import com.esotericsoftware.kryo.io.{Output, Input}
+import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.dossier.dto.ServiceProfileLink
+import com.twitter.scalding.SequenceFile
+import com.twitter.scalding.Tsv
 
 class DataVerificationJob(args: Args) extends DefaultJob(args) with CheckinSource {
     val newIn = args("newIn")
@@ -20,7 +22,7 @@ class DataVerificationJob(args: Args) extends DefaultJob(args) with CheckinSourc
 
     val dataType = args("dataType")
 
-    override def config =
+    override def config(implicit mode: Mode) =
         super.config ++
                 Map(KryoFactory.KRYO_REGISTRATIONS ->
                         Seq(classOf[DateTime].getCanonicalName + "," + classOf[JodaDateTimeSerializer].getCanonicalName,

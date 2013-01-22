@@ -13,6 +13,7 @@ import com.sonar.dossier.ScalaGoodies._
 import java.nio.ByteBuffer
 import me.prettyprint.cassandra.serializers.StringSerializer
 import org.apache.cassandra.utils.ByteBufferUtil
+import collection.JavaConversions._
 
 case class ProfileData(key: String,
                        name: String = "",

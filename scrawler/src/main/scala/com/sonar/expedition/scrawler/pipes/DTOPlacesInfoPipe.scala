@@ -7,6 +7,7 @@ import scala.Array
 import com.sonar.expedition.scrawler.dto.PlacesClassifiersDTO
 import com.sonar.expedition.scrawler.dto.PlacesDTO
 import com.fasterxml.jackson.module.scala.JacksonModule
+import collection.JavaConversions._
 
 
 trait DTOPlacesInfoPipe extends ScaldingImplicits {

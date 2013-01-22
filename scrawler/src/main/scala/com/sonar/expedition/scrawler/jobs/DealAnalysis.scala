@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.`type`.TypeReference
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import scala.Option
+import collection.JavaConversions._
 
 class DealAnalysis(args: Args) extends DefaultJob(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")

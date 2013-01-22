@@ -14,6 +14,7 @@ import org.apache.http.client.methods.HttpGet
 import com.sonar.expedition.scrawler.publicprofile.PublicProfileCrawlerUtils
 import util.Random
 import org.apache.http.util.EntityUtils
+import collection.JavaConversions._
 
 class DealVenueSearchCorrelationJob(args: Args) extends DefaultJob(args) with ParseFilter {
 

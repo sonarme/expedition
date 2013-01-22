@@ -9,6 +9,7 @@ import java.io.{FileReader, FileInputStream, InputStreamReader}
 import org.apache.commons.lang.StringUtils
 import java.util.Date
 import com.sonar.expedition.scrawler.jobs.DefaultJob
+import collection.JavaConversions._
 
 /**
  * Write the links in a sitemap into a Tsv file specified by the output

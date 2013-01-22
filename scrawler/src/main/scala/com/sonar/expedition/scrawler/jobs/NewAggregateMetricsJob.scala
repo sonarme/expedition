@@ -9,6 +9,7 @@ import cascading.scheme.Scheme
 import org.apache.hadoop.mapred.{OutputCollector, RecordReader, JobConf}
 import com.fasterxml.jackson.databind.{SerializationFeature, DeserializationFeature, ObjectMapper}
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import collection.JavaConversions._
 
 class NewAggregateMetricsJob(args: Args) extends DefaultJob(args) {
     val dealsOutput = args("dealsOutput")

@@ -5,6 +5,7 @@ import com.sonar.expedition.scrawler.util.{StemAndMetaphoneEmployer, CommonFunct
 import cascading.pipe.joiner.LeftJoin
 import cascading.tuple.Fields
 import com.sonar.dossier.dto.ServiceType
+import collection.JavaConversions._
 
 
 trait BuzzFromCheckins extends ScaldingImplicits {

@@ -55,7 +55,8 @@ trait JobImplicits {
     implicit def read(src: Source): Pipe = src.read
 
     def write(pipe: Pipe, src: Source) {
-        src.write(pipe)
+        src.writeFrom(pipe)
     }
+
 
 }

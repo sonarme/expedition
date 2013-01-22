@@ -10,6 +10,7 @@ import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import ch.hsr.geohash.util.VincentyGeodesy
 import ch.hsr.geohash.WGS84Point
+import collection.JavaConversions._
 
 class VenueFetchJob(args: Args) extends DefaultJob(args) with PlacesCorrelation with CheckinGrouperFunction with CheckinSource {
     val placeClassification = args("placeClassification")

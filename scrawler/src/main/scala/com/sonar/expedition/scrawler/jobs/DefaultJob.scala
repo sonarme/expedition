@@ -1,6 +1,6 @@
 package com.sonar.expedition.scrawler.jobs
 
-import com.twitter.scalding.{Args, Job}
+import com.twitter.scalding.{Mode, Args, Job}
 import cascading.kryo.KryoFactory
 import org.scala_tools.time.Imports._
 import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer
@@ -8,7 +8,7 @@ import com.sonar.expedition.scrawler.serializer.{HashMapSerializer, HashSetSeria
 
 class DefaultJob(args: Args) extends Job(args) {
 
-    override def config =
+    override def config(implicit mode: Mode) =
         super.config ++
                 Map(KryoFactory.KRYO_REGISTRATIONS ->
                         Seq(classOf[DateTime].getCanonicalName + "," + classOf[JodaDateTimeSerializer].getCanonicalName,
