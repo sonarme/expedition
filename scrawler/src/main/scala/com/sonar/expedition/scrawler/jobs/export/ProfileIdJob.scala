@@ -12,7 +12,7 @@ class ProfileIdJob(args: Args) extends DefaultJob(args) {
 
     // Combine profile pipes
     val allProfiles = (serviceProfileFile.read ++ profileViewFile.read).mapTo(('profileId, 'serviceType) ->('profileId, 'serviceType)) {
-        in: (ServiceProfileLink, ServiceType) => (in._1.profileId, in._2.name())
+        in: (ServiceProfileLink, ServiceType) => (in._1, in._2.name())
     }
 
     val numServiceType =
