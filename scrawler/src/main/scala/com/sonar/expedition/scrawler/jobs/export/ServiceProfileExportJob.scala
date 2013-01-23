@@ -124,10 +124,13 @@ class ServiceProfileExportJob(args: Args) extends DefaultJob(args) with DTOProfi
                 u: Unit => "num_correlated"
             }.project('statName, 'size)
         val numServiceType =
-            allProfiles.discard('profileDto).unique('profileId, 'serviceType).groupBy('serviceType) {
+            allProfiles.mapTo(('profileId, 'serviceType) ->('profileId, 'serviceType)) {
+                in: (ServiceProfileLink, ServiceType) => (in._1, in._2.name())
+            }
+                    .unique('profileId, 'serviceType).groupBy('serviceType) {
                 _.size
             }.map('serviceType -> 'statName) {
-                serviceType: ServiceType => "num_" + serviceType.name()
+                serviceType: String => "num_" + serviceType
             }.project('statName, 'size)
         (numCorrelated ++ numServiceType).write(Tsv(output + "_stats", ('statName, 'size)))
     }
