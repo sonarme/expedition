@@ -22,7 +22,8 @@ import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.queryParser.QueryParser
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
-//    val userCategories = args("userCategories")
+
+//    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
     val userCategories = IterableSource(Seq(
     ("roger", Seq("gymrat", "foodie")),
@@ -41,6 +42,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
         new UserLocationDTO("brett", new GeodataDTO(40.748433, -73.985656), "2.3.4.5", new TimeSegment(true, "7")),
         new UserLocationDTO("roger", new GeodataDTO(40.750580, -73.993580), "1.2.3.4", new TimeSegment(false, "7"))
     ), Tuples.Behavior.UserLocation)
+
 
     userLocations.read
 //    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
