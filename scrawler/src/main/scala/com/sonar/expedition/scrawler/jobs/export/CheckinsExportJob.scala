@@ -77,13 +77,13 @@ class CheckinsExportJob(args: Args) extends DefaultJob(args) with CheckinSource 
     } else {
         val checkins = SequenceFile(checkinsOutput, Tuples.CheckinIdDTO).read
         val reducedCheckins = checkins.mapTo('checkinDto ->('hasIp, 'serviceType)) {
-            checkin: CheckinDTO => (checkin.ip != null, checkin.serviceType.name())
+            checkin: CheckinDTO => (checkin.ip != null, checkin.serviceType)
         }
         // write stats
         val serviceTypeStats = reducedCheckins.groupBy('serviceType) {
             _.size
         }.map(('serviceType) -> 'statName) {
-            serviceType: String => "num_" + serviceType
+            serviceType: ServiceType => "num_" + serviceType.name()
         }.project('statName, 'size)
         val hasIpStats = reducedCheckins.groupBy('hasIp) {
             _.size
