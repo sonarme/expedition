@@ -6,7 +6,6 @@ import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.dto.indexable.{UserLocationDTO, IndexField, UserDTO}
 import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
-import com.sonar.dossier.dto.{GeodataDTO, LocationDTO, ServiceType, ServiceVenueDTO}
 import com.sonar.expedition.scrawler.jobs.DefaultJob
 import org.apache.lucene.store.{NoLockFactory, FSDirectory}
 import java.io.File
@@ -20,34 +19,64 @@ import org.apache.lucene.util.Version
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.queryParser.QueryParser
+import com.sonar.dossier.dto
+import dto._
+import dto.GeodataDTO
+import dto.LocationDTO
+import dto.ServiceVenueDTO
+import org.scala_tools.time.Imports._
+import com.sonar.expedition.scrawler.dto.indexable.UserLocationDTO
+import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
+import com.twitter.scalding.Tsv
+import scala.Some
+import com.twitter.scalding.IterableSource
+import com.sonar.expedition.scrawler.dto.indexable.UserLocationDTO
+import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
+import com.twitter.scalding.Tsv
+import scala.Some
+import com.twitter.scalding.IterableSource
+import com.sonar.expedition.scrawler.dto.indexable.UserLocationDTO
+import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
+import com.twitter.scalding.Tsv
+import scala.Some
+import com.twitter.scalding.IterableSource
+import com.sonar.expedition.scrawler.checkins.CheckinInference
 
-class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
+class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference {
 
-//    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
+    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
-    val userCategories = IterableSource(Seq(
-    ("roger", Seq("gymrat", "foodie")),
-    ("katie", Seq("entrepreneur")),
-    ("brett", Seq("entrepreneur")),
-    ("paul", Seq("geek", "hipster"))
-    ), Tuples.Behavior.UserCategories)
+    val checkins = if(test) IterableSource(Seq(
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test1a",
+            GeodataDTO(40.7505800, -73.9935800),
+            DateTime.now,
+            "ben1234",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "chi", "Chipotle", location = LocationDTO(GeodataDTO(40.7505800, -73.9935800), "x")))
+        ),
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test1",
+            GeodataDTO(40.7505800, -73.9935800),
+            DateTime.now,
+            "ben123",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "chi", "Chipotle", location = LocationDTO(GeodataDTO(40.7505800, -73.9935800), "x")))
+        ),
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test2",
+            GeodataDTO(40.749712, -73.993092),
+            DateTime.now,
+            "ben123",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "gg", "G&G", location = LocationDTO(GeodataDTO(40.0, -74.0000012), "x")))
+        )
+    ).map(c => c.id -> c), Tuples.CheckinIdDTO)
+    else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
 
-    val userLocations = IterableSource(Seq(
-        new UserLocationDTO("roger", new GeodataDTO(40.750580, -73.993580), "1.2.3.4", new TimeSegment(true, "7")),
-        new UserLocationDTO("roger", new GeodataDTO(40.748433, -73.985656), "2.3.4.5", new TimeSegment(true, "7")),
-        new UserLocationDTO("paul", new GeodataDTO(40.7505, -73.9935), "1.2.33.4", new TimeSegment(false, "5")),
-        new UserLocationDTO("paul", new GeodataDTO(40.752531, -73.977449), "3.4.5.6", new TimeSegment(true, "7")),
-        new UserLocationDTO("ben", new GeodataDTO(40.752531, -73.977449), "3.4.5.6", new TimeSegment(true, "7")),
-        new UserLocationDTO("brett", new GeodataDTO(40.750580, -73.993580), "13.2.3.4", new TimeSegment(true, "17")),
-        new UserLocationDTO("brett", new GeodataDTO(40.748433, -73.985656), "2.3.4.5", new TimeSegment(true, "7")),
-        new UserLocationDTO("roger", new GeodataDTO(40.750580, -73.993580), "1.2.3.4", new TimeSegment(false, "7"))
-    ), Tuples.Behavior.UserLocation)
-
-
-    userLocations.read
+//    userLocations.read
 //    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
-        .map(('userLocation) -> ('indexed)) {
-        userlocation: UserLocationDTO => {
+      checkins.read
+        .map(('checkinId, 'checkinDto) -> ('indexed)) {
+        fields: (String, CheckinDTO) => {
+            val (checkinId, checkin) = fields
 
             val filePath = new Path(args("hdfsPath"))
 
@@ -55,12 +84,17 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) {
             hdfsDirectory.setLockFactory(NoLockFactory.getNoLockFactory)
 
             val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)))
-            indexWriter.addDocument(userlocation.getDocument())
+            val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
+            val ldt = localDateTime(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
+            val weekday = isWeekDay(ldt)
+            val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.toString)
+            val userLocation = new UserLocationDTO(serviceId, new GeodataDTO(checkin.latitude, checkin.longitude), checkin.ip, timeSegment)
+            indexWriter.addDocument(userLocation.getDocument())
             indexWriter.close()
 
             hdfsDirectory.close()
 
             "success"
         }
-    }.write(Tsv(args("output"), Tuples.Behavior.UserLocation append ('indexed)))
+    }.write(Tsv(args("output"), Tuples.CheckinIdDTO append ('indexed)))
 }
