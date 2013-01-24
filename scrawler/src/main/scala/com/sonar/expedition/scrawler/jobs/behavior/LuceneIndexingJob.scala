@@ -96,5 +96,6 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
 
             "success"
         }
-    }.write(Tsv(args("output"), Tuples.CheckinIdDTO append ('indexed)))
+    }.discard('checkinDto)
+    .write(Tsv(args("output")))
 }
