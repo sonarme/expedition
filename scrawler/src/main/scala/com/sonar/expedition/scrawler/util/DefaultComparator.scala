@@ -7,7 +7,7 @@ class DefaultComparator extends IntegralComparator {
     val LOG = LoggerFactory.getLogger(classOf[DefaultComparator])
 
     override def hashCode(obj: AnyRef) = {
-        LOG.info("Found " + enumObj)
+        LOG.info("Found " + obj)
         if (obj == null) 0
         else if (obj.getClass.isEnum) {
             // fix enum hashing
