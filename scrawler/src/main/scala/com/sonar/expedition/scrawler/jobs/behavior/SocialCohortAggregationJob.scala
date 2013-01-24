@@ -26,7 +26,7 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
         _.sum('computedScore -> 'timeSegmentScores)
     }
     val categories = userPlaceTypeScoresTimeSegment.groupBy('userGoldenId) {
-        _.mapList(('placeType, 'timeSegment, 'score) -> ('categories)) {
+        _.mapList(('placeType, 'timeSegment, 'timeSegmentScores) -> ('categories)) {
             timeSegments: List[(String, TimeSegment, Double)] =>
                 timeSegments.groupBy(_._1).mapValues(_.map {
                     case (placeType, timeSegment, score) =>
