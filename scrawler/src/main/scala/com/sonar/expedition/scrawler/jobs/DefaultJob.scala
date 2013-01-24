@@ -5,13 +5,8 @@ import cascading.kryo.KryoFactory
 import org.scala_tools.time.Imports._
 import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer
 import com.sonar.expedition.scrawler.serializer.{HashMapSerializer, HashSetSerializer, ArrayListSerializer}
-import com.sonar.expedition.scrawler.util.DefaultComparator
 
 class DefaultJob(args: Args) extends Job(args) {
-
-    // fix enum hashing
-    override def defaultComparator = Some(classOf[DefaultComparator].getCanonicalName)
-
     override def config(implicit mode: Mode) =
         super.config ++
                 Map(KryoFactory.KRYO_REGISTRATIONS ->

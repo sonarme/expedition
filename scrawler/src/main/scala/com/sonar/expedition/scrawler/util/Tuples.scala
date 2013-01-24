@@ -14,6 +14,7 @@ object Tuples extends TupleConversions {
     @deprecated
     val Checkin = ('serType, 'serProfileID, 'serCheckinID, 'venId, 'venName, 'venAddress, 'chknTime, 'lat, 'lng, 'msg)
     val Correlation = ('correlationId, 'correlationSPL)
+    val CorrelationGolden = ('userGoldenSPL, 'correlationSPL)
     val Matrix = ('x, 'y, 'val)
 
     object Crawler extends FieldConversions {
