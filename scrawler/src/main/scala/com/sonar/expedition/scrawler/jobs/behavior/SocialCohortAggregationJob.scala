@@ -28,24 +28,24 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
             timeSegments: List[(String, TimeSegment, Double)] =>
                 timeSegments.groupBy(_._1).mapValues(_.map {
                     case (placeType, timeSegment, score) =>
-                        Segment(if (timeSegment == null) null else timeSegment.toIndexableString, 1, score.toInt)
+                        FeatureSegment(if (timeSegment == null) null else timeSegment.toIndexableString, 1, score.toInt)
                 })
         }
     }
 
     profiles.joinWithLarger('profileId -> 'userGoldenId, categories).mapTo(('profileDto, 'categories) -> 'features) {
-        in: (ServiceProfileDTO, Map[String, List[Segment]]) =>
+        in: (ServiceProfileDTO, Map[String, List[FeatureSegment]]) =>
             val (serviceProfile, segmentMap) = in
 
-            Features(id = serviceProfile.profileId, base = Seq(Segment("gender", 0, serviceProfile.gender.ordinal())),
+            Features(id = serviceProfile.profileId, base = Seq(FeatureSegment("gender", 0, serviceProfile.gender.ordinal())),
                 categories = segmentMap)
     }.write(Tsv(args("featuresOut"), 'features))
 
 }
 
-case class Features(id: Any, base: Iterable[Segment], categories: Map[_ <: Any, Iterable[Segment]])
+case class Features(id: Any, base: Iterable[FeatureSegment], categories: Map[_ <: Any, Iterable[FeatureSegment]])
 
-case class Segment(segment: String, op: Int = 1, value: Int)
+case class FeatureSegment(segment: String, op: Int = 1, value: Int)
 
 /* val source = io.Source.fromInputStream(getClass.getResourceAsStream("/foursquare_venues_categories.json"))
     val venuesJson = try {
