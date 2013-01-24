@@ -88,7 +88,7 @@ object CommonFunctions {
             wrapAroundPointOpt match {
                 case Some(wrapAroundPoint) if (compareValue(from, to) > 0) =>
                     containsValue(value, from, wrapAroundPoint._1) || containsValue(value, wrapAroundPoint._2, to)
-                case None => containsValue(value, from, to)
+                case _ => containsValue(value, from, to)
             }
     }
 

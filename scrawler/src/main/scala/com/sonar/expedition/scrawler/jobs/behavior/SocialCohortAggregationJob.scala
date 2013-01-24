@@ -11,24 +11,27 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
     val profiles = SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO).read
     val venues = SequenceFile(args("venuesIn"), Tuples.VenueIdDTO).read
     val placeInference = Tsv(args("placeInferenceIn"), Tuples.PlaceInference).read
-
+    val log15 = math.log(1.5)
     val userPlaceTypeScoresTimeSegment = placeInference
             .joinWithSmaller('canonicalVenueId -> 'venueId, venues).discard('venueId)
             .flatMap('venueDto -> 'placeType) {
         dto: ServiceVenueDTO => if (dto.category == null) Seq.empty else dto.category
     }.discard('venueDto)
+            .map(('numVisits, 'score) -> 'computedScore) {
+        in: (Int, Double) =>
+            val (numVisits, score) = in
+            numVisits * score
+    }
             .groupBy('userGoldenId, 'timeSegment, 'placeType) {
-        _.sum('score -> 'timeSegmentScores)
+        _.sum('computedScore -> 'timeSegmentScores)
     }
-    val userPlaceTypeScores = userPlaceTypeScoresTimeSegment.groupBy('userGoldenId, 'placeType) {
-        _.sum('timeSegmentScores -> 'allScore)
-    }
-    val categories = userPlaceTypeScores.groupBy('userGoldenId) {
+    val categories = userPlaceTypeScoresTimeSegment.groupBy('userGoldenId) {
         _.mapList(('placeType, 'timeSegment, 'score) -> ('categories)) {
             timeSegments: List[(String, TimeSegment, Double)] =>
                 timeSegments.groupBy(_._1).mapValues(_.map {
                     case (placeType, timeSegment, score) =>
-                        FeatureSegment(if (timeSegment == null) null else timeSegment.toIndexableString, 1, score.toInt)
+                        val bucketedScore = (math.log(score) / log15).toInt
+                        FeatureSegment(if (timeSegment == null) null else timeSegment.toIndexableString, 1, bucketedScore)
                 })
         }
     }
