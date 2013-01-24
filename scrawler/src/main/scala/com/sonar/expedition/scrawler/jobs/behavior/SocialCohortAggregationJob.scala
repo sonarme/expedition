@@ -10,7 +10,7 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
 
     val profiles = SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO).read
     val venues = SequenceFile(args("venuesIn"), Tuples.VenueIdDTO).read
-    val placeInference = Tsv(args("placeInferenceIn"), Tuples.PlaceInference).read
+    val placeInference = SequenceFile(args("placeInferenceIn"), Tuples.PlaceInference).read
     val log15 = math.log(1.5)
     val userPlaceTypeScoresTimeSegment = placeInference
             .joinWithSmaller('canonicalVenueId -> 'venueId, venues).discard('venueId)

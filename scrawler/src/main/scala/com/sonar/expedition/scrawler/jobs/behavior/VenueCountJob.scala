@@ -92,7 +92,7 @@ class VenueCountJob(args: Args) extends DefaultJob(args) with Normalizers with C
 
     ).map(c => c.id -> c), Tuples.CheckinIdDTO)
     else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
-    val placeInferenceOut = Tsv(args("placeInferenceOut"), Tuples.PlaceInference)
+    val placeInferenceOut = SequenceFile(args("placeInferenceOut"), Tuples.PlaceInference)
 
 
     val correlation = if (test) IterableSource(Seq(
