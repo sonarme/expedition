@@ -10,7 +10,7 @@ class SequenceFileLimitJob(args: Args) extends DefaultJob(args) {
     val input = args("input")
     val output = args("output")
     val limit = args("limit").toInt
-    SequenceFile(input).limit(limit).write(LimitedSequenceFile(output))
+    SequenceFile(input).limit(limit).write(new LimitedSequenceFile(output))
 }
 
 class LimitedSequenceFile(p: String, f: Fields = Fields.ALL, parts: Int = 1) extends SequenceFile(p, f) {
