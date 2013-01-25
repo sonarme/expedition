@@ -4,6 +4,10 @@ import com.twitter.scalding._
 import cascading.tuple.{Tuple, Fields}
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.jobs.DefaultJob
+import com.sonar.expedition.scrawler.source.{LuceneSource, BerkeleyDBSource}
+import elephantdb.DomainSpec
+import elephantdb.persistence.JavaBerkDB
+import elephantdb.cascading.ElephantDBTap.{Args => EArgs}
 
 class TestJob(args: Args) extends DefaultJob(args) {
     IterableSource(Seq(1 -> 11, 1 -> 12, 1 -> 13, 2 -> 21, 2 -> 22, 3 -> 33), ('a, 'b)).read.groupBy('a) {
@@ -13,8 +17,5 @@ class TestJob(args: Args) extends DefaultJob(args) {
                 println("G " + in)
                 true
         }
-    }.map(('sum, 'x) ->()) {
-        in: Tuple =>
-            println(in)
-    }.write(NullSource)
+    }.write(LuceneSource("TestLucene", 'sum))
 }
