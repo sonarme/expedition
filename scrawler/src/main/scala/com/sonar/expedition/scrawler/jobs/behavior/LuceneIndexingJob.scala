@@ -58,6 +58,55 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             DateTime.now,
             "ben123",
             Some(ServiceVenueDTO(ServiceType.foursquare, "gg", "G&G", location = LocationDTO(GeodataDTO(40.0, -74.0000012), "x")))
+        ),
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test2b",
+            GeodataDTO(40.749712, -73.993092),
+            DateTime.now - 1.minute,
+            "ben123",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "gg", "G&G", location = LocationDTO(GeodataDTO(40.0, -74.0000012), "x")))
+        ),
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test2c",
+            GeodataDTO(40.750817, -73.992405),
+            DateTime.now - 1.minute,
+            "ben12345",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "cosi", "Cosi", location = LocationDTO(GeodataDTO(40.0, -74.0000013), "x")))
+        ),
+        dto.CheckinDTO(ServiceType.sonar,
+            "test3",
+            GeodataDTO(40.750183, -73.992512),
+            DateTime.now,
+            "ben123",
+            None
+        ),
+        dto.CheckinDTO(ServiceType.sonar,
+            "test4",
+            GeodataDTO(40.750183, -73.992513),
+            DateTime.now,
+            "ben123",
+            None
+        ),
+        dto.CheckinDTO(ServiceType.sonar,
+            "test5",
+            GeodataDTO(40.750183, -73.992514),
+            DateTime.now,
+            "ben123",
+            None
+        ),
+        dto.CheckinDTO(ServiceType.foursquare,
+            "test5b",
+            GeodataDTO(40.791979, -73.957215),
+            DateTime.now - 1.minute,
+            "ben12345",
+            Some(ServiceVenueDTO(ServiceType.foursquare, "xy", "XY", location = LocationDTO(GeodataDTO(40.791979, -73.957214), "x")))
+        ),
+        dto.CheckinDTO(ServiceType.sonar,
+            "test5a",
+            GeodataDTO(40.791979, -73.957214),
+            DateTime.now,
+            "ben123",
+            None
         )
     ).map(c => c.id -> c), Tuples.CheckinIdDTO)
     else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
@@ -72,8 +121,8 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             val filePath = new Path(args("hdfsPath"))
 
             val hdfsDirectory = new HdfsDirectory(filePath)
-            val configuration:Configuration = new Configuration(true)
-            val blurLockFactory = new BlurLockFactory(configuration, filePath, args("hdfsPath"), System.currentTimeMillis().toInt)
+            val configuration:Configuration = new Configuration()
+            val blurLockFactory = new BlurLockFactory(configuration, filePath, args("hdfsPath"), 0)
             hdfsDirectory.setLockFactory(blurLockFactory)
 
             val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)))
