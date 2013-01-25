@@ -125,7 +125,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             val blurLockFactory = new BlurLockFactory(configuration, filePath, args("hdfsPath"), 0)
             hdfsDirectory.setLockFactory(blurLockFactory)
 
-            val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)))
+            val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)).setMaxBufferedDocs(2))
             val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
             val ldt = localDateTime(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
             val weekday = isWeekDay(ldt)
@@ -133,7 +133,6 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             val userLocation = new UserLocationDTO(serviceId, new GeodataDTO(checkin.latitude, checkin.longitude), checkin.ip, timeSegment)
             indexWriter.addDocument(userLocation.getDocument())
             indexWriter.close()
-
             hdfsDirectory.close()
 
             "success"
