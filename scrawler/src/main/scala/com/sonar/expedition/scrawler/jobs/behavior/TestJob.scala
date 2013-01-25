@@ -1,21 +1,21 @@
 package com.sonar.expedition.scrawler.jobs.behavior
 
 import com.twitter.scalding._
-import cascading.tuple.{Tuple, Fields}
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.jobs.DefaultJob
-import com.sonar.expedition.scrawler.source.{LuceneSource, BerkeleyDBSource}
-import elephantdb.DomainSpec
-import elephantdb.persistence.JavaBerkDB
+import com.sonar.expedition.scrawler.source.LuceneSource
 import elephantdb.cascading.ElephantDBTap.{Args => EArgs}
+import scala.Array
+import org.apache.lucene.document.Field.Store
+import org.apache.lucene.document.Field.Index
 
 class TestJob(args: Args) extends DefaultJob(args) {
-    IterableSource(Seq(1 -> 11, 1 -> 12, 1 -> 13, 2 -> 21, 2 -> 22, 3 -> 33), ('a, 'b)).read.groupBy('a) {
-        _.sum('b -> 'sum)
-                .sortWithTake(Fields.ALL -> 'x, 2) {
-            (in: Tuple, in2: Tuple) =>
-                println("G " + in)
-                true
-        }
-    }.write(LuceneSource("TestLucene", 'sum))
+    IterableSource(Seq(
+        ("a", "b1"),
+        ("a", "b2"),
+        ("a", "b3"),
+        ("x", "y1"),
+        ("x", "y2")
+    ), ('a, 'b)).read
+            .write(LuceneSource("TestLucene", ('a, 'b), Array(Store.YES, Store.YES), Array(Index.ANALYZED_NO_NORMS, Index.ANALYZED_NO_NORMS)))
 }
