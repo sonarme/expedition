@@ -1,11 +1,11 @@
 package com.sonar.expedition.scrawler.jobs.behavior
 
 import com.twitter.scalding._
-import com.sonar.expedition.scrawler.service.SearchServiceImpl
+
 import com.sonar.expedition.scrawler.util.Tuples
 import com.sonar.expedition.scrawler.dto.indexable.{UserLocationDTO, IndexField, UserDTO}
 import com.twitter.scalding.SequenceFile
-import com.twitter.scalding.Tsv
+
 import com.sonar.expedition.scrawler.jobs.DefaultJob
 import org.apache.lucene.store.{NoLockFactory, FSDirectory}
 import java.io.File
@@ -14,7 +14,7 @@ import hadoop.conf.Configuration
 import hadoop.fs.{FileSystem, Path}
 import org.apache.blur.store.hdfs.HdfsDirectory
 import java.util.Random
-import org.apache.lucene.index.{IndexReader, IndexWriter, IndexWriterConfig}
+import org.apache.lucene.index.{IndexReader, IndexWriterConfig}
 import org.apache.lucene.util.Version
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.search.IndexSearcher
@@ -26,21 +26,12 @@ import dto.LocationDTO
 import dto.ServiceVenueDTO
 import org.scala_tools.time.Imports._
 import com.sonar.expedition.scrawler.dto.indexable.UserLocationDTO
-import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
-import com.twitter.scalding.Tsv
-import scala.Some
-import com.twitter.scalding.IterableSource
-import com.sonar.expedition.scrawler.dto.indexable.UserLocationDTO
-import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
-import com.twitter.scalding.Tsv
-import scala.Some
-import com.twitter.scalding.IterableSource
-import com.sonar.expedition.scrawler.dto.indexable.UserLocationDTO
-import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
 import com.twitter.scalding.Tsv
 import scala.Some
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.checkins.CheckinInference
+import org.apache.blur.index.IndexWriter
+import org.apache.blur.store.lock.BlurLockFactory
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference {
 
@@ -81,7 +72,9 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             val filePath = new Path(args("hdfsPath"))
 
             val hdfsDirectory = new HdfsDirectory(filePath)
-            hdfsDirectory.setLockFactory(NoLockFactory.getNoLockFactory)
+            val configuration:Configuration = new Configuration(true)
+            val blurLockFactory = new BlurLockFactory(configuration, filePath, args("hdfsPath"), System.currentTimeMillis().toInt)
+            hdfsDirectory.setLockFactory(blurLockFactory)
 
             val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)))
             val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
