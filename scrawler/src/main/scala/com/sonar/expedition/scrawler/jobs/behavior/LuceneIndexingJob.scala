@@ -7,7 +7,7 @@ import com.sonar.expedition.scrawler.dto.indexable.{UserLocationDTO, IndexField,
 import com.twitter.scalding.SequenceFile
 
 import com.sonar.expedition.scrawler.jobs.DefaultJob
-import org.apache.lucene.store.{NoLockFactory, FSDirectory}
+import org.apache.lucene.store.{SimpleFSLockFactory, NoLockFactory, FSDirectory}
 import java.io.File
 import org.apache.hadoop
 import hadoop.conf.Configuration
@@ -122,8 +122,12 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
 
             val hdfsDirectory = new HdfsDirectory(filePath)
             val configuration:Configuration = new Configuration()
-            val blurLockFactory = new BlurLockFactory(configuration, filePath, args("hdfsPath"), 0)
-            hdfsDirectory.setLockFactory(blurLockFactory)
+            val lockFactory = args("lockFactory") match {
+                case "blur" => new BlurLockFactory(configuration, filePath, args("hdfsPath"), 0)
+                case "fs" => new SimpleFSLockFactory()
+                case _ => NoLockFactory.getNoLockFactory
+            }
+            hdfsDirectory.setLockFactory(lockFactory)
 
             val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)).setMaxBufferedDocs(2))
             val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
