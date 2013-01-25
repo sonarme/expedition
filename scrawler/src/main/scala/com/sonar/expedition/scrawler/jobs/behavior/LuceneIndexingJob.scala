@@ -114,10 +114,12 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
 //    userLocations.read
 //    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
       checkins.read
-        .map(('checkinId, 'checkinDto) -> ('indexed)) {
-        fields: (String, CheckinDTO) => {
-            val (checkinId, checkin) = fields
-
+        .mapTo('checkinDto -> ('serviceId, 'lat, 'lng, 'ip, 'checkinTime)) {
+        fields: CheckinDTO => {
+            val checkin = fields
+            val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
+            (serviceId, checkin.latitude, checkin.longitude, checkin.ip, checkin.checkinTime)
+            /*
             val filePath = new Path(args("hdfsPath"))
 
             val hdfsDirectory = new HdfsDirectory(filePath)
@@ -140,7 +142,37 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             hdfsDirectory.close()
 
             "success"
+            */
         }
-    }.discard('checkinDto)
-    .write(Tsv(args("output")))
+    }
+    .groupAll {
+          _.mapList(('serviceId, 'lat, 'lng, 'ip, 'checkinTime) -> ('indexed)) {
+              in: List[(String, Double, Double, String, DateTime)] => {
+                  val filePath = new Path(args("hdfsPath"))
+
+                  val hdfsDirectory = new HdfsDirectory(filePath)
+                  val configuration: Configuration = new Configuration()
+                  val lockFactory = args("lockFactory") match {
+                      case "blur" => new BlurLockFactory(configuration, filePath, args("hdfsPath"), 0)
+                      case "fs" => new SimpleFSLockFactory()
+                      case _ => NoLockFactory.getNoLockFactory
+                  }
+                  hdfsDirectory.setLockFactory(lockFactory)
+
+                  val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)))
+
+                  for ((serviceId, lat, lng, ip, checkinTime) <- in) {
+                      val ldt = localDateTime(lat, lng, checkinTime.toDate)
+                      val weekday = isWeekDay(ldt)
+                      val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.toString)
+                      val userLocation = new UserLocationDTO(serviceId, new GeodataDTO(lat, lng),ip, timeSegment)
+                      indexWriter.addDocument(userLocation.getDocument())
+                  }
+                  indexWriter.close()
+                  hdfsDirectory.close()
+                  "success"
+              }
+          }
+    }
+    .write(NullSource)
 }
