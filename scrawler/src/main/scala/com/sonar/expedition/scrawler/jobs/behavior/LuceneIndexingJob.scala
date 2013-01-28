@@ -116,5 +116,5 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             (serviceId, checkin.latitude, checkin.longitude, checkin.ip, timeSegment)
         }
     }
-    .write(LuceneSource(args("output"), ('serviceId, 'lat, 'lng, 'ip, 'timeSegment), Array(Store.YES, Store.YES, Store.YES, Store.YES, Store.YES), Array(Index.ANALYZED_NO_NORMS, Index.ANALYZED_NO_NORMS, Index.ANALYZED_NO_NORMS, Index.ANALYZED_NO_NORMS, Index.ANALYZED_NO_NORMS)))
+    .write(LuceneSource(args("output"), ('serviceId, 'lat, 'lng, 'ip, 'timeSegment)))
 }
