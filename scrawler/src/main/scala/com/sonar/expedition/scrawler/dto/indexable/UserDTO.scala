@@ -12,10 +12,10 @@ case class UserDTO(@BeanProperty name: String,
 
     def getDocument() = {
         val doc = new Document
-        doc.add(new Field(IndexField.Name.toString, name, Field.Store.YES, Index.ANALYZED_NO_NORMS))
-        doc.add(new Field(IndexField.Categories.toString, categories.mkString(" "), Field.Store.YES, Index.ANALYZED_NO_NORMS))
-        if (geoData != null) doc.add(new Field(IndexField.Geohash.toString, geoData.geoHash.toString, Field.Store.YES, Index.ANALYZED_NO_NORMS))
-        if (ip != null) doc.add(new Field(IndexField.Ip.toString, ip, Field.Store.YES, Index.ANALYZED_NO_NORMS))
+        doc.add(new StringField(IndexField.Name.toString, name, Field.Store.YES))
+        doc.add(new TextField(IndexField.Categories.toString, categories.mkString(" "), Field.Store.YES))
+        if (geoData != null) doc.add(new LongField(IndexField.Geohash.toString, geoData.geoHash, Field.Store.YES))
+        if (ip != null) doc.add(new StringField(IndexField.Ip.toString, ip, Field.Store.YES))
         doc
     }
 }

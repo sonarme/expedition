@@ -16,10 +16,10 @@ case class UserLocationDTO(@BeanProperty serviceId: String,
     def getDocument() = {
 
         val doc = new Document
-        doc.add(new Field(IndexField.ServiceId.toString, serviceId, Field.Store.YES, Index.ANALYZED_NO_NORMS))
-        if (geoData != null) doc.add(new Field(IndexField.Geosector.toString, GeoHash.withBitPrecision(geoData.latitude, geoData.longitude, 32).longValue().toString, Field.Store.YES, Index.ANALYZED_NO_NORMS))
-        if (ip != null) doc.add(new Field(IndexField.Ip.toString, ip, Field.Store.YES, Index.ANALYZED_NO_NORMS))
-        if (timeSegment != null) doc.add(new Field(IndexField.TimeSegment.toString, timeSegment.toIndexableString, Field.Store.YES, Index.ANALYZED_NO_NORMS))
+        doc.add(new StringField(IndexField.ServiceId.toString, serviceId, Field.Store.YES))
+        if (geoData != null) doc.add(new LongField(IndexField.Geosector.toString, geoData.getGeoHash, Field.Store.YES))
+        if (ip != null) doc.add(new StringField(IndexField.Ip.toString, ip, Field.Store.YES))
+        if (timeSegment != null) doc.add(new StringField(IndexField.TimeSegment.toString, timeSegment.toIndexableString, Field.Store.YES))
         doc
     }
 }

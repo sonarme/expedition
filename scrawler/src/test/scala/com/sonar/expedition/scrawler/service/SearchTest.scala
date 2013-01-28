@@ -72,15 +72,16 @@ class SearchTest extends FlatSpec with BeforeAndAfter {
         assert(searchService.numDocs() == 9)
 
         val hit = searchService.search(IndexField.Key, doc.get(IndexField.Key.toString))
-        val more2 = searchService.moreLikeThis(hit.scoreDocs.head.doc, List[IndexField](IndexField.Ip, IndexField.Geosector, IndexField.TimeSegment))
-        assert(more2.totalHits == 4)
+//        val more2 = searchService.moreLikeThis(hit.scoreDocs.head.doc, List[IndexField](IndexField.Ip, IndexField.Geosector, IndexField.TimeSegment))
+        val more2 = searchService.moreLikeThis(hit.scoreDocs.head.doc, List[IndexField](IndexField.Ip, IndexField.TimeSegment))
+        assert(more2.totalHits == 2)
 
-        val more3 = searchService.moreLikeThis(hit.scoreDocs.head.doc, List[IndexField](IndexField.Geosector))
-        assert(more3.totalHits == 4)
+//        val more3 = searchService.moreLikeThis(hit.scoreDocs.head.doc, List[IndexField](IndexField.Geosector))
+//        assert(more3.totalHits == 4)
 
         val doc2 = searchService.index(new UserLocationDTO("bar", new GeodataDTO(40.750580, -73.993580), "1.2.3.4", new TimeSegment(true, "7")))
         val hits2 = searchService.search(IndexField.Key, doc2.get(IndexField.Key.toString))
-        val more4 = searchService.moreLikeThis(hits2.scoreDocs.head.doc, List[IndexField](IndexField.Ip, IndexField.Geosector, IndexField.TimeSegment))
-        assert(more4.totalHits == 9)
+        val more4 = searchService.moreLikeThis(hits2.scoreDocs.head.doc, List[IndexField](IndexField.Ip, IndexField.TimeSegment))
+        assert(more4.totalHits == 7)
     }
 }

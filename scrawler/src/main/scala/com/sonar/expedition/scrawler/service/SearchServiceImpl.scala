@@ -45,12 +45,12 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
     }
 
     def search(field: IndexField, queryStr: String) = {
-        val indexReader = IndexReader.open(directory)
+        val indexReader = DirectoryReader.open(directory)
         val indexSearcher = new IndexSearcher(indexReader)
         val queryParser = new QueryParser(Version.LUCENE_41, field.toString, analyzer)
 
         val query = field match {
-            //            case IndexField.Geohash => NumericRangeQuery.newLongRange(IndexField.Geohash.toString, queryStr.toLong, queryStr.toLong, true, true)
+            case IndexField.Geohash => NumericRangeQuery.newLongRange(IndexField.Geohash.toString, queryStr.toLong, queryStr.toLong, true, true)
             case _ => queryParser.parse(queryStr)
         }
         println("  Searching for: " + query.toString(field.toString))
@@ -66,13 +66,14 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
     }
 
     def moreLikeThis(docNum: Int, moreLikeThisfields: List[IndexField]) = {
-        val reader = IndexReader.open(directory)
+        val reader = DirectoryReader.open(directory)
         val start = new Date()
         val mlt = new MoreLikeThis(reader)
         //        mlt.setBoost(true)
         mlt.setAnalyzer(analyzer)
         mlt.setMinTermFreq(1)
         mlt.setMinDocFreq(1)
+        //todo: more like this doesn't seem to work on longfields
         mlt.setFieldNames(moreLikeThisfields.map(_.toString).toArray)
 
         val q = mlt.like(docNum)
@@ -80,7 +81,7 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
         val doc = is.doc(docNum)
         val docKey = doc.get(IndexField.Key.toString)
         val docFilter = new BooleanFilter
-        val tf = new TermsFilter()
+        val tf = new TermsFilter(new Term(IndexField.Key.toString, docKey))
         // TOOD: FIX tf.addTerm(new Term(IndexField.Key.toString, docKey))
         docFilter.add(new FilterClause(tf, BooleanClause.Occur.MUST_NOT))
 
@@ -109,5 +110,5 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
         */
     }
 
-    def numDocs = IndexReader.open(directory).numDocs()
+    def numDocs = DirectoryReader.open(directory).numDocs()
 }
