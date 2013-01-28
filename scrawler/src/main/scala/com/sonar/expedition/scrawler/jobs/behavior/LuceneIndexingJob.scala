@@ -12,26 +12,18 @@ import java.io.File
 import org.apache.hadoop
 import hadoop.conf.Configuration
 import hadoop.fs.{FileSystem, Path}
-import org.apache.blur.store.hdfs.HdfsDirectory
-import java.util.Random
 import org.apache.lucene.index.{IndexReader, IndexWriterConfig}
-import org.apache.lucene.util.Version
-import org.apache.lucene.analysis.standard.StandardAnalyzer
-import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.queryParser.QueryParser
 import com.sonar.dossier.dto
 import dto._
 import dto.GeodataDTO
 import dto.LocationDTO
 import dto.ServiceVenueDTO
 import org.scala_tools.time.Imports._
-import com.sonar.expedition.scrawler.dto.indexable.UserLocationDTO
-import com.twitter.scalding.Tsv
-import scala.Some
+import scala.{Array, Some}
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.checkins.CheckinInference
-import org.apache.blur.index.IndexWriter
-import org.apache.blur.store.lock.BlurLockFactory
+import com.sonar.expedition.scrawler.source.LuceneSource
+import org.apache.lucene.document.Field.{Index, Store}
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference {
 
@@ -114,65 +106,15 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
 //    userLocations.read
 //    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
       checkins.read
-        .mapTo('checkinDto -> ('serviceId, 'lat, 'lng, 'ip, 'checkinTime)) {
+        .mapTo('checkinDto -> ('serviceId, 'lat, 'lng, 'ip, 'timeSegment)) {
         fields: CheckinDTO => {
             val checkin = fields
             val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
-            (serviceId, checkin.latitude, checkin.longitude, checkin.ip, checkin.checkinTime)
-            /*
-            val filePath = new Path(args("hdfsPath"))
-
-            val hdfsDirectory = new HdfsDirectory(filePath)
-            val configuration:Configuration = new Configuration()
-            val lockFactory = args("lockFactory") match {
-                case "blur" => new BlurLockFactory(configuration, filePath, args("hdfsPath"), 0)
-                case "fs" => new SimpleFSLockFactory()
-                case _ => NoLockFactory.getNoLockFactory
-            }
-            hdfsDirectory.setLockFactory(lockFactory)
-
-            val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)).setMaxBufferedDocs(2))
-            val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
             val ldt = localDateTime(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
             val weekday = isWeekDay(ldt)
-            val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.toString)
-            val userLocation = new UserLocationDTO(serviceId, new GeodataDTO(checkin.latitude, checkin.longitude), checkin.ip, timeSegment)
-            indexWriter.addDocument(userLocation.getDocument())
-            indexWriter.close()
-            hdfsDirectory.close()
-
-            "success"
-            */
+            val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.getAsString).toIndexableString
+            (serviceId, checkin.latitude, checkin.longitude, checkin.ip, timeSegment)
         }
     }
-    .groupAll {
-          _.mapList(('serviceId, 'lat, 'lng, 'ip, 'checkinTime) -> ('indexed)) {
-              in: List[(String, Double, Double, String, DateTime)] => {
-                  val filePath = new Path(args("hdfsPath"))
-
-                  val hdfsDirectory = new HdfsDirectory(filePath)
-                  val configuration: Configuration = new Configuration()
-                  val lockFactory = args("lockFactory") match {
-                      case "blur" => new BlurLockFactory(configuration, filePath, args("hdfsPath"), 0)
-                      case "fs" => new SimpleFSLockFactory()
-                      case _ => NoLockFactory.getNoLockFactory
-                  }
-                  hdfsDirectory.setLockFactory(lockFactory)
-
-                  val indexWriter = new IndexWriter(hdfsDirectory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)))
-
-                  for ((serviceId, lat, lng, ip, checkinTime) <- in) {
-                      val ldt = localDateTime(lat, lng, checkinTime.toDate)
-                      val weekday = isWeekDay(ldt)
-                      val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.toString)
-                      val userLocation = new UserLocationDTO(serviceId, new GeodataDTO(lat, lng),ip, timeSegment)
-                      indexWriter.addDocument(userLocation.getDocument())
-                  }
-                  indexWriter.close()
-                  hdfsDirectory.close()
-                  "success"
-              }
-          }
-    }
-    .write(NullSource)
+    .write(LuceneSource(args("output"), ('serviceId, 'lat, 'lng, 'ip, 'timeSegment)))
 }
