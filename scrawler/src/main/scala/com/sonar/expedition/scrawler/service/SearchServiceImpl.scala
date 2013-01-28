@@ -4,14 +4,13 @@ import org.apache.lucene.store.{FSDirectory, RAMDirectory, Directory}
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import org.apache.lucene.util.Version
-import org.apache.lucene.index.{IndexReader, Term, DirectoryReader, IndexWriterConfig}
+import org.apache.lucene.index._
 import org.apache.lucene.index.IndexWriterConfig.OpenMode
 import java.util.Date
 import org.apache.lucene.search._
 import com.sonar.expedition.scrawler.dto.indexable.IndexField.IndexField
 import com.sonar.expedition.scrawler.dto.indexable.{Indexable, IndexField, UserDTO}
 import reflect.BeanProperty
-import org.apache.blur.index.IndexWriter
 import similar.MoreLikeThis
 import org.apache.lucene.queryParser.QueryParser
 
@@ -22,7 +21,7 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
     def index(indexable: Indexable) = {
         val start = new Date()
 
-        val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_36, analyzer).setOpenMode( if(create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
+        val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_36, analyzer).setOpenMode(if (create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
         val writer: IndexWriter = new IndexWriter(directory, iwc)
         val doc = indexable.index(writer) //todo: implement some kind of locking
         writer.close()
@@ -35,7 +34,7 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
     def index(indexables: Seq[Indexable]) {
         val start = new Date()
 
-        val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_36, analyzer).setOpenMode( if(create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
+        val iwc: IndexWriterConfig = new IndexWriterConfig(Version.LUCENE_36, analyzer).setOpenMode(if (create) OpenMode.CREATE else OpenMode.CREATE_OR_APPEND)
         val writer: IndexWriter = new IndexWriter(directory, iwc)
         indexables.foreach(_.index(writer))
         writer.close()
@@ -50,7 +49,7 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
         val queryParser = new QueryParser(Version.LUCENE_36, field.toString, analyzer)
 
         val query = field match {
-//            case IndexField.Geohash => NumericRangeQuery.newLongRange(IndexField.Geohash.toString, queryStr.toLong, queryStr.toLong, true, true)
+            //            case IndexField.Geohash => NumericRangeQuery.newLongRange(IndexField.Geohash.toString, queryStr.toLong, queryStr.toLong, true, true)
             case _ => queryParser.parse(queryStr)
         }
         println("  Searching for: " + query.toString(field.toString))
@@ -69,7 +68,7 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
         val reader = IndexReader.open(directory)
         val start = new Date()
         val mlt = new MoreLikeThis(reader)
-//        mlt.setBoost(true)
+        //        mlt.setBoost(true)
         mlt.setAnalyzer(analyzer)
         mlt.setMinTermFreq(1)
         mlt.setMinDocFreq(1)
