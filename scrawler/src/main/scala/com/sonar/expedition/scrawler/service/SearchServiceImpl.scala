@@ -82,7 +82,6 @@ class SearchServiceImpl(@BeanProperty directory: Directory, @BeanProperty create
         val docKey = doc.get(IndexField.Key.toString)
         val docFilter = new BooleanFilter
         val tf = new TermsFilter(new Term(IndexField.Key.toString, docKey))
-        // TOOD: FIX tf.addTerm(new Term(IndexField.Key.toString, docKey))
         docFilter.add(new FilterClause(tf, BooleanClause.Occur.MUST_NOT))
 
         val more = is.search(q, docFilter, 10)
