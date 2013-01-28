@@ -15,6 +15,7 @@ import scala.Predef._
 import scala.Tuple4
 import scala.Some
 import collection.Set
+import org.apache.lucene.analysis.util.CharArraySet
 
 object StemAndMetaphoneEmployer extends Serializable {
     @transient
@@ -40,7 +41,7 @@ object StemAndMetaphoneEmployer extends Serializable {
     def extractTokens(tokenString: String): Seq[String] =
         if (tokenString == null) Seq.empty[String]
         else {
-            val tokenStream = new StandardAnalyzer(Version.LUCENE_36, StopWords).tokenStream("textField", new StringReader(tokenString))
+            val tokenStream = new StandardAnalyzer(Version.LUCENE_41, new CharArraySet(Version.LUCENE_41, StopWords, true)).tokenStream("textField", new StringReader(tokenString))
             try {
                 val tokens = mutable.ListBuffer[String]()
                 while (tokenStream.incrementToken()) {
