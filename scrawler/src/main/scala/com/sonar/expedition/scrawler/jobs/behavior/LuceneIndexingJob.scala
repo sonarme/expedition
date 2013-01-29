@@ -117,7 +117,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             val weekday = isWeekDay(ldt)
             val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.getAsString).toIndexableString
             val geosector = GeoHash.withCharacterPrecision(checkin.latitude, checkin.longitude, 7)
-            (serviceId, checkin.latitude, checkin.longitude, geosector.toBase32, checkin.ip, timeSegment.toIndexableString)
+            (serviceId, checkin.latitude, checkin.longitude, geosector.toBase32, checkin.ip, timeSegment)
         }
     }
             .shard(5).write(LuceneSource(args("output"), Fields.ALL))
