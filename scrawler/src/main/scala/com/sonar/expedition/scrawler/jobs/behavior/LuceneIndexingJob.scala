@@ -24,6 +24,9 @@ import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.checkins.CheckinInference
 import com.sonar.expedition.scrawler.source.LuceneSource
 import org.apache.lucene.document.Field.{Index, Store}
+import ch.hsr.geohash.GeoHash
+import com.sonar.dossier.service.PrecomputationSettings
+import cascading.tuple.Fields
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference {
 
@@ -106,15 +109,16 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
     //    userLocations.read
     //    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
     checkins.read
-            .mapTo('checkinDto ->('serviceId, 'lat, 'lng, 'ip, 'timeSegment)) {
+            .mapTo('checkinDto ->('serviceId, 'lat, 'lng, 'geosector, 'ip, 'timeSegment)) {
         fields: CheckinDTO => {
             val checkin = fields
             val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
             val ldt = localDateTime(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
             val weekday = isWeekDay(ldt)
             val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.getAsString).toIndexableString
-            (serviceId, checkin.latitude, checkin.longitude, checkin.ip, timeSegment)
+            val geosector = GeoHash.withCharacterPrecision(checkin.latitude, checkin.longitude, 7)
+            (serviceId, checkin.latitude, checkin.longitude, geosector.toBase32, checkin.ip, timeSegment.toIndexableString)
         }
     }
-            .shard(5).write(LuceneSource(args("output"), ('serviceId, 'lat, 'lng, 'ip, 'timeSegment)))
+            .shard(5).write(LuceneSource(args("output"), Fields.ALL))
 }
