@@ -27,6 +27,7 @@ import org.apache.lucene.document.Field.{Index, Store}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.service.PrecomputationSettings
 import cascading.tuple.Fields
+import LuceneIndexingJob._
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference {
 
@@ -109,10 +110,10 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
     //    userLocations.read
     //    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
     checkins.read
-            .mapTo('checkinDto ->('serviceId, 'lat, 'lng, 'geosector, 'ip, 'timeSegment)) {
+            .mapTo('checkinDto -> IndexedFields) {
         fields: CheckinDTO => {
             val checkin = fields
-            val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
+            val serviceId = checkin.profileId
             val ldt = localDateTime(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
             val weekday = isWeekDay(ldt)
             val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.getAsString).toIndexableString
@@ -120,5 +121,9 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             (serviceId, checkin.latitude, checkin.longitude, geosector.toBase32, checkin.ip, timeSegment)
         }
     }
-            .shard(5).write(LuceneSource(args("output"), Fields.ALL))
+            .shard(5).write(LuceneSource(args("output"), IndexedFields))
+}
+
+object LuceneIndexingJob {
+    val IndexedFields = ('serviceId, 'lat, 'lng, 'geosector, 'ip, 'timeSegment)
 }
