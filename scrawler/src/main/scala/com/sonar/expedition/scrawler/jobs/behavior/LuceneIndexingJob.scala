@@ -29,7 +29,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
 
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
-    val checkins = if(test) IterableSource(Seq(
+    val checkins = if (test) IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "test1a",
             GeodataDTO(40.7505800, -73.9935800),
@@ -103,10 +103,10 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
     ).map(c => c.id -> c), Tuples.CheckinIdDTO)
     else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
 
-//    userLocations.read
-//    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
-      checkins.read
-        .mapTo('checkinDto -> ('serviceId, 'lat, 'lng, 'ip, 'timeSegment)) {
+    //    userLocations.read
+    //    SequenceFile(userCategories, Tuples.Behavior.UserCategories).read
+    checkins.read
+            .mapTo('checkinDto ->('serviceId, 'lat, 'lng, 'ip, 'timeSegment)) {
         fields: CheckinDTO => {
             val checkin = fields
             val serviceId = checkin.serviceType.toString + "_" + checkin.serviceProfileId
@@ -116,5 +116,5 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             (serviceId, checkin.latitude, checkin.longitude, checkin.ip, timeSegment)
         }
     }
-    .write(LuceneSource(args("output"), ('serviceId, 'lat, 'lng, 'ip, 'timeSegment)))
+            .shard(5).write(LuceneSource(args("output"), ('serviceId, 'lat, 'lng, 'ip, 'timeSegment)))
 }
