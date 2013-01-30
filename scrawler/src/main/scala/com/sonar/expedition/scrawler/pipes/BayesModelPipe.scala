@@ -31,15 +31,10 @@ trait BayesModelPipe extends ScaldingImplicits {
 
         // rms across keys, can change to be across documents
         val rmsPipe = fcPipe.groupBy('key) {
-            _.toList[Int]('featureCount -> 'featureList)
-        }
-                .map('featureList -> 'rms) {
-            list: List[Int] => {
-                //val sumSq = list.foldLeft[Double](0.0)((a, b) => a + (b * b))
-                //math.sqrt(sumSq)
-                normaliseList(list)
+            _.mapList[Int, Double]('featureCount -> 'rms) {
+                list: List[Int] => normaliseList(list)
             }
-        }.discard('featureList)
+        }
 
         // term doc count, number of docs term appears in
         val tdcPipe = reading.unique(('doc, 'token)).groupBy('token) {
@@ -47,7 +42,7 @@ trait BayesModelPipe extends ScaldingImplicits {
         }
 
         // doc count, number of docs total
-        val numDocs = reading.unique(('doc)).groupAll {
+        val numDocs = reading.unique('doc).groupAll {
             _.size('docCount)
         }
 
@@ -93,40 +88,20 @@ trait BayesModelPipe extends ScaldingImplicits {
         // ***********
 
         // idf
-        val tfidfPipe = totalPipe.map(('termDocCount, 'docCount) -> 'logIDF) {
-            fields: (Int, Int) => {
-                val (tdc, dc) = fields
-                (math.log(dc * 1.0 / tdc))
-            }
-        }
-                // tf
-                .map(('featureCount, 'rms) -> 'logTF) {
-            fields: (Int, Double) => {
-                val (fc, rms) = fields
-                if (fc == 0)
-                    0.0
-                else
-                    fc / rms
-                //Math.log(1 + fc / rms)
-            }
-        }
-                .map(('logIDF, 'logTF) -> ('logTFIDF)) {
-            fields: (Double, Double) => {
-                val (idf, tf) = fields
-                idf * tf
+        val tfidfPipe = totalPipe.map(('termDocCount, 'docCount, 'featureCount, 'rms) -> 'logTFIDF) {
+            fields: (Int, Int, Int, Double) => {
+                val (tdc, dc, fc, rms) = fields
+                val logIDF = math.log(dc * 1.0 / tdc)
+                val tf = if (fc == 0) 0.0 else fc / rms
+                logIDF * tf
+
             }
         }
 
         // sigma_k, sum of tf-idf across the label
         val tfidfSummerPipe = tfidfPipe.groupBy('key) {
-            _.toList[Double]('logTFIDF -> 'tfidfList)
+            _.sum(('logTFIDF) -> ('sigmak))
         }
-                .map('tfidfList -> 'sigmak) {
-            list: List[Double] => {
-                list.foldLeft[Double](0.0)((a, b) => a + b)
-            }
-        }
-                .discard('tfidfList)
 
         // tf-idf
         val normTFIDFPipe = tfidfPipe.joinWithSmaller('key -> 'key, tfidfSummerPipe)
@@ -136,18 +111,13 @@ trait BayesModelPipe extends ScaldingImplicits {
                 (tfidf + 1) / (sk + vc)
             }
         }
-        normTFIDFPipe.project(('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak))
+        normTFIDFPipe.project(('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak))
     }
 
 
-    def normaliseList(freq: List[Int]): Double = {
-        val dividend = math.sqrt(freq reduce {
-            (acc, elem) => acc + (elem * elem)
-        })
-        //freq map (_ / dividend)
-        dividend
-
-    }
+    def normaliseList(freq: List[Int]): Double = math.sqrt(freq reduce {
+        (acc, elem) => acc + (elem * elem)
+    })
 
     def stripEnglishPlural(word: String): String = {
 

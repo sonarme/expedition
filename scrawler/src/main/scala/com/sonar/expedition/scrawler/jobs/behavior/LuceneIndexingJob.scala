@@ -3,7 +3,7 @@ package com.sonar.expedition.scrawler.jobs.behavior
 import com.twitter.scalding._
 
 import com.sonar.expedition.scrawler.util.Tuples
-import com.sonar.expedition.scrawler.dto.indexable.{UserLocationDTO, IndexField, UserDTO}
+import com.sonar.expedition.scrawler.dto.indexable.{IndexField}
 import com.twitter.scalding.SequenceFile
 
 import com.sonar.expedition.scrawler.jobs.DefaultJob
@@ -12,7 +12,7 @@ import java.io.File
 import org.apache.hadoop
 import hadoop.conf.Configuration
 import hadoop.fs.{FileSystem, Path}
-import org.apache.lucene.index.{IndexReader, IndexWriterConfig}
+import org.apache.lucene.index.{IndexableField, IndexReader, IndexWriterConfig}
 import com.sonar.dossier.dto
 import dto._
 import dto.GeodataDTO
@@ -22,12 +22,14 @@ import org.scala_tools.time.Imports._
 import scala.{Array, Some}
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.checkins.CheckinInference
-import com.sonar.expedition.scrawler.source.LuceneSource
+import com.sonar.expedition.scrawler.source.{LuceneIndexOutputFormat, LuceneSource}
 import org.apache.lucene.document.Field.{Index, Store}
 import ch.hsr.geohash.GeoHash
 import com.sonar.dossier.service.PrecomputationSettings
-import cascading.tuple.Fields
+import cascading.tuple.{Tuple => CTuple, TupleEntry, Fields}
 import LuceneIndexingJob._
+import org.joda.time.{Hours => JTHours}
+import org.apache.lucene.document.Document
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference {
 
@@ -117,13 +119,34 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
             val ldt = localDateTime(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
             val weekday = isWeekDay(ldt)
             val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.getAsString).toIndexableString
-            val geosector = GeoHash.withCharacterPrecision(checkin.latitude, checkin.longitude, 7)
-            (serviceId, checkin.latitude, checkin.longitude, geosector.toBase32, checkin.ip, timeSegment)
+            val geosector = GeoHash.withCharacterPrecision(checkin.latitude, checkin.longitude, 7).toBase32
+            val timeWindow = JTHours.hoursBetween(new DateTime(0), checkin.checkinTime).getHours
+            (serviceId, geosector, geosector + ":" + timeSegment, geosector + ":" + timeWindow, checkin.ip)
         }
+    }.groupBy('serviceId) {
+        _.toList[(String, String, String, String)](('geosector, 'geosectorTimesegment, 'geosectorTimewindow, 'ip) -> ('indexedFields))
     }
-            .shard(5).write(LuceneSource(args("output"), IndexedFields))
+            .shard(5).write(LuceneSource(args("output"), classOf[CheckinIndexOutputFormat]))
 }
 
 object LuceneIndexingJob {
-    val IndexedFields = ('serviceId, 'lat, 'lng, 'geosector, 'ip, 'timeSegment)
+    val IndexedFields = ('serviceId, 'geosector, 'geosectorTimesegment, 'geosectorTimewindow, 'ip)
+}
+
+class CheckinIndexOutputFormat extends LuceneIndexOutputFormat[CTuple, TupleEntry] {
+
+    def buildDocument(key: CTuple, value: TupleEntry) = {
+        import org.apache.lucene.document._
+        val doc = new Document
+        doc.add(new StringField(IndexField.ServiceId.toString, value.getString("serviceId"), Store.NO))
+        value.getObject("indexedFields").asInstanceOf[Iterable[(String, String, String, String)]] foreach {
+            case (geosector, geosectorTimesegment, geosectorTimewindow, ip) =>
+                doc.add(new StringField(IndexField.Geosector.toString, geosector, Store.NO))
+                doc.add(new StringField(IndexField.GeosectorTimesegment.toString, geosectorTimesegment, Store.NO))
+                doc.add(new StringField(IndexField.GeosectorTimewindow.toString, geosectorTimewindow, Store.NO))
+                if (ip != null)
+                    doc.add(new StringField(IndexField.Ip.toString, ip, Store.NO))
+        }
+        doc
+    }
 }
