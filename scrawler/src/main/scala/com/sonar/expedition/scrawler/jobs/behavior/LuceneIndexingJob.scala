@@ -138,7 +138,7 @@ class CheckinIndexOutputFormat extends LuceneIndexOutputFormat[CTuple, TupleEntr
     def buildDocument(key: CTuple, value: TupleEntry) = {
         import org.apache.lucene.document._
         val doc = new Document
-        doc.add(new StringField(IndexField.ServiceId.toString, value.getString("serviceId"), Store.NO))
+        doc.add(new StringField(IndexField.ServiceId.toString, value.getString("serviceId"), Store.YES))
         value.getObject("indexedFields").asInstanceOf[Iterable[(String, String, String, String)]] foreach {
             case (geosector, geosectorTimesegment, geosectorTimewindow, ip) =>
                 doc.add(new StringField(IndexField.Geosector.toString, geosector, Store.NO))
