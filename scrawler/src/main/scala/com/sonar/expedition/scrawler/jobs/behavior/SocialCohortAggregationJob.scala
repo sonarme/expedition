@@ -38,6 +38,7 @@ import com.sonar.dossier.dto.GeodataDTO
 class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
+    // Profiles
     val profiles = if (test) IterableSource(Seq(
         ("roger", {
             val roger = ServiceProfileDTO(ServiceType.facebook, "123")
@@ -53,6 +54,8 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
         }, ServiceType.foursquare)
     ), Tuples.ProfileIdDTO)
     else SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO)
+
+    // Venues
     val venues = if (test) IterableSource(Seq(
         ("sonar", ServiceVenueDTO(ServiceType.foursquare, "sonar", "Sonar", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
         ("tracks", ServiceVenueDTO(ServiceType.foursquare, "tracks", "Tracks", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
@@ -61,6 +64,8 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
         ("esen", ServiceVenueDTO(ServiceType.foursquare, "esen", "Esen", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("deli")))
     ), Tuples.VenueIdDTO)
     else SequenceFile(args("venuesIn"), Tuples.VenueIdDTO)
+
+    // PlaceInference
     val placeInference = if (test) IterableSource(Seq(
         ("roger", "location1", 2, "nysc", 10, new TimeSegment(true, "7")),
         ("roger", "location1", 3, "penn", 4, new TimeSegment(true, "7")),
@@ -70,7 +75,10 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
         ("katie", "location1", 2, "esen", 10, new TimeSegment(true, "16"))
     ), Tuples.PlaceInference)
     else SequenceFile(args("placeInferenceIn"), Tuples.PlaceInference)
+
+
     val log15 = math.log(1.5)
+
     val userPlaceTypeScoresTimeSegment = placeInference.read
             .joinWithSmaller('canonicalVenueId -> 'venueId, venues.read).discard('venueId)
             .flatMap('venueDto -> 'placeType) {
@@ -84,6 +92,8 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
             .groupBy('userGoldenId, 'timeSegment, 'placeType) {
         _.sum('computedScore -> 'timeSegmentScores)
     }
+
+
     val categories = userPlaceTypeScoresTimeSegment.groupBy('userGoldenId) {
         _.mapList(('placeType, 'timeSegment, 'timeSegmentScores) -> ('categories)) {
             timeSegments: List[(String, TimeSegment, Double)] =>
@@ -95,12 +105,16 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
         }
     }
 
-    profiles.read.joinWithLarger('profileId -> 'userGoldenId, categories).mapTo(('profileDto, 'categories) -> ('features)) {
+    profiles.read.joinWithLarger('profileId -> 'userGoldenId, categories).mapTo(('profileDto, 'categories) -> ('explodedFeatures)) {
         in: (ServiceProfileDTO, Map[String, List[FeatureSegment]]) =>
             val (serviceProfile, segmentMap) = in
 
-            Features(id = serviceProfile.profileId, base = Seq(FeatureSegment("gender", Op.`=`, serviceProfile.gender.name())),
-                categories = segmentMap).explode()
+            val features = Features(
+                id = serviceProfile.profileId,
+                base = Seq(FeatureSegment("gender", Op.`=`, serviceProfile.gender.name())),
+                categories = segmentMap)
+            features.explode()
+
     }.write(LuceneSource(args("featuresOut"), classOf[SocialCohortOutputFormat]))
             .write(Tsv(args("featuresOut") + "_tsv"))
 
@@ -136,21 +150,22 @@ case class FeatureSegment(segment: String, op: Op.Value = Op.`>`, value: Any) {
 
 
 class SocialCohortOutputFormat extends LuceneIndexOutputFormat[CTuple, TupleEntry] {
-    val SocialCohortType = new FieldType
-    SocialCohortType.setIndexed(true)
-    SocialCohortType.setOmitNorms(true)
-    SocialCohortType.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
-    SocialCohortType.setTokenized(false)
-    SocialCohortType.setStoreTermVectors(true)
-    SocialCohortType.freeze()
+    val SocialCohortFieldType = new FieldType
+    SocialCohortFieldType.setIndexed(true)
+    SocialCohortFieldType.setOmitNorms(true)
+    SocialCohortFieldType.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
+    SocialCohortFieldType.setTokenized(false)
+    SocialCohortFieldType.setStoreTermVectors(true)
+    SocialCohortFieldType.freeze()
 
     def buildDocument(key: CTuple, value: TupleEntry) = {
         import org.apache.lucene.document._
         val doc = new Document
         val features = value.getObject(0).asInstanceOf[ExplodedFeatures]
         doc.add(new StringField(IndexField.Key.toString, features.id.toString, Store.YES))
+        // write all social cohorts
         features.features foreach {
-            feature => doc.add(new Field(IndexField.SocialCohort.toString, feature, SocialCohortType))
+            feature => doc.add(new Field(IndexField.SocialCohort.toString, feature, SocialCohortFieldType))
         }
         doc
     }
