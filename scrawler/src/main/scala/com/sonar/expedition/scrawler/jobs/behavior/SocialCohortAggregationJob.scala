@@ -115,8 +115,9 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
                 categories = segmentMap)
             features.explode()
 
-    }.write(LuceneSource(args("featuresOut"), classOf[SocialCohortOutputFormat]))
-            .write(Tsv(args("featuresOut") + "_tsv"))
+    }.write(Tsv(args("featuresOut") + "_tsv"))
+            .shard(5).write(LuceneSource(args("featuresOut"), classOf[SocialCohortOutputFormat]))
+
 
 }
 
