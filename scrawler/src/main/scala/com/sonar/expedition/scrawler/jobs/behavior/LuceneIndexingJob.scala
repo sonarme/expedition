@@ -30,8 +30,9 @@ import cascading.tuple.{Tuple => CTuple, TupleEntry, Fields}
 import LuceneIndexingJob._
 import org.joda.time.{Hours => JTHours}
 import org.apache.lucene.document.Document
+import com.sonar.expedition.common.segmentation.{TimeSegment, TimeSegmentation}
 
-class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference {
+class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference with TimeSegmentation {
 
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
@@ -116,9 +117,7 @@ class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInferen
         fields: CheckinDTO => {
             val checkin = fields
             val serviceId = checkin.profileId
-            val ldt = localDateTime(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
-            val weekday = isWeekDay(ldt)
-            val timeSegment = new TimeSegment(weekday, ldt.hourOfDay.getAsString).toIndexableString
+            val timeSegment = hourSegment(checkin.latitude, checkin.longitude, checkin.checkinTime.toDate)
             val geosector = GeoHash.withCharacterPrecision(checkin.latitude, checkin.longitude, 7).toBase32
             val timeWindow = JTHours.hoursBetween(new DateTime(0), checkin.checkinTime).getHours
             (serviceId, geosector, geosector + ":" + timeSegment, geosector + ":" + timeWindow, checkin.ip)

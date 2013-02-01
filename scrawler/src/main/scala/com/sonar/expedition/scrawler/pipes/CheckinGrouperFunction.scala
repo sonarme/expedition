@@ -1,19 +1,13 @@
 package com.sonar.expedition.scrawler.pipes
 
-import com.twitter.scalding.{RichDate, RichPipe, Args}
-import util.matching.Regex
-import cascading.pipe.joiner.LeftJoin
-import java.security.MessageDigest
-import ch.hsr.geohash.{GeoHash, WGS84Point, BoundingBox}
-import com.sonar.expedition.scrawler.util.CommonFunctions._
-import java.util.{Date, TimeZone, Calendar}
-import org.scalastuff.scalabeans.types.DateType
+import com.twitter.scalding.RichPipe
+import java.util.Date
 import org.joda.time._
-import com.sonar.expedition.scrawler.util.TimezoneLookup
 import com.sonar.expedition.scrawler.checkins.CheckinInference
+import com.sonar.expedition.common.segmentation.TimeSegmentation
 
 
-trait CheckinGrouperFunction extends ScaldingImplicits with CheckinInference {
+trait CheckinGrouperFunction extends ScaldingImplicits with CheckinInference with TimeSegmentation {
     def workCheckins(input: RichPipe) =
         input.filter('dayOfWeek, 'hour) {
             fields: (Int, Int) =>

@@ -25,7 +25,6 @@ import org.apache.lucene.index.IndexWriterConfig.OpenMode
 import com.sonar.dossier.dto.ServiceVenueDTO
 import com.twitter.scalding.SequenceFile
 import com.sonar.expedition.scrawler.jobs.behavior.ExplodedFeatures
-import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
 import com.sonar.expedition.scrawler.source.LuceneSource
 import com.sonar.dossier.dto.ServiceProfileDTO
 import com.sonar.expedition.scrawler.jobs.behavior.FeatureSegment
@@ -34,6 +33,7 @@ import com.sonar.dossier.dto.LocationDTO
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
 import com.sonar.dossier.dto.GeodataDTO
+import com.sonar.expedition.common.segmentation.TimeSegment
 
 class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)

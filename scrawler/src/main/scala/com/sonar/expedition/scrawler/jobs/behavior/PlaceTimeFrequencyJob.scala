@@ -21,6 +21,7 @@ import org.joda.time.DateMidnight
 import java.util
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.jobs.DefaultJob
+import com.sonar.expedition.common.segmentation.TimeSegment
 
 
 class PlaceTimeFrequencyJob(args: Args) extends DefaultJob(args) with CheckinGrouperFunction {

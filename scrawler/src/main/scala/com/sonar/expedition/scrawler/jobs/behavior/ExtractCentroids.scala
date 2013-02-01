@@ -15,9 +15,10 @@ import scala.Some
 import com.sonar.expedition.scrawler.util.CommonFunctions.Segment
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.checkins.CheckinInference
+import com.sonar.expedition.common.segmentation.TimeSegmentation
 
 
-class ExtractCentroids(args: Args) extends DefaultJob(args) with CheckinInference {
+class ExtractCentroids(args: Args) extends DefaultJob(args) with CheckinInference with TimeSegmentation {
 
     val segments = Seq((10, 18, true), (20, 7, false)) map {
         case (fromHr, toHr, name) => Segment(from = fromHr, to = toHr, name = name)

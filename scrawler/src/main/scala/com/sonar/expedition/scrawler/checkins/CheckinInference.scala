@@ -1,28 +1,15 @@
 package com.sonar.expedition.scrawler.checkins
 
-import java.util.Date
-import com.sonar.expedition.scrawler.util.TimezoneLookup
-import org.joda.time.LocalDateTime
-import org.joda.time.DateTimeConstants._
 import de.fuberlin.wiwiss.silk.plugins.metric.GeographicDistanceMetric
 import cascading.pipe.Pipe
 import com.sonar.expedition.scrawler.pipes.ScaldingImplicits
-import de.fuberlin.wiwiss.silk.linkagerule.similarity.{SimpleDistanceMeasure, DistanceMeasure}
-import cascading.tuple.{Tuple, Fields}
-import com.sonar.dossier.dto.GeodataDTO
+import de.fuberlin.wiwiss.silk.linkagerule.similarity.SimpleDistanceMeasure
+import cascading.tuple.Fields
 import com.sonar.dossier.dto.GeodataDTO
 import ch.hsr.geohash.GeoHash
-import com.sonar.dossier.service.PrecomputationSettings
 
 trait CheckinInference extends ScaldingImplicits {
-    val WeekDays = Set(MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)
     val GeoSectorSizeInBits = 30
-
-    def localDateTime(lat: Double, lng: Double, checkinTime: Date) = {
-        val localTz = TimezoneLookup.getClosestTimeZone(lat, lng)
-        new LocalDateTime(checkinTime, localTz)
-
-    }
 
 
     /**
@@ -80,7 +67,5 @@ trait CheckinInference extends ScaldingImplicits {
                 topEls
         }.discard('popularitySum, 'topEls)
     }
-
-    def isWeekDay(ldt: LocalDateTime) = WeekDays(ldt.getDayOfWeek)
 
 }
