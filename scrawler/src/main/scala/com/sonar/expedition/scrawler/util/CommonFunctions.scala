@@ -24,6 +24,14 @@ object CommonFunctions {
         }.mkString
     }
 
+    def powerSet[A](s: Set[A], removeEmpty: Boolean = true) = {
+        val result = s.foldLeft(Set(Set.empty[A])) {
+            (set, element) =>
+                set union (set map (_ + element))
+        }
+        if (removeEmpty) result - Set.empty[A] else result
+    }
+
     def hashed(str: String) = if (str.isEmpty) "" else md5SumString(str.getBytes("UTF-8"))
 
     def isNumeric(input: String): Boolean = !isNullOrEmpty(input) && input.forall(_.isDigit)

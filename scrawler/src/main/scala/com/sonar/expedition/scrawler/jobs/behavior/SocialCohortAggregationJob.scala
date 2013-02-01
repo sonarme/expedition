@@ -1,19 +1,78 @@
 package com.sonar.expedition.scrawler.jobs.behavior
 
 import com.sonar.expedition.scrawler.jobs.DefaultJob
-import com.twitter.scalding.{Tsv, SequenceFile, Args}
-import com.sonar.expedition.scrawler.util.Tuples
-import com.sonar.dossier.dto.{ServiceProfileDTO, ServiceVenueDTO}
+import com.twitter.scalding.{Tsv, Args, SequenceFile, IterableSource}
+import com.sonar.expedition.scrawler.util.{CommonFunctions, Tuples}
+import com.sonar.dossier.dto._
 import collection.JavaConversions._
+import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.dossier.dto.ServiceVenueDTO
+import com.sonar.dossier.dto.LocationDTO
+import org.joda.time.DateMidnight
+import com.sonar.expedition.scrawler.source.{LuceneSource, LuceneIndexOutputFormat}
+import com.sonar.expedition.scrawler.dto.indexable.IndexField
+import org.apache.lucene.document.Field.Store
+import cascading.tuple.{Tuple => CTuple, TupleEntry}
+import CommonFunctions._
+import org.apache.lucene.index.FieldInfo.IndexOptions
+import org.apache.lucene.document.FieldType
+import java.io.File
+import org.apache.lucene.queryparser.classic.QueryParser
+import org.apache.lucene.util.{BytesRef, Version}
+import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.index._
+import org.apache.lucene.index.IndexWriterConfig.OpenMode
+import com.sonar.dossier.dto.ServiceVenueDTO
+import com.twitter.scalding.SequenceFile
+import com.sonar.expedition.scrawler.jobs.behavior.ExplodedFeatures
+import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
+import com.sonar.expedition.scrawler.source.LuceneSource
+import com.sonar.dossier.dto.ServiceProfileDTO
+import com.sonar.expedition.scrawler.jobs.behavior.FeatureSegment
+import com.sonar.expedition.scrawler.jobs.behavior.Features
+import com.sonar.dossier.dto.LocationDTO
+import com.twitter.scalding.Tsv
+import com.twitter.scalding.IterableSource
+import com.sonar.dossier.dto.GeodataDTO
 
 class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
+    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
 
-    val profiles = SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO).read
-    val venues = SequenceFile(args("venuesIn"), Tuples.VenueIdDTO).read
-    val placeInference = SequenceFile(args("placeInferenceIn"), Tuples.PlaceInference).read
+    val profiles = if (test) IterableSource(Seq(
+        ("roger", {
+            val roger = ServiceProfileDTO(ServiceType.facebook, "123")
+            roger.gender = Gender.male
+            roger.birthday = new DateMidnight(1981, 2, 24).toDate
+            roger
+        }, ServiceType.facebook),
+        ("katie", {
+            val katie = ServiceProfileDTO(ServiceType.foursquare, "234")
+            katie.gender = Gender.male
+            katie.birthday = new DateMidnight(1999, 1, 1).toDate
+            katie
+        }, ServiceType.foursquare)
+    ), Tuples.ProfileIdDTO)
+    else SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO)
+    val venues = if (test) IterableSource(Seq(
+        ("sonar", ServiceVenueDTO(ServiceType.foursquare, "sonar", "Sonar", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
+        ("tracks", ServiceVenueDTO(ServiceType.foursquare, "tracks", "Tracks", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("office"))),
+        ("nysc", ServiceVenueDTO(ServiceType.foursquare, "nysc", "NYSC", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("gym"))),
+        ("penn", ServiceVenueDTO(ServiceType.foursquare, "penn", "Penn", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("train"))),
+        ("esen", ServiceVenueDTO(ServiceType.foursquare, "esen", "Esen", location = LocationDTO(GeodataDTO(40.0, -74.0), "x"), category = Seq("deli")))
+    ), Tuples.VenueIdDTO)
+    else SequenceFile(args("venuesIn"), Tuples.VenueIdDTO)
+    val placeInference = if (test) IterableSource(Seq(
+        ("roger", "location1", 2, "nysc", 10, new TimeSegment(true, "7")),
+        ("roger", "location1", 3, "penn", 4, new TimeSegment(true, "7")),
+        ("roger", "location1", 2, "sonar", 1, new TimeSegment(true, "7")),
+        ("roger", "location2", 1, "tracks", 8, new TimeSegment(true, "16")),
+        ("roger", "location2", 2, "sonar", 2, new TimeSegment(true, "16")),
+        ("katie", "location1", 2, "esen", 10, new TimeSegment(true, "16"))
+    ), Tuples.PlaceInference)
+    else SequenceFile(args("placeInferenceIn"), Tuples.PlaceInference)
     val log15 = math.log(1.5)
-    val userPlaceTypeScoresTimeSegment = placeInference
-            .joinWithSmaller('canonicalVenueId -> 'venueId, venues).discard('venueId)
+    val userPlaceTypeScoresTimeSegment = placeInference.read
+            .joinWithSmaller('canonicalVenueId -> 'venueId, venues.read).discard('venueId)
             .flatMap('venueDto -> 'placeType) {
         dto: ServiceVenueDTO => if (dto.category == null) Seq.empty else dto.category
     }.discard('venueDto)
@@ -31,35 +90,68 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
                 timeSegments.groupBy(_._1).mapValues(_.map {
                     case (placeType, timeSegment, score) =>
                         val bucketedScore = (math.log(score) / log15).toInt
-                        FeatureSegment(if (timeSegment == null) null else timeSegment.toIndexableString, 1, bucketedScore)
+                        FeatureSegment(if (timeSegment == null) null else timeSegment.toIndexableString, Op.`>`, bucketedScore)
                 })
         }
     }
 
-    profiles.joinWithLarger('profileId -> 'userGoldenId, categories).mapTo(('profileDto, 'categories) -> 'features) {
+    profiles.read.joinWithLarger('profileId -> 'userGoldenId, categories).mapTo(('profileDto, 'categories) -> ('features)) {
         in: (ServiceProfileDTO, Map[String, List[FeatureSegment]]) =>
             val (serviceProfile, segmentMap) = in
 
-            Features(id = serviceProfile.profileId, base = Seq(FeatureSegment("gender", 0, serviceProfile.gender.ordinal())),
-                categories = segmentMap)
-    }.write(Tsv(args("featuresOut"), 'features))
+            Features(id = serviceProfile.profileId, base = Seq(FeatureSegment("gender", Op.`=`, serviceProfile.gender.name())),
+                categories = segmentMap).explode()
+    }.write(LuceneSource(args("featuresOut"), classOf[SocialCohortOutputFormat]))
+            .write(Tsv(args("featuresOut") + "_tsv"))
 
 }
 
-case class Features(id: Any, base: Iterable[FeatureSegment], categories: Map[_ <: Any, Iterable[FeatureSegment]])
+case class ExplodedFeatures(id: Any, features: Iterable[String])
 
-case class FeatureSegment(segment: String, op: Int = 1, value: Int)
+case class Features(id: Any, base: Iterable[FeatureSegment], categories: Map[_ <: Any, Iterable[FeatureSegment]]) {
+    def explode() = {
+        val baseSet = base.map(_.toString).toSet
+        val exploded = (for ((key, featureSegments) <- categories;
+                             featureSegment <- featureSegments.map(_.toString)) yield {
+            val keyedSegment = key.toString + "@" + featureSegment
+            powerSet(baseSet + keyedSegment).map(_.mkString("&"))
+        }).reduce(_ ++ _)
 
-/* val source = io.Source.fromInputStream(getClass.getResourceAsStream("/foursquare_venues_categories.json"))
-    val venuesJson = try {
-        source.mkString
-    } finally {
-        source.close()
+        ExplodedFeatures(id, exploded)
     }
-    val categories = JSONFieldParser.parseEntities(classOf[Category], new JSONArray(venuesJson), true).asInstanceOf[Array[Category]]
-    // this is not stable if categories change, maybe use a DB or something?
-    val catIdMap = (for ((category, categoryIdx) <- categories.zipWithIndex;
-                         (subCategory, subCategoryIdx) <- (category.getCategories.zipWithIndex))
-    yield subCategory.getId -> (categoryIdx * 100 + subCategoryIdx)).toMap[String, Int]
 
-    println(categories)*/
+}
+
+object Op extends Enumeration("<", "=", ">") {
+    val `<`, `=`, `>` = Value
+}
+
+case class FeatureSegment(segment: String, op: Op.Value = Op.`>`, value: Any) {
+    def this() = this(null, Op.`>`, 0)
+
+    override def toString = segment + op.toString + value.toString
+
+
+}
+
+
+class SocialCohortOutputFormat extends LuceneIndexOutputFormat[CTuple, TupleEntry] {
+    val SocialCohortType = new FieldType
+    SocialCohortType.setIndexed(true)
+    SocialCohortType.setOmitNorms(true)
+    SocialCohortType.setIndexOptions(IndexOptions.DOCS_AND_FREQS)
+    SocialCohortType.setTokenized(false)
+    SocialCohortType.setStoreTermVectors(true)
+    SocialCohortType.freeze()
+
+    def buildDocument(key: CTuple, value: TupleEntry) = {
+        import org.apache.lucene.document._
+        val doc = new Document
+        val features = value.getObject(0).asInstanceOf[ExplodedFeatures]
+        doc.add(new StringField(IndexField.Key.toString, features.id.toString, Store.YES))
+        features.features foreach {
+            feature => doc.add(new Field(IndexField.SocialCohort.toString, feature, SocialCohortType))
+        }
+        doc
+    }
+}

@@ -11,4 +11,5 @@ object IndexField extends Enumeration {
     val GeosectorTimewindow = Value("geosectorTimewindow")
     val Ip = Value("ip")
     val ServiceId = Value("serviceId")
+    val SocialCohort = Value("socialCohort")
 }
