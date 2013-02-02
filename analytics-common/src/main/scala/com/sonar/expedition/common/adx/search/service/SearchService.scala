@@ -67,7 +67,7 @@ class SearchService(var reader: IndexReader, val writer: IndexWriter = null) ext
         hits
     }
 
-    def moreLikeThis(terms: Map[String, String]): TopDocs = mltTimer.time {
+    def moreLikeThis(terms: Map[String, String], n: Int = 10): TopDocs = mltTimer.time {
         val mlt = new MoreLikeThis(reader)
         //        mlt.setBoost(true)
         mlt.setMinTermFreq(1)
@@ -75,7 +75,7 @@ class SearchService(var reader: IndexReader, val writer: IndexWriter = null) ext
         //todo: more like this doesn't seem to work on longfields
         mlt.setAnalyzer(new StandardAnalyzer(Version.LUCENE_41))
         val query = mlt.likeTerms(terms)
-        val more = indexSearcher.search(query, 10)
+        val more = indexSearcher.search(query, n)
 
         explain(query, more)
         more
