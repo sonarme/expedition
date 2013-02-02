@@ -1,39 +1,27 @@
 package com.sonar.expedition.scrawler.jobs.behavior
 
 import com.sonar.expedition.scrawler.jobs.DefaultJob
-import com.twitter.scalding.{Tsv, Args, SequenceFile, IterableSource}
+import com.twitter.scalding.Args
 import com.sonar.expedition.scrawler.util.{CommonFunctions, Tuples}
 import com.sonar.dossier.dto._
 import collection.JavaConversions._
-import com.sonar.dossier.dto.ServiceProfileDTO
-import com.sonar.dossier.dto.ServiceVenueDTO
-import com.sonar.dossier.dto.LocationDTO
 import org.joda.time.DateMidnight
-import com.sonar.expedition.scrawler.source.{LuceneSource, LuceneIndexOutputFormat}
-import com.sonar.expedition.scrawler.dto.indexable.IndexField
+import com.sonar.expedition.scrawler.source.LuceneIndexOutputFormat
 import org.apache.lucene.document.Field.Store
 import cascading.tuple.{Tuple => CTuple, TupleEntry}
 import CommonFunctions._
 import org.apache.lucene.index.FieldInfo.IndexOptions
 import org.apache.lucene.document.FieldType
-import java.io.File
-import org.apache.lucene.queryparser.classic.QueryParser
-import org.apache.lucene.util.{BytesRef, Version}
-import org.apache.lucene.analysis.standard.StandardAnalyzer
-import org.apache.lucene.index._
-import org.apache.lucene.index.IndexWriterConfig.OpenMode
 import com.sonar.dossier.dto.ServiceVenueDTO
 import com.twitter.scalding.SequenceFile
-import com.sonar.expedition.scrawler.jobs.behavior.ExplodedFeatures
 import com.sonar.expedition.scrawler.source.LuceneSource
 import com.sonar.dossier.dto.ServiceProfileDTO
-import com.sonar.expedition.scrawler.jobs.behavior.FeatureSegment
-import com.sonar.expedition.scrawler.jobs.behavior.Features
 import com.sonar.dossier.dto.LocationDTO
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
 import com.sonar.dossier.dto.GeodataDTO
 import com.sonar.expedition.common.segmentation.TimeSegment
+import com.sonar.expedition.common.adx.search.model.IndexField
 
 class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)

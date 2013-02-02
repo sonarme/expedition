@@ -3,7 +3,7 @@ package com.sonar.expedition.common.adx.search.service
 import java.io.File
 
 import org.apache.lucene.store.MMapDirectory
-import org.apache.lucene.index.{IndexReader, DirectoryReader, MultiReader}
+import org.apache.lucene.index._
 import com.sonar.expedition.common.adx.search.model._
 
 import grizzled.slf4j.Logging
@@ -13,6 +13,12 @@ import java.util.Date
 import ch.hsr.geohash.GeoHash
 import org.joda.time.DateTime
 import org.joda.time.{Hours => JTHours}
+import com.sonar.expedition.common.adx.search.model.Bid
+import com.sonar.expedition.common.adx.search.model.SeatBid
+import com.sonar.expedition.common.adx.search.model.BidRequest
+import com.sonar.expedition.common.adx.search.model.BidResponse
+import org.apache.lucene.search.ScoreDoc
+import org.apache.lucene.util.BytesRef
 
 object BidProcessingService extends TimeSegmentation {
     val log = LoggerFactory.getLogger("application")
@@ -72,12 +78,29 @@ object BidProcessingService extends TimeSegmentation {
             IndexField.GeosectorTimesegment.toString -> (geosector + ":" + timeSegment.toIndexableString),
             IndexField.GeosectorTimewindow.toString -> (geosector + ":" + timeWindow)
         ).filterNot(_ == null))
+
+        val docTerms = (more.scoreDocs map {
+            scoreDoc: ScoreDoc => scoreDoc -> searchService.terms(scoreDoc.doc, IndexField.SocialCohort)
+        }).toMap[ScoreDoc, Iterable[TermsEnum]]
+
+        val docFreqs = docTerms.values.flatten.toSet.map {
+            term: TermsEnum => term.term() -> searchService.docFreq(new Term(IndexField.SocialCohort.toString, term.term()))
+        }.toMap[BytesRef, Int]
+
+        val totalScore = docTerms.map {
+            case (scoreDoc, termEnums) =>
+                scoreDoc.score * termEnums.map(termEnum => docFreqs(termEnum.term)).sum
+        }.sum
+
+
+
         val serviceIds = more.scoreDocs.map {
             case topDoc =>
                 val doc = searchService.doc(topDoc.doc)
                 doc.getField(IndexField.ServiceId.toString).stringValue()
         }
         log.info("doc serviceIds: " + serviceIds.mkString(", "))
+        log.info("score : " + totalScore)
         BidResponse("id", "bidid", more.totalHits, "cur", 1, List(SeatBid("seat", 1, List(Bid("impid", "1.00", "adid", "http://www.sonar.me/adserver/morelikethis", "adm", "sonar.me", "http://sonar.me/adserver/iurl", "cid", "crid", List("attr1", "attr2"))))))
 
     }

@@ -3,13 +3,14 @@ package com.sonar.expedition.common.adx.search.service
 import org.apache.lucene.index._
 import org.apache.lucene.search._
 import org.apache.lucene.queryparser.classic.QueryParser
-import org.apache.lucene.util.{PriorityQueue, Version}
+import org.apache.lucene.util.{BytesRef, PriorityQueue, Version}
 import org.apache.lucene.queries.mlt.MoreLikeThis
 import org.apache.lucene.analysis.standard.StandardAnalyzer
 import java.io.StringReader
 import com.yammer.metrics.scala.Instrumented
 import com.sonar.expedition.common.adx.search.model._
 import grizzled.slf4j.Logging
+import collection.mutable.ListBuffer
 
 class SearchService(var reader: IndexReader, val writer: IndexWriter = null) extends Instrumented with Logging {
     implicit def moreLikeThis_to_richMoreLikeThis(mlt: MoreLikeThis) = new RichMoreLikeThis(mlt)
@@ -35,19 +36,34 @@ class SearchService(var reader: IndexReader, val writer: IndexWriter = null) ext
         docs
     }
 
-    def search(field: IndexField.Value, queryStr: String) = searchTimer.time {
-        val queryParser = new QueryParser(Version.LUCENE_41, field.toString, new StandardAnalyzer(Version.LUCENE_41))
+    def searchDoc(field: IndexField.Value, queryStr: String) = {
+        val topDocs = search(field, queryStr, 1)
+        if (topDocs == null) None
+        else
+            topDocs.scoreDocs.headOption flatMap {
+                scoreDoc => Option(reader.document(scoreDoc.doc))
+            }
 
-        val query = field match {
-            //            case IndexField.Geosector => NumericRangeQuery.newLongRange(IndexField.Geohash.toString, queryStr.toLong, queryStr.toLong, true, true)
-            case _ => queryParser.parse(queryStr)
+
+    }
+
+    def terms(docId: Int, field: IndexField.Value) = {
+        val vec = reader.getTermVector(docId, field.toString)
+        val termsEnum = vec.iterator(null)
+        val results = ListBuffer[TermsEnum]()
+
+        while (termsEnum.next() != null) {
+            results += termsEnum
         }
-        info("Searching for: " + query.toString(field.toString))
+        results
+    }
 
-        val hits = indexSearcher.search(query, 10)
+    def docFreq(term: Term) = reader.docFreq(term)
 
+    def search(field: IndexField.Value, queryStr: String, n: Int = 10) = searchTimer.time {
+        val query = new TermQuery(new Term(field.toString, queryStr))
+        val hits = indexSearcher.search(query, n)
         explain(query, hits)
-
         hits
     }
 

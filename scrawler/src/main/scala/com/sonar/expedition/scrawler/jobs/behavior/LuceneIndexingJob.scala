@@ -3,34 +3,26 @@ package com.sonar.expedition.scrawler.jobs.behavior
 import com.twitter.scalding._
 
 import com.sonar.expedition.scrawler.util.Tuples
-import com.sonar.expedition.scrawler.dto.indexable.{IndexField}
 import com.twitter.scalding.SequenceFile
 
 import com.sonar.expedition.scrawler.jobs.DefaultJob
-import org.apache.lucene.store.{SimpleFSLockFactory, NoLockFactory, FSDirectory}
-import java.io.File
-import org.apache.hadoop
-import hadoop.conf.Configuration
-import hadoop.fs.{FileSystem, Path}
-import org.apache.lucene.index.{IndexableField, IndexReader, IndexWriterConfig}
 import com.sonar.dossier.dto
 import dto._
 import dto.GeodataDTO
 import dto.LocationDTO
 import dto.ServiceVenueDTO
 import org.scala_tools.time.Imports._
-import scala.{Array, Some}
+import scala.Some
 import com.twitter.scalding.IterableSource
 import com.sonar.expedition.scrawler.checkins.CheckinInference
 import com.sonar.expedition.scrawler.source.{LuceneIndexOutputFormat, LuceneSource}
-import org.apache.lucene.document.Field.{Index, Store}
+import org.apache.lucene.document.Field.Store
 import ch.hsr.geohash.GeoHash
-import com.sonar.dossier.service.PrecomputationSettings
-import cascading.tuple.{Tuple => CTuple, TupleEntry, Fields}
+import cascading.tuple.{Tuple => CTuple, TupleEntry}
 import LuceneIndexingJob._
 import org.joda.time.{Hours => JTHours}
-import org.apache.lucene.document.Document
-import com.sonar.expedition.common.segmentation.{TimeSegment, TimeSegmentation}
+import com.sonar.expedition.common.segmentation.TimeSegmentation
+import com.sonar.expedition.common.adx.search.model.IndexField
 
 class LuceneIndexingJob(args: Args) extends DefaultJob(args) with CheckinInference with TimeSegmentation {
 
