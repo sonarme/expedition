@@ -35,10 +35,16 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
         }, ServiceType.facebook),
         ("katie", {
             val katie = ServiceProfileDTO(ServiceType.foursquare, "234")
-            katie.gender = Gender.male
+            katie.gender = Gender.female
             katie.birthday = new DateMidnight(1999, 1, 1).toDate
             katie
-        }, ServiceType.foursquare)
+        }, ServiceType.foursquare),
+        ("ben", {
+            val ben = ServiceProfileDTO(ServiceType.sonar, "2345")
+            ben.gender = Gender.male
+            ben.birthday = new DateMidnight(1999, 1, 1).toDate
+            ben
+        }, ServiceType.sonar)
     ), Tuples.ProfileIdDTO)
     else SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO)
 
@@ -92,14 +98,14 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
         }
     }
 
-    profiles.read.joinWithLarger('profileId -> 'userGoldenId, categories).mapTo(('profileDto, 'categories) -> ('explodedFeatures)) {
+    profiles.read.leftJoinWithLarger('profileId -> 'userGoldenId, categories).mapTo(('profileDto, 'categories) -> ('explodedFeatures)) {
         in: (ServiceProfileDTO, Map[String, List[FeatureSegment]]) =>
             val (serviceProfile, segmentMap) = in
 
             val features = Features(
                 id = serviceProfile.profileId,
                 base = Seq(FeatureSegment("gender", Op.`=`, serviceProfile.gender.name())),
-                categories = segmentMap)
+                categories = Option(segmentMap).getOrElse(Map.empty[String, List[FeatureSegment]]))
             features.explode()
 
     }.write(Tsv(args("featuresOut") + "_tsv"))
@@ -108,18 +114,21 @@ class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {
 
 }
 
-case class ExplodedFeatures(id: Any, features: Iterable[String])
+case class ExplodedFeatures(id: Any, features: Set[String])
 
 case class Features(id: Any, base: Iterable[FeatureSegment], categories: Map[_ <: Any, Iterable[FeatureSegment]]) {
     def explode() = {
         val baseSet = base.map(_.toString).toSet
-        val exploded = (for ((key, featureSegments) <- categories;
-                             featureSegment <- featureSegments.map(_.toString)) yield {
-            val keyedSegment = key.toString + "@" + featureSegment
-            powerSet(baseSet + keyedSegment).map(_.mkString("&"))
-        }).reduce(_ ++ _)
+        val basePowerSet = powerSet(baseSet).map(_.mkString("&"))
+        val exploded =
+            if (categories.isEmpty) Set.empty[String]
+            else (for ((key, featureSegments) <- categories;
+                       featureSegment <- featureSegments.map(_.toString)) yield {
+                val keyedSegment = key.toString + "@" + featureSegment
+                baseSet.map(_ + "&" + keyedSegment)
+            }).reduce(_ ++ _)
 
-        ExplodedFeatures(id, exploded)
+        ExplodedFeatures(id, basePowerSet ++ exploded)
     }
 
 }
