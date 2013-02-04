@@ -12,7 +12,6 @@ import com.sonar.expedition.scrawler.pipes.{AgeEducationPipe, DTOProfileInfoPipe
 import ProfileAttributeMapping._
 import com.sonar.expedition.scrawler.jobs.{DefaultJob, Csv}
 import collection.JavaConversions._
-import TimeSegment
 
 class UserCategoryJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with AgeEducationPipe {
 
