@@ -22,13 +22,16 @@ import org.apache.lucene.util.BytesRef
 
 object BidProcessingService extends TimeSegmentation {
     val log = LoggerFactory.getLogger("application")
-    lazy val searchService = {
-        //        val base = "/develop/expedition/Checkins0118_idx3"
-        val base = "/media/ephemeral0/data"
+
+    def multiDirectorySearchService(base: String) = {
         val directories = new File(base).listFiles().filter(_.isDirectory)
         log.info("Using directories: " + directories.mkString(", "))
         new SearchService(new MultiReader(directories.map(dir => DirectoryReader.open(new MMapDirectory(dir))): Array[IndexReader], true), null)
     }
+
+    // TODO: ugly
+    lazy val searchService = multiDirectorySearchService("/media/ephemeral0/data")
+    lazy val searchServiceCohorts = multiDirectorySearchService("/media/ephemeral0/dataCohorts")
     // TODO: shutdown
 
     /*
@@ -80,11 +83,11 @@ object BidProcessingService extends TimeSegmentation {
         ).filterNot(_ == null))
 
         val docTerms = (more.scoreDocs map {
-            scoreDoc: ScoreDoc => scoreDoc -> searchService.terms(scoreDoc.doc, IndexField.SocialCohort)
+            scoreDoc: ScoreDoc => scoreDoc -> searchServiceCohorts.terms(scoreDoc.doc, IndexField.SocialCohort)
         }).toMap[ScoreDoc, Iterable[TermsEnum]]
 
         val docFreqs = docTerms.values.flatten.toSet.map {
-            term: TermsEnum => term.term() -> searchService.docFreq(new Term(IndexField.SocialCohort.toString, term.term()))
+            term: TermsEnum => term.term() -> searchServiceCohorts.docFreq(new Term(IndexField.SocialCohort.toString, term.term()))
         }.toMap[BytesRef, Int]
 
         val totalScore = docTerms.map {
