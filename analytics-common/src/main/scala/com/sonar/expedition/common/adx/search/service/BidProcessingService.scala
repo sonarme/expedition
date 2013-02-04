@@ -86,13 +86,15 @@ object BidProcessingService extends TimeSegmentation {
             scoreDoc: ScoreDoc => scoreDoc -> searchServiceCohorts.terms(scoreDoc.doc, IndexField.SocialCohort)
         }).toMap[ScoreDoc, Iterable[TermsEnum]]
 
+        val termDocs = (for ((scoreDoc, terms) <- docTerms.toSeq; term <- terms) yield term -> scoreDoc).groupBy(_._1).toMap.mapValues(_.map(_._2))
+
         val docFreqs = docTerms.values.flatten.toSet.map {
             term: TermsEnum => term.term() -> searchServiceCohorts.docFreq(new Term(IndexField.SocialCohort.toString, term.term()))
         }.toMap[BytesRef, Int]
 
-        val totalScore = docTerms.map {
-            case (scoreDoc, termEnums) =>
-                scoreDoc.score * termEnums.map(termEnum => docFreqs(termEnum.term)).sum
+        val totalScore = termDocs.map {
+            case (termEnum, docs) =>
+                docs.map(_.score).sum / docFreqs(termEnum.term)
         }.sum
 
 
