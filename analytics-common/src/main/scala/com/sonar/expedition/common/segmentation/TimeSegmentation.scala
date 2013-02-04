@@ -4,6 +4,7 @@ import org.joda.time.LocalDateTime
 import java.util.Date
 import org.joda.time.DateTimeConstants._
 import com.sonar.expedition.common.util.TimezoneLookup
+import com.sonar.expedition.scrawler.jobs.behavior.TimeSegment
 
 trait TimeSegmentation {
     val WeekDays = Set(MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY)

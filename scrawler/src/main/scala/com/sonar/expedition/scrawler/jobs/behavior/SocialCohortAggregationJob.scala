@@ -20,7 +20,7 @@ import com.sonar.dossier.dto.LocationDTO
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
 import com.sonar.dossier.dto.GeodataDTO
-import com.sonar.expedition.common.segmentation.TimeSegment
+import TimeSegment
 import com.sonar.expedition.common.adx.search.model.IndexField
 
 class SocialCohortAggregationJob(args: Args) extends DefaultJob(args) {

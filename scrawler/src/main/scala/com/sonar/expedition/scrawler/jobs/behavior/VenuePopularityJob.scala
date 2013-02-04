@@ -14,7 +14,7 @@ import cascading.tuple.{Tuple, Fields}
 import grizzled.slf4j.Logging
 import com.sonar.expedition.scrawler.jobs.{Csv, DefaultJob}
 import ch.hsr.geohash.{WGS84Point, BoundingBox}
-import com.sonar.expedition.common.segmentation.{TimeSegment, TimeSegmentation}
+import com.sonar.expedition.common.segmentation.{TimeSegmentation}
 
 class VenuePopularityJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference with TimeSegmentation {
     val segments = Seq(0 -> 8, 7 -> 12, 11 -> 15, 14 -> 17, 16 -> 21, 20 -> 0) map {

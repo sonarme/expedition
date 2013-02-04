@@ -12,7 +12,7 @@ import com.sonar.dossier.dto.GeodataDTO
 import org.scala_tools.time.Imports._
 import cascading.tuple.Fields
 import com.sonar.expedition.scrawler.jobs.DefaultJob
-import com.sonar.expedition.common.segmentation.{TimeSegment, TimeSegmentation}
+import com.sonar.expedition.common.segmentation.{TimeSegmentation}
 
 class VenueCountJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference with TimeSegmentation {
     val segments = Seq(1 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 1) map {
