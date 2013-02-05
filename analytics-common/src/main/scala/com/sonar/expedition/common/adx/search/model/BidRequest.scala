@@ -59,7 +59,7 @@ case class Video(mimes: List[String],
                  pos: Int,
                  companionad: List[Banner])
 
-case class Site(id: String,
+case class Site(id: String = null,
                 name: String = null,
                 domain: String = null,
                 cat: List[String] = null,
@@ -74,11 +74,11 @@ case class Site(id: String,
                 keywords: String = null,
                 ext: Any = null)
 
-case class Publisher(id: String,
-                     name: String,
-                     cat: List[String],
-                     domain: String,
-                     ext: Any)
+case class Publisher(id: String = null,
+                     name: String = null,
+                     cat: List[String] = null,
+                     domain: String = null,
+                     ext: Any = null)
 
 case class Content(id: String,
                    episode: Int,
@@ -107,21 +107,21 @@ case class Producer(id: String,
                     domain: String,
                     ext: Any)
 
-case class App(id: String,
-               name: String,
-               domain: String,
-               cat: List[String],
-               sectioncat: List[String],
-               pagecat: List[String],
-               ver: String,
-               bundle: String,
-               privacypolicy: Int,
-               paid: Int,
-               publisher: Publisher,
-               content: Content,
-               keywords: String,
-               storeurl: String,
-               ext: Any)
+case class App(id: String = null,
+               name: String = null,
+               domain: String = null,
+               cat: List[String] = null,
+               sectioncat: List[String] = null,
+               pagecat: List[String] = null,
+               ver: String = null,
+               bundle: String = null,
+               privacypolicy: Int = 0,
+               paid: Int = 0,
+               publisher: Publisher = null,
+               content: Content = null,
+               keywords: String = null,
+               storeurl: String = null,
+               ext: Any = null)
 
 case class Device(dnt: Int,
                   ua: String,
