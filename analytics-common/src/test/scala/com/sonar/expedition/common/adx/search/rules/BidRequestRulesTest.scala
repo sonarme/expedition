@@ -2,7 +2,6 @@ package com.sonar.expedition.common.adx.search.rules
 
 import org.scalatest.FlatSpec
 import com.sonar.expedition.common.adx.search.model._
-import hammurabi.{FailedExecutionException, RuleEngine, WorkingMemory}
 import com.sonar.expedition.common.adx.search.model.Impression
 import com.sonar.expedition.common.adx.search.model.App
 import com.sonar.expedition.common.adx.search.model.BidRequest
