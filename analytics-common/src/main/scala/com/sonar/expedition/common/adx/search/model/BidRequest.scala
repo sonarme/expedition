@@ -1,16 +1,176 @@
 package com.sonar.expedition.common.adx.search.model
 
-case class BidRequest(id: String, at: Int, tmax: Int, imp: List[BidImpression], site: Site, app: App, device: Device, user: User, restrictions: Restrictions)
+//openRTB 2.1
+case class BidRequest(id: String,
+                      imp: List[Impression],
+                      site: Site = null,
+                      app: App = null,
+                      device: Device = null,
+                      user: User = null,
+                      at: Int = 2,
+                      tmax: Int = 120,
+                      wseat: List[String] = null,
+                      allimps: Int = 0,
+                      cur: List[String] = null,
+                      bcat: List[String] = null,
+                      badv: List[String] = null,
+                      ext: Any = null)
 
-case class BidImpression(impid: CharSequence, wseat: List[CharSequence], h: Int, w: Int, pos: Int, instl: Int, btype: List[CharSequence], battr: List[CharSequence])
+case class Impression(id: String,
+                      banner: Banner,
+                      video: Video,
+                      displaymanager: String,
+                      displaymanagerver: String,
+                      instl: Int,
+                      tagid: String,
+                      bidfloor: Float,
+                      bidfloorcur: String,
+                      iframebuster: List[String],
+                      ext: Any)
 
-case class Site(sid: CharSequence, name: CharSequence, domain: CharSequence, pid: CharSequence, pub: CharSequence, pdomain: CharSequence, cat: List[CharSequence], keywords: CharSequence, page: CharSequence, ref: CharSequence, search: CharSequence)
+case class Banner(w: Int,
+                  h: Int,
+                  id: String,
+                  pos: Int,
+                  btype: List[Int],
+                  battr: List[Int],
+                  mimes: List[String],
+                  topframe: Int,
+                  expdir: List[Int],
+                  api: List[Int],
+                  ext: Any)
 
-case class App(aid: CharSequence, name: CharSequence, domain: CharSequence, pid: CharSequence, pub: CharSequence, pdomain: CharSequence, cat: List[CharSequence], keywords: CharSequence, ver: CharSequence, bundle: CharSequence, paid: Int)
+case class Video(mimes: List[String],
+                 linearity: Int,
+                 minduration: Int,
+                 maxduration: Int,
+                 protocol: Int,
+                 w: Int,
+                 h: Int,
+                 startdelay: Int,
+                 sequence: Int,
+                 battr: List[Int],
+                 maxextended: Int,
+                 minbitrate: Int,
+                 maxbitrate: Int,
+                 boxingallowed: Int,
+                 playbackmethod: List[Int],
+                 delivery: List[Int],
+                 pos: Int,
+                 companionad: List[Banner])
 
-case class Device(did: CharSequence, dpid: CharSequence, ip: CharSequence, country: CharSequence, carrier: CharSequence, ua: CharSequence, make: CharSequence, model: CharSequence, os: CharSequence, osv: CharSequence, js: Int, loc: CharSequence)
+case class Site(id: String,
+                name: String = null,
+                domain: String = null,
+                cat: List[String] = null,
+                sectioncat: List[String] = null,
+                pagecat: List[String] = null,
+                page: String = null,
+                privacypolicy: Int = 0,
+                ref: String = null,
+                search: String = null,
+                publisher: Publisher = null,
+                content: Content = null,
+                keywords: String = null,
+                ext: Any = null)
 
-case class User(uid: CharSequence, yob: Int, gender: CharSequence, zip: CharSequence, country: CharSequence, keywords: CharSequence)
+case class Publisher(id: String,
+                     name: String,
+                     cat: List[String],
+                     domain: String,
+                     ext: Any)
 
-case class Restrictions(bcat: List[CharSequence], badv: List[CharSequence])
+case class Content(id: String,
+                   episode: Int,
+                   title: String,
+                   series: String,
+                   season: String,
+                   url: String,
+                   cat: List[String],
+                   videoquality: Int,
+                   keywords: String,
+                   contentrating: String,
+                   userrating: String,
+                   context: String,
+                   livestream: Int,
+                   sourcerelationship: Int,
+                   producer: Producer,
+                   len: Int,
+                   qagmediarating: Int,
+                   embeddable: Int,
+                   language: String,
+                   ext: Any)
 
+case class Producer(id: String,
+                    name: String,
+                    cat: List[String],
+                    domain: String,
+                    ext: Any)
+
+case class App(id: String,
+               name: String,
+               domain: String,
+               cat: List[String],
+               sectioncat: List[String],
+               pagecat: List[String],
+               ver: String,
+               bundle: String,
+               privacypolicy: Int,
+               paid: Int,
+               publisher: Publisher,
+               content: Content,
+               keywords: String,
+               storeurl: String,
+               ext: Any)
+
+case class Device(dnt: Int,
+                  ua: String,
+                  ip: String,
+                  geo: Geo,
+                  didsha1: String,
+                  didmd5: String,
+                  dpidsha1: String,
+                  dpidmd5: String,
+                  ipv6: String,
+                  carrier: String,
+                  language: String,
+                  make: String,
+                  model: String,
+                  os: String,
+                  Osv: String,
+                  Js: Int,
+                  connectiontype: Int,
+                  devicetype: Int,
+                  flashver: String,
+                  ext: Any)
+
+case class Geo(lat: Float,
+               lon: Float,
+               country: String,
+               region: String,
+               regionfips104: String,
+               metro: String,
+               city: String,
+               zip: String,
+               `type`: Int,
+               ext: Any)
+
+case class User(id: String,
+                buyeruid: String,
+                yob: Int,
+                gender: String,
+                keywords: String,
+                customdata: String,
+                geo: Geo,
+                data: List[Data],
+                ext: Any)
+
+case class Data(id: String,
+                name: String,
+                segment: List[Segment],
+                ext: Any)
+
+case class Segment(id: String,
+                   name: String,
+                   value: String,
+                   ext: Any)

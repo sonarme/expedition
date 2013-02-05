@@ -68,7 +68,8 @@ object BidProcessingService extends TimeSegmentation {
 
 
     def processBidRequest(bidRequest: BidRequest, currentTime: Date = new Date) = {
-        val Array(lat, lng) = bidRequest.device.loc.toString.split("\\s*,\\s*").map(_.toDouble)
+        val lat = bidRequest.device.geo.lat
+        val lng = bidRequest.device.geo.lon
 
         // TODO: ugly copy&paste
         val timeSegment = hourSegment(lat, lng, currentTime)

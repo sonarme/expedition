@@ -52,6 +52,11 @@
             <artifactId>grizzled-slf4j_2.9.1</artifactId>
             <version>0.6.10</version>
         </dependency>
+        <dependency>
+            <groupId>com.googlecode.hammurabi</groupId>
+                <artifactId>hammurabi</artifactId>
+                <version>0.1</version>
+        </dependency>
     </dependencies>
 
     <build>
