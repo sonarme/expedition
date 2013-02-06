@@ -14,7 +14,7 @@ object BidRequestRules {
     val categoryBlacklist = Set(
         "IAB2" //Automotive
     )
-    //only allow these types
+    //filter out these dimensions
     val adTypeFilter = Set(
         Dimension(10, 10)
     )
