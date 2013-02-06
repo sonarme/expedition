@@ -72,7 +72,7 @@ object BidProcessingService extends TimeSegmentation {
         BidRequestRules.execute(bidRequest) match {
             case Some(ruleViolation: String) => {
                 log.info("passing on bid. rule violation : " + ruleViolation)
-                BidResponse("id", "bidid", 0, "cur", 1, List(SeatBid("seat", 1, List(Bid("impid", "0.00", "adid", "http://www.sonar.me/adserver/morelikethis", "adm", "sonar.me", "http://sonar.me/adserver/iurl", "cid", "crid", List())))))
+                BidResponse("123", List(SeatBid(List(Bid("bid1", "impid1", 0.00f, nurl = "http://sonar.me/win/notify/endpoint", adm = "<html>ad markup</html>")))))
             }
             case None => {
                 val lat = bidRequest.device.geo.lat
@@ -114,7 +114,7 @@ object BidProcessingService extends TimeSegmentation {
                 }
                 log.info("doc serviceIds: " + serviceIds.mkString(", "))
                 log.info("score : " + totalScore)
-                BidResponse("id", "bidid", more.totalHits, "cur", 1, List(SeatBid("seat", 1, List(Bid("impid", "1.00", "adid", "http://www.sonar.me/adserver/morelikethis", "adm", "sonar.me", "http://sonar.me/adserver/iurl", "cid", "crid", List("attr1", "attr2"))))))
+                BidResponse("123", List(SeatBid(List(Bid("bid1", "impid1", 1.00f, nurl = "http://sonar.me/win/notify/endpoint", adm = "<html>ad markup</html>")))))
             }
         }
     }
