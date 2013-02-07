@@ -6,7 +6,6 @@ import org.apache.lucene.store.MMapDirectory
 import org.apache.lucene.index._
 import com.sonar.expedition.common.adx.search.model._
 
-import grizzled.slf4j.Logging
 import org.slf4j.LoggerFactory
 import com.sonar.expedition.common.segmentation.TimeSegmentation
 import java.util.Date
@@ -67,7 +66,6 @@ object BidProcessingService extends TimeSegmentation {
       }
   */
 
-
     def processBidRequest(bidRequest: BidRequest, currentTime: Date = new Date): Option[BidResponse] = {
         BidRequestRules.execute(bidRequest) match {
             case Some(ruleViolation: String) => {
@@ -114,7 +112,7 @@ object BidProcessingService extends TimeSegmentation {
                 }
                 log.info("doc serviceIds: " + serviceIds.mkString(", "))
                 log.info("score : " + totalScore)
-                Option(BidResponse("123", List(SeatBid(List(Bid("bid1", "impid1", 1.00f, nurl = "http://sonar.me/win/notify/endpoint", adm = "<html>ad markup</html>"))))))
+                Option(BidResponse(bidRequest.id, List(SeatBid(List(Bid("bid1", "impid1", 1.00f, nurl = "http://sonar.me/win/notify/endpoint", adm = "<html>ad markup</html>"))))))
             }
         }
     }
