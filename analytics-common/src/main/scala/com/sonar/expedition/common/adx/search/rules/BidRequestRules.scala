@@ -3,19 +3,23 @@ package com.sonar.expedition.common.adx.search.rules
 import hammurabi.{FailedExecutionException, RuleEngine, WorkingMemory, Rule}
 import Rule._
 import com.sonar.expedition.common.adx.search.model.{BidRequest}
+import com.sonar.expedition.common.adx.search.actor.{Reset, Timer}
+import scala.actors._
+import scala.actors.Actor._
+import com.sonar.expedition.common.adx.search.service.BidProcessingService
 
 object BidRequestRules {
 
     //domain blacklist
-    val domainBlacklist = Set(
+    val DomainBlacklist = Set(
         "highlig.ht"
     )
     //publisher category blacklist
-    val categoryBlacklist = Set(
+    val CategoryBlacklist = Set(
         "IAB2" //Automotive
     )
     //filter out these dimensions
-    val adTypeFilter = Set(
+    val AdTypeFilter = Set(
         Dimension(10, 10)
     )
 
@@ -26,6 +30,11 @@ object BidRequestRules {
         val NotFromMobileApp = "BidRequest is not from a mobile app"
         val AdDimensionFilter = "BidRequest contains filtered Ad dimensions"
         val TooManyImpressions = "BidRequest contains too many Impressions"
+        val MaxHourlySpentExhausted = "Max Hourly Spent Exhausted"
+    }
+
+    def updateCurrentHourlyAmountSpent(amount: Int) {
+
     }
 
     def execute(bidRequest: BidRequest) = {
@@ -37,7 +46,7 @@ object BidRequestRules {
         rule(RuleMessage.DomainBlacklist) let {
             val br = kindOf[BidRequest] having (_.app != null)
             when {
-                domainBlacklist contains br.app.domain
+                DomainBlacklist contains br.app.domain
             } then {
                 exitWith(RuleMessage.DomainBlacklist)
             }
@@ -46,7 +55,7 @@ object BidRequestRules {
         rule(RuleMessage.CategoryBlacklist) let {
             val br = kindOf[BidRequest] having (br => br.app != null && br.app.publisher != null && br.app.publisher.cat != null)
             when {
-                br.app.publisher.cat.foldLeft(false)((b, a) => b || categoryBlacklist.contains(a))
+                br.app.publisher.cat.foldLeft(false)((b, a) => b || CategoryBlacklist.contains(a))
             } then {
                 exitWith(RuleMessage.CategoryBlacklist)
             }
@@ -62,13 +71,21 @@ object BidRequestRules {
         rule(RuleMessage.AdDimensionFilter) let {
             val br = kindOf[BidRequest] having (_.imp != null)
             then {
-                if(br.imp.size == 1) {
+                if (br.imp.size == 1) {
                     val d = Dimension(br.imp.head.banner.w, br.imp.head.banner.h)
-                    if (adTypeFilter contains d)
+                    if (AdTypeFilter contains d)
                         exitWith(RuleMessage.AdDimensionFilter)
                 } else if (br.imp.size > 1) {
                     exitWith(RuleMessage.TooManyImpressions)
                 }
+            }
+        },
+        rule(RuleMessage.MaxHourlySpentExhausted) let {
+            val br = any(kindOf[BidRequest])
+            when {
+                BidProcessingService.CurrentHourAmountSpent >= BidProcessingService.MaxAmountSpentHourly
+            } then {
+                exitWith(RuleMessage.MaxHourlySpentExhausted)
             }
         }
     )
