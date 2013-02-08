@@ -54,8 +54,8 @@
         </dependency>
         <dependency>
             <groupId>com.googlecode.hammurabi</groupId>
-                <artifactId>hammurabi</artifactId>
-                <version>0.1</version>
+            <artifactId>hammurabi</artifactId>
+            <version>0.1</version>
         </dependency>
     </dependencies>
 
@@ -116,6 +116,11 @@
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
+        </repository>
+        <repository>
+            <id>akka.repository</id>
+            <name>Akka Maven Repository</name>
+            <url>http://maven.twttr.com/</url>
         </repository>
         <repository>
             <id>conjars.org</id>

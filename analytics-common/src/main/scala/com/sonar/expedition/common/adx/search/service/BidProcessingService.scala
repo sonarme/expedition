@@ -12,22 +12,14 @@ import java.util.Date
 import ch.hsr.geohash.GeoHash
 import org.joda.time.DateTime
 import org.joda.time.{Hours => JTHours}
-import com.sonar.expedition.common.adx.search.model.Bid
-import com.sonar.expedition.common.adx.search.model.SeatBid
-import com.sonar.expedition.common.adx.search.model.BidRequest
-import com.sonar.expedition.common.adx.search.model.BidResponse
 import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.util.BytesRef
 import com.sonar.expedition.common.adx.search.rules.BidRequestRules
-import com.twitter.util.Future
-import com.twitter.concurrent.Offer
-import actors.Actor._
 import scala.Some
 import com.sonar.expedition.common.adx.search.model.Bid
 import com.sonar.expedition.common.adx.search.model.SeatBid
 import com.sonar.expedition.common.adx.search.model.BidRequest
 import com.sonar.expedition.common.adx.search.model.BidResponse
-import com.sonar.expedition.common.adx.search.actor.{Timer, Reset}
 import org.scala_tools.time.Imports._
 
 object BidProcessingService extends TimeSegmentation {
@@ -47,18 +39,8 @@ object BidProcessingService extends TimeSegmentation {
     val MaxAmountSpentHourly = 10.0f
     var CurrentHourAmountSpent = 0.0f
 
-    val currentAmountActor = actor {
-        loop {
-            react {
-                case Reset => log.info("resetting CurrentHourAmountSpent to 0. Was " + CurrentHourAmountSpent); CurrentHourAmountSpent = 0.0f
-            }
-        }
-    }
-
-    val t = new Timer(1.hour, currentAmountActor).start()
-
-    def addCurrentHourAmount(amount: Float) {
-        CurrentHourAmountSpent += amount
+    def setCurrentHourAmount(amount: Float) {
+        CurrentHourAmountSpent = amount
     }
 
     /*
