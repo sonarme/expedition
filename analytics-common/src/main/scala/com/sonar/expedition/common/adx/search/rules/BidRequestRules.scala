@@ -3,9 +3,6 @@ package com.sonar.expedition.common.adx.search.rules
 import hammurabi.{FailedExecutionException, RuleEngine, WorkingMemory, Rule}
 import Rule._
 import com.sonar.expedition.common.adx.search.model.{BidRequest}
-import com.sonar.expedition.common.adx.search.actor.{Reset, Timer}
-import scala.actors._
-import scala.actors.Actor._
 import com.sonar.expedition.common.adx.search.service.BidProcessingService
 
 object BidRequestRules {

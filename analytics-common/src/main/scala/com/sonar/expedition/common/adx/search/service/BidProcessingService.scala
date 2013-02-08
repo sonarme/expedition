@@ -121,7 +121,8 @@ object BidProcessingService extends TimeSegmentation {
                 }
                 log.info("doc serviceIds: " + serviceIds.mkString(", "))
                 log.info("score : " + totalScore)
-                Option(BidResponse(bidRequest.id, List(SeatBid(List(Bid("bid1", "impid1", 1.00f, nurl = "http://sonar.me/win/notify/endpoint", adm = "<html>ad markup</html>"))))))
+                val notifyUrl = "http://sonar.me/notify/win?id=${AUCTION_ID}&bidId=${AUCTION_BID_ID}&impId=${AUCTION_IMP_ID}&seatId=${AUCTION_SEAT_ID}&adId=${AUCTION_AD_ID}&price=${AUCTION_PRICE}&currency=${AUCTION_CURRENCY}"
+                Option(BidResponse(bidRequest.id, List(SeatBid(List(Bid("bid1", "impid1", 1.00f, nurl = notifyUrl, adm = "<html>ad markup</html>"))))))
             }
         }
     }
