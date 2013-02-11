@@ -144,8 +144,8 @@ case class Device(dnt: Int = 0,
                   flashver: String = null,
                   ext: Any = null)
 
-case class Geo(lat: Float = 0.0f,
-               lon: Float = 0.0f,
+case class Geo(lat: Double = 0.0,
+               lon: Double = 0.0,
                country: String = null,
                region: String = null,
                regionfips104: String = null,
