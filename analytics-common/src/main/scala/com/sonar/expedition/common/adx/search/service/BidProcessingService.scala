@@ -11,16 +11,9 @@ import com.sonar.expedition.common.segmentation.TimeSegmentation
 import java.util.Date
 import ch.hsr.geohash.GeoHash
 import org.joda.time.{Hours => JTHours}
-import com.sonar.expedition.common.adx.search.model.Bid
-import com.sonar.expedition.common.adx.search.model.SeatBid
-import com.sonar.expedition.common.adx.search.model.BidRequest
-import com.sonar.expedition.common.adx.search.model.BidResponse
 import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.util.BytesRef
 import com.sonar.expedition.common.adx.search.rules.BidRequestRules
-import com.twitter.util.Future
-import com.twitter.concurrent.Offer
-import actors.Actor._
 import scala.Some
 import com.sonar.expedition.common.adx.search.model.Bid
 import com.sonar.expedition.common.adx.search.model.SeatBid
@@ -144,10 +137,8 @@ object BidProcessingService extends TimeSegmentation {
                     assert(averageClickThrough <= 1f)
                     averageClickThrough * cpc
                 }
-                log.info("doc serviceIds: " + serviceIds.mkString(", "))
-                log.info("score : " + totalScore)
                 val notifyUrl = "http://sonar.me/notify/win?id=${AUCTION_ID}&bidId=${AUCTION_BID_ID}&impId=${AUCTION_IMP_ID}&seatId=${AUCTION_SEAT_ID}&adId=${AUCTION_AD_ID}&price=${AUCTION_PRICE}&currency=${AUCTION_CURRENCY}"
-                Option(BidResponse(bidRequest.id, List(SeatBid(List(Bid("bid1", "impid1", 1.00f, nurl = notifyUrl, adm = "<html>ad markup</html>"))))))
+                Option(BidResponse(bidRequest.id, List(SeatBid(List(Bid("bid1", "impid1", bidPrice, nurl = notifyUrl, adm = "<html>ad markup</html>"))))))
             }
         }
     }

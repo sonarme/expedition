@@ -29,4 +29,13 @@ class AtomicFloat(initialValue: Float = 0f) extends Number {
 
     def longValue = get.toLong
 
+    def addAndGet(delta: Float) = {
+        var current = Float.NaN
+        var next = Float.NaN
+        do {
+            current = get
+            next = current + delta
+        } while (!compareAndSet(current, next))
+        next
+    }
 }
