@@ -10,20 +10,29 @@ import org.slf4j.LoggerFactory
 import com.sonar.expedition.common.segmentation.TimeSegmentation
 import java.util.Date
 import ch.hsr.geohash.GeoHash
-import org.joda.time.DateTime
 import org.joda.time.{Hours => JTHours}
+import com.sonar.expedition.common.adx.search.model.Bid
+import com.sonar.expedition.common.adx.search.model.SeatBid
+import com.sonar.expedition.common.adx.search.model.BidRequest
+import com.sonar.expedition.common.adx.search.model.BidResponse
 import org.apache.lucene.search.ScoreDoc
 import org.apache.lucene.util.BytesRef
 import com.sonar.expedition.common.adx.search.rules.BidRequestRules
+import com.twitter.util.Future
+import com.twitter.concurrent.Offer
+import actors.Actor._
 import scala.Some
 import com.sonar.expedition.common.adx.search.model.Bid
 import com.sonar.expedition.common.adx.search.model.SeatBid
 import com.sonar.expedition.common.adx.search.model.BidRequest
 import com.sonar.expedition.common.adx.search.model.BidResponse
 import org.scala_tools.time.Imports._
+import com.sonar.expedition.common.util.AtomicFloat
+import util.Random
 
 object BidProcessingService extends TimeSegmentation {
     val log = LoggerFactory.getLogger("application")
+    val clickThroughRate = Map[BytesRef, AtomicFloat]() withDefaultValue (new AtomicFloat(1))
 
     def multiDirectorySearchService(base: String) = {
         val directories = new File(base).listFiles().filter(_.isDirectory)
@@ -38,6 +47,9 @@ object BidProcessingService extends TimeSegmentation {
 
     val MaxAmountSpentHourly = 10.0f
     var CurrentHourAmountSpent = 0.0f
+    val random = new Random
+    var epsilon = 0.3f
+    val cpc = 1
 
     def setCurrentHourAmount(amount: Float) {
         CurrentHourAmountSpent = amount
@@ -82,42 +94,55 @@ object BidProcessingService extends TimeSegmentation {
                 None
             }
             case None => {
-                val lat = bidRequest.device.geo.lat
-                val lng = bidRequest.device.geo.lon
+                val bidPrice = if (random.nextFloat() <= epsilon) cpc
+                else {
 
-                // TODO: ugly copy&paste
-                val timeSegment = hourSegment(lat, lng, currentTime)
-                val geosector = GeoHash.withCharacterPrecision(lat, lng, 7).toBase32
-                val timeWindow = JTHours.hoursBetween(new DateTime(0), new DateTime(currentTime)).getHours
+                    val lat = bidRequest.device.geo.lat
+                    val lng = bidRequest.device.geo.lon
 
-                val more = searchService.moreLikeThis(Map(
-                    IndexField.Ip.toString -> bidRequest.device.ip.toString,
-                    IndexField.Geosector.toString -> geosector,
-                    IndexField.GeosectorTimesegment.toString -> (geosector + ":" + timeSegment.toIndexableString),
-                    IndexField.GeosectorTimewindow.toString -> (geosector + ":" + timeWindow)
-                ).filterNot(_ == null))
+                    // TODO: ugly copy&paste
+                    val timeSegment = hourSegment(lat, lng, currentTime)
+                    val geosector = GeoHash.withCharacterPrecision(lat, lng, 7).toBase32
+                    val timeWindow = JTHours.hoursBetween(new DateTime(0), new DateTime(currentTime)).getHours
 
-                val docTerms = (more.scoreDocs map {
-                    scoreDoc: ScoreDoc => scoreDoc -> searchServiceCohorts.terms(scoreDoc.doc, IndexField.SocialCohort)
-                }).toMap[ScoreDoc, Iterable[TermsEnum]]
+                    val more = searchService.moreLikeThis(Map(
+                        IndexField.Ip.toString -> bidRequest.device.ip.toString,
+                        IndexField.Geosector.toString -> geosector,
+                        IndexField.GeosectorTimesegment.toString -> (geosector + ":" + timeSegment.toIndexableString),
+                        IndexField.GeosectorTimewindow.toString -> (geosector + ":" + timeWindow)
+                    ).filterNot(_._2 == null))
 
-                val termDocs = (for ((scoreDoc, terms) <- docTerms.toSeq; term <- terms) yield term -> scoreDoc).groupBy(_._1).toMap.mapValues(_.map(_._2))
+                    val docTerms = (more.scoreDocs map {
+                        scoreDoc: ScoreDoc => scoreDoc -> searchServiceCohorts.terms(scoreDoc.doc, IndexField.SocialCohort)
+                    }).toMap[ScoreDoc, Iterable[BytesRef]]
 
-                val docFreqs = docTerms.values.flatten.toSet.map {
-                    term: TermsEnum => term.term() -> searchServiceCohorts.docFreq(new Term(IndexField.SocialCohort.toString, term.term()))
-                }.toMap[BytesRef, Int]
+                    val termDocs = (for ((scoreDoc, terms) <- docTerms.toSeq; term <- terms) yield term -> scoreDoc).groupBy(_._1).toMap.mapValues(_.map(_._2))
 
-                val totalScore = termDocs.map {
-                    case (termEnum, docs) =>
-                        docs.map(_.score).sum / docFreqs(termEnum.term)
-                }.sum
+                    val docFreqs = docTerms.values.flatten.toSet.map {
+                        term: BytesRef => term -> searchServiceCohorts.docFreq(new Term(IndexField.SocialCohort.toString, term))
+                    }.toMap[BytesRef, Int]
+
+                    val termScores = termDocs.map {
+                        case (term, docs) =>
+                            term -> docs.map(_.score).sum / docFreqs(term)
+                    }
+                    val sumTermScores = termScores.values.sum
+                    val normalizedTermScores = termScores.mapValues(_ / sumTermScores)
+                    val averageClickThrough = normalizedTermScores.map {
+                        case (termEnum, normalizedScore) =>
+                            clickThroughRate(termEnum).get * normalizedScore
+                    }.sum / normalizedTermScores.size
 
 
-
-                val serviceIds = more.scoreDocs.map {
-                    case topDoc =>
-                        val doc = searchService.doc(topDoc.doc)
-                        doc.getField(IndexField.ServiceId.toString).stringValue()
+                    /* val serviceIds = more.scoreDocs.map {
+                         case topDoc =>
+                             val doc = searchService.doc(topDoc.doc)
+                             doc.getField(IndexField.ServiceId.toString).stringValue()
+                     }
+                     log.info("doc serviceIds: " + serviceIds.mkString(", "))
+                     log.info("score : " + totalScore)*/
+                    assert(averageClickThrough <= 1f)
+                    averageClickThrough * cpc
                 }
                 log.info("doc serviceIds: " + serviceIds.mkString(", "))
                 log.info("score : " + totalScore)

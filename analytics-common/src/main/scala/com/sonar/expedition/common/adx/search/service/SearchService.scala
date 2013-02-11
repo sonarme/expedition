@@ -50,10 +50,10 @@ class SearchService(var reader: IndexReader, val writer: IndexWriter = null) ext
     def terms(docId: Int, field: IndexField.Value) = {
         val vec = reader.getTermVector(docId, field.toString)
         val termsEnum = vec.iterator(null)
-        val results = ListBuffer[TermsEnum]()
+        val results = ListBuffer[BytesRef]()
 
         while (termsEnum.next() != null) {
-            results += termsEnum
+            results += termsEnum.term()
         }
         results
     }
