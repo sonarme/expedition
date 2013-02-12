@@ -72,9 +72,16 @@ object BidRequestRules {
                     val d = Dimension(br.imp.head.banner.w, br.imp.head.banner.h)
                     if (AdTypeFilter contains d)
                         exitWith(RuleMessage.AdDimensionFilter)
-                } else if (br.imp.size > 1) {
-                    exitWith(RuleMessage.TooManyImpressions)
                 }
+            }
+        },
+        rule(RuleMessage.TooManyImpressions) let {
+            val br = kindOf[BidRequest] having {
+                _.imp != null
+            }
+            then {
+                if (br.imp.size > 1)
+                    exitWith(RuleMessage.TooManyImpressions)
             }
         },
         rule(RuleMessage.MaxHourlySpentExhausted) let {
