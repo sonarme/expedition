@@ -138,7 +138,9 @@ object BidProcessingService extends TimeSegmentation {
                     averageClickThrough * cpc
                 }
                 val notifyUrl = "http://sonar.me/notify/win?id=${AUCTION_ID}&bidId=${AUCTION_BID_ID}&impId=${AUCTION_IMP_ID}&seatId=${AUCTION_SEAT_ID}&adId=${AUCTION_AD_ID}&price=${AUCTION_PRICE}&currency=${AUCTION_CURRENCY}"
-                Option(BidResponse(bidRequest.id, List(SeatBid(List(Bid("bid1", "impid1", bidPrice, nurl = notifyUrl, adm = "<html>ad markup</html>"))))))
+                val bidId = bidRequest.id //for tracking and debugging. we can probably just use the bidRequest.id since we only handle one impression per bidRequest
+                val impId = bidRequest.imp.head.id //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
+                Option(BidResponse(bidId, List(SeatBid(List(Bid(bidId, impId, bidPrice, nurl = notifyUrl, adm = "<html>ad markup</html>"))))))
             }
         }
     }
