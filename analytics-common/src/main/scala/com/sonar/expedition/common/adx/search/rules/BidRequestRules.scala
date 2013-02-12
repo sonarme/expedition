@@ -28,10 +28,7 @@ object BidRequestRules {
         val AdDimensionFilter = "BidRequest contains filtered Ad dimensions"
         val TooManyImpressions = "BidRequest contains too many Impressions"
         val MaxHourlySpentExhausted = "Max Hourly Spent Exhausted"
-    }
-
-    def updateCurrentHourlyAmountSpent(amount: Int) {
-
+        val AuctionTypeNotSupported = "AuctionType not supported"
     }
 
     def execute(bidRequest: BidRequest) = {
@@ -76,9 +73,7 @@ object BidRequestRules {
             }
         },
         rule(RuleMessage.TooManyImpressions) let {
-            val br = kindOf[BidRequest] having {
-                _.imp != null
-            }
+            val br = kindOf[BidRequest] having (_.imp != null)
             then {
                 if (br.imp.size > 1)
                     exitWith(RuleMessage.TooManyImpressions)
@@ -90,6 +85,12 @@ object BidRequestRules {
                 BidProcessingService.CurrentHourAmountSpent >= BidProcessingService.MaxAmountSpentHourly
             } then {
                 exitWith(RuleMessage.MaxHourlySpentExhausted)
+            }
+        },
+        rule(RuleMessage.AuctionTypeNotSupported) let {
+            val br = kindOf[BidRequest] having (_.at != 2)
+            then {
+                exitWith(RuleMessage.AuctionTypeNotSupported)
             }
         }
     )

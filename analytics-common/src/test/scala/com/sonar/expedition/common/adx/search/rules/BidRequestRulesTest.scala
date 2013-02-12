@@ -15,6 +15,7 @@ class BidRequestRulesTest extends FlatSpec {
     val goodBid = BidRequest("1", List[Impression](), app = App("123", name = "sonar", domain = "sonar.me", publisher = Publisher(cat = List[String]("IAB", "IAB3"))), device = Device(geo = Geo(lat = 40.738933f, lon = -73.988113f)))
     val badDimensionBid = BidRequest("1", List[Impression](Impression("a", banner = Banner(w = 10, h = 10))), app = App())
     val tooManyImpressionsBid = BidRequest("1", List[Impression](Impression("a", banner = Banner(w = 12, h = 12)), Impression("a", banner = Banner(w = 11, h = 11))), app = App())
+    val unsupportedAutionTypeBid = BidRequest("1", List[Impression](), at = 1, app = App("123", name = "sonar", domain = "sonar.me", publisher = Publisher(cat = List[String]("IAB", "IAB3"))), device = Device(geo = Geo(lat = 40.738933f, lon = -73.988113f)))
 
     "BidRequestRules" should "only service mobile apps" in {
         val res = BidRequestRules.execute(nonMobileBid).orNull
@@ -46,5 +47,10 @@ class BidRequestRulesTest extends FlatSpec {
     "BidRequestRules" should "discard ads with more than 1 Impressions" in {
         val res = BidRequestRules.execute(tooManyImpressionsBid).orNull
         assert(res === BidRequestRules.RuleMessage.TooManyImpressions)
+    }
+
+    "BidRequestRules" should "discard ads that are not second price auctions" in {
+        val res = BidRequestRules.execute(unsupportedAutionTypeBid).orNull
+        assert(res == BidRequestRules.RuleMessage.AuctionTypeNotSupported)
     }
 }
