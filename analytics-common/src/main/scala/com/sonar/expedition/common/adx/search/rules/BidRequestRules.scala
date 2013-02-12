@@ -30,10 +30,6 @@ object BidRequestRules {
         val MaxHourlySpentExhausted = "Max Hourly Spent Exhausted"
     }
 
-    def updateCurrentHourlyAmountSpent(amount: Int) {
-
-    }
-
     def execute(bidRequest: BidRequest) = {
         val workingMemory = WorkingMemory(bidRequest)
         RuleEngine(ruleSet) execOn workingMemory
