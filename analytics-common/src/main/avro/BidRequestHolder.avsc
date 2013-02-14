@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "namespace": "com.sonar.expedition.common.adx.search.model",
+  "name": "BidRequestHolder",
+  "fields": [
+      {"name": "userId", "type": "string", "required":"true"},
+      {"name": "bidRequest", "type": "bytes", "required":"true"},
+      {"name": "timestamp", "type": "long", "required":"true"}
+      ]
+}
