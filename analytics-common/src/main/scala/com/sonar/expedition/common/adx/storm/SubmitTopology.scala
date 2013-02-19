@@ -14,7 +14,7 @@ import scala.Predef._
 import scala.Boolean
 import topology.TopologyBuilder
 import storm.kafka.{HostPort, KafkaSpout, SpoutConfig}
-import storm.kafka.KafkaConfig.StaticHosts
+import storm.kafka.KafkaConfig.{ZkHosts, StaticHosts}
 import com.sonar.expedition.common.adx.storm.BidRequestWriterBolt
 
 object SubmitTopology extends Logging {
@@ -40,10 +40,11 @@ object SubmitTopology extends Logging {
         def build(parallelismFactor: Int, local: Boolean) = {
             val t = new TopologyBuilder
             val spoutConfig = new SpoutConfig(
-                new StaticHosts(Seq(new HostPort("kafkahost1")), 8), // list of Kafka brokers and  number of partitions per host
-                "clicks", // topic to read from
+                new ZkHosts("107.22.18.19:2181", "/brokers"),
+                //new StaticHosts(Seq(new HostPort("kafkahost1")), 8), // list of Kafka brokers and  number of partitions per host
+                "bidRequests_prod", // topic to read from
                 "/kafkastorm", // the root path in Zookeeper for the spout to store the consumer offsets
-                "discovery");
+                "discovery")
             // an id for this consumer for storing the consumer offsets in Zookeeper
             val kafkaSpout = new KafkaSpout(spoutConfig)
             t.setSpout(classOf[KafkaSpout].getSimpleName, kafkaSpout, 1) // the emits data from a direct pong (via SQS queue)

@@ -4,6 +4,8 @@ import storm.scala.dsl.StormBolt
 import backtype.storm.tuple.Tuple
 import com.sonar.expedition.common.adx.search.dao.BidRequestDao
 import com.sonar.expedition.common.adx.search.model.{BidRequestHolder, BidRequest}
+import com.sonar.expedition.common.avro.AvroSerialization._
+
 
 class BidRequestWriterBolt extends StormBolt(List.empty[String]) {
     var dao: BidRequestDao = _
@@ -14,7 +16,8 @@ class BidRequestWriterBolt extends StormBolt(List.empty[String]) {
     def execute(tuple: Tuple) {
         try {
             tuple matchSeq {
-                case Seq(bidRequest: BidRequestHolder) => dao.save(bidRequest)
+                case Seq(bytes: Array[Byte]) =>
+                    dao.save(fromByteArray[BidRequestHolder](bytes))
             }
             tuple ack
         } catch {

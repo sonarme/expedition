@@ -1,37 +1,30 @@
 package com.sonar.expedition.common.avro
 
-import com.sonar.expedition.common.adx.search.model.BidRequestHolder
-import org.openrtb.mobile.BidRequest
-import org.apache.avro.specific.{SpecificDatumReader, SpecificDatumWriter}
-import java.io.ByteArrayOutputStream
-import org.apache.avro.io.{EncoderFactory, DecoderFactory, DirectBinaryEncoder}
+import org.apache.avro.specific.{SpecificData, SpecificDatumReader, SpecificDatumWriter}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
+import org.apache.avro.io.{EncoderFactory, DecoderFactory}
 
 object AvroSerialization {
-    val registeredClasses = Seq(classOf[BidRequest], classOf[BidRequestHolder])
-    val readers =
-        registeredClasses.map(
-            clazz => clazz -> new SpecificDatumReader(clazz)
-        ).toMap[Class[_], SpecificDatumReader[_]]
-    val writers =
-        registeredClasses.map(
-            clazz => clazz -> new SpecificDatumWriter(clazz)
-        ).toMap[Class[_], SpecificDatumWriter[_]]
 
-    def toByteArray(any: Any) = {
-        val baos = new ByteArrayOutputStream()
-        try {
-            val writer = writers(any.getClass).asInstanceOf[SpecificDatumWriter[Any]]
-            val encoder = EncoderFactory.get().binaryEncoder(baos, null)
+    import resource._
+
+    def toByteArray(any: Any) =
+        (for (baos <- managed(new ByteArrayOutputStream)) yield {
+            // caches schema internally
+            val schema = SpecificData.get.getSchema(any.getClass)
+            val writer = new SpecificDatumWriter[Any](schema)
+            val encoder = EncoderFactory.get().jsonEncoder(schema, baos)
             writer.write(any, encoder)
+            encoder.flush()
             baos.toByteArray
-        } finally {
-            baos.close()
-        }
-    }
+        }).opt.get
 
-    def fromByteArray[T >: Null : Manifest](byteArray: Array[Byte]) = {
-        val reader = readers(manifest[T].erasure).asInstanceOf[SpecificDatumReader[T]]
-        val decoder = DecoderFactory.get().binaryDecoder(byteArray, null)
-        reader.read(null, decoder)
-    }
+    def fromByteArray[T >: Null : Manifest](byteArray: Array[Byte]) =
+        (for (bais <- managed(new ByteArrayInputStream(byteArray))) yield {
+            // caches schema internally
+            val schema = SpecificData.get.getSchema(manifest[T].erasure)
+            val reader = new SpecificDatumReader[T](schema)
+            val decoder = DecoderFactory.get().jsonDecoder(schema, bais)
+            reader.read(null, decoder)
+        }).opt.get
 }

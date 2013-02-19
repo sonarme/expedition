@@ -104,7 +104,7 @@ object BidProcessingService extends TimeSegmentation {
     val testr = org.openrtb.mobile.BidRequest.newBuilder().setId("id").setAt(null).setTmax(null).setImp(Seq.empty[org.openrtb.mobile.BidImpression]).setApp(null).setDevice(null).setRestrictions(null).setSite(null).setUser(org.openrtb.mobile.User.newBuilder().setUid("1").setYob(null).setGender(null).setZip(null).setCountry(null).setKeywords(null).build()).build()
 
     def sendBidRequestToQueue(bidRequest: org.openrtb.mobile.BidRequest) {
-        producer.send(new ProducerData[String, BidRequestHolder]("bidRequests_prod", Seq(new BidRequestHolder(bidRequest.user.uid, ByteBuffer.wrap(toByteArray(bidRequest)), DateTime.now.millis))))
+        producer.send(new ProducerData[String, BidRequestHolder]("bidRequests_prod", new BidRequestHolder(bidRequest.user.uid, ByteBuffer.wrap(toByteArray(bidRequest)), DateTime.now.millis)))
 
     }
 
@@ -208,6 +208,7 @@ class CTR {
 
 class AvroEncoder extends Encoder[Any] {
 
-    def toMessage(data: Any) = new Message(toByteArray(data))
+    def toMessage(data: Any) =
+        new Message(toByteArray(data))
 
 }
