@@ -5,12 +5,18 @@ import backtype.storm.tuple.Tuple
 import com.sonar.expedition.common.adx.search.dao.BidRequestDao
 import com.sonar.expedition.common.adx.search.model.{BidRequestHolder, BidRequest}
 import com.sonar.expedition.common.avro.AvroSerialization._
+import com.amazonaws.auth.{BasicAWSCredentials, PropertiesCredentials}
+import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
+import com.sonar.dossier.util.StaticApplicationContext
 
 
 class BidRequestWriterBolt extends StormBolt(List.empty[String]) {
+
     var dao: BidRequestDao = _
     setup {
         dao = new BidRequestDao
+        dao.dynamoDBClient = new AmazonDynamoDBClient(
+            new BasicAWSCredentials(_conf.get(StaticApplicationContext.AWS_ACCESS_KEY_ID).toString, _conf.get(StaticApplicationContext.AWS_SECRET_KEY).toString))
     }
 
     def execute(tuple: Tuple) {

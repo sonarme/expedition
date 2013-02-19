@@ -102,7 +102,7 @@ abstract class BaseDao[K, N >: Null, V](val columnFamily: String,
         val columnNameAttribute = Map(rangeKey -> newAttributeValue(name, nameSerializer))
         val keyAttribute = newAttributeValue(key, keySerializer)
         val item =
-            Map(valueAttribute -> value) ++ columnNameAttribute
+            Map(hashKey -> keyAttribute, valueAttribute -> value) ++ columnNameAttribute
 
         val column = new PutRequest().withItem(item)
 

@@ -6,16 +6,16 @@ import java.nio.ByteBuffer
 import com.sonar.expedition.common.adx.search.model.BidRequestHolder
 
 
-class BidRequestDao extends BaseDao[String, java.lang.Long, Array[Byte]](
+class BidRequestDao extends BaseDao[String, java.lang.Long, String](
     columnFamily = "BidRequest",
-    hashKey = "bidId",
+    hashKey = "userId",
     rangeKey = "timestamp",
     valueAttribute = "data",
     keySerializer = StringSerializer.get,
     nameSerializer = LongSerializer.get,
-    valueSerializer = BytesArraySerializer.get) {
+    valueSerializer = StringSerializer.get) {
     def save(bidRequest: BidRequestHolder) {
-        saveValue(bidRequest.userId.toString, bidRequest.timestamp, bidRequest.bidRequest.array())
+        saveValue(bidRequest.userId.toString, bidRequest.timestamp, new String(bidRequest.bidRequest.array(), "UTF-8"))
     }
 }
 
