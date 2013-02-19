@@ -54,10 +54,16 @@ object BidProcessingService extends TimeSegmentation {
         val props = new java.util.Properties
         props.put("zk.connect", "107.22.18.19:2181")
         props.put("serializer.class", classOf[AvroEncoder].getCanonicalName)
+        // gzip (kafka 0.8+ will support snappy)
+        // props.put("compression.codec", "1")
         // writes in memory until either batch.size or queue.time is reached
-        //props.put("producer.type", "async")
-        //gzip
-        //props.put("compression.codec", "1")
+        props.put("producer.type", "async")
+        // maximum time, in milliseconds, for buffering data on the producer queue. After it elapses, the buffered data in the producer queue is dispatched to the event.handler.
+        props.put("queue.time", "5000")
+        // the maximum size of the blocking queue for buffering on the kafka.producer.AsyncProducer
+        props.put("queue.size", "10000")
+        // the number of messages batched at the producer, before being dispatched to the event.handler
+        props.put("batch.size", "200")
         new KafkaProducer[String, BidRequestHolder](new ProducerConfig(props))
         //todo: producer.close
     }
