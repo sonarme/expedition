@@ -13,9 +13,8 @@ import backtype.storm.generated.StormTopology
 import scala.Predef._
 import scala.Boolean
 import topology.TopologyBuilder
-import storm.kafka.{HostPort, KafkaSpout, SpoutConfig}
-import storm.kafka.KafkaConfig.{ZkHosts, StaticHosts}
-import com.sonar.expedition.common.adx.storm.BidRequestWriterBolt
+import storm.kafka.{KafkaSpout, SpoutConfig}
+import storm.kafka.KafkaConfig.ZkHosts
 
 object SubmitTopology extends Logging {
 

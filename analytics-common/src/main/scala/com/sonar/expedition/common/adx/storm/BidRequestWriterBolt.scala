@@ -3,11 +3,11 @@ package com.sonar.expedition.common.adx.storm
 import storm.scala.dsl.StormBolt
 import backtype.storm.tuple.Tuple
 import com.sonar.expedition.common.adx.search.dao.BidRequestDao
-import com.sonar.expedition.common.adx.search.model.{BidRequestHolder, BidRequest}
 import com.sonar.expedition.common.avro.AvroSerialization._
 import com.amazonaws.auth.{BasicAWSCredentials, PropertiesCredentials}
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.sonar.dossier.util.StaticApplicationContext
+import com.sonar.expedition.common.adx.search.model.BidRequestHolder
 
 
 class BidRequestWriterBolt extends StormBolt(List.empty[String]) {

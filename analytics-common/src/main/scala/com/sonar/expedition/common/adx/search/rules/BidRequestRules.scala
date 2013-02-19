@@ -2,8 +2,9 @@ package com.sonar.expedition.common.adx.search.rules
 
 import hammurabi.{FailedExecutionException, RuleEngine, WorkingMemory, Rule}
 import Rule._
-import com.sonar.expedition.common.adx.search.model.{BidRequest}
 import com.sonar.expedition.common.adx.search.service.BidProcessingService
+import org.openrtb.mobile.BidRequest
+import collection.JavaConversions._
 
 object BidRequestRules {
 
@@ -40,16 +41,16 @@ object BidRequestRules {
         rule(RuleMessage.DomainBlacklist) let {
             val br = kindOf[BidRequest] having (_.app != null)
             when {
-                DomainBlacklist contains br.app.domain
+                DomainBlacklist contains br.app.domain.toString
             } then {
                 exitWith(RuleMessage.DomainBlacklist)
             }
         },
 
         rule(RuleMessage.CategoryBlacklist) let {
-            val br = kindOf[BidRequest] having (br => br.app != null && br.app.publisher != null && br.app.publisher.cat != null)
+            val br = kindOf[BidRequest] having (br => br.app != null && br.app.cat != null)
             when {
-                br.app.publisher.cat.foldLeft(false)((b, a) => b || CategoryBlacklist.contains(a))
+                br.app.cat.foldLeft(false)((b, a) => b || CategoryBlacklist.contains(a))
             } then {
                 exitWith(RuleMessage.CategoryBlacklist)
             }
@@ -66,7 +67,7 @@ object BidRequestRules {
             val br = kindOf[BidRequest] having (_.imp != null)
             then {
                 if (br.imp.size == 1) {
-                    val d = Dimension(br.imp.head.banner.w, br.imp.head.banner.h)
+                    val d = Dimension(br.imp.head.w, br.imp.head.h)
                     if (AdTypeFilter contains d)
                         exitWith(RuleMessage.AdDimensionFilter)
                 }
