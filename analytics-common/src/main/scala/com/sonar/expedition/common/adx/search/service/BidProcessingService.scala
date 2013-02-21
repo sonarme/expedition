@@ -16,7 +16,7 @@ import org.apache.lucene.util.BytesRef
 import com.sonar.expedition.common.adx.search.rules.BidRequestRules
 import org.scala_tools.time.Imports._
 import java.util.concurrent.locks.ReentrantReadWriteLock
-import com.sonar.expedition.common.avro.AvroSerialization._
+import com.sonar.expedition.common.serialization.Serialization._
 import java.nio.ByteBuffer
 import collection.JavaConversions._
 import util.Random
@@ -51,7 +51,20 @@ object BidProcessingService extends TimeSegmentation {
     def addClickThrough(term: BytesRef) =
         clickThroughRate(term).incrementAndGet()
 
-    val testr = org.openrtb.mobile.BidRequest.newBuilder().setId("id").setAt(null).setTmax(null).setImp(Seq.empty[org.openrtb.mobile.BidImpression]).setApp(null).setDevice(null).setRestrictions(null).setSite(null).setUser(org.openrtb.mobile.User.newBuilder().setUid("1").setYob(null).setGender(null).setZip(null).setCountry(null).setKeywords(null).build()).build()
+    val testr = {
+        val br = new org.openrtb.mobile.BidRequest("id")
+        br.setAt(null)
+        br.setTmax(null)
+        br.setImpList(Seq.empty[org.openrtb.mobile.BidImpression])
+        br.setApp(null)
+        br.setDevice(null)
+        br.setRestrictions(null)
+        br.setSite(null)
+        val u = new org.openrtb.mobile.User
+        u.setUid("1")
+        br.setUser(u)
+        br
+    }
 
 
     def processBidRequest(bidRequest: BidRequest, currentTime: Date = new Date): Option[BidResponse] = {
@@ -64,7 +77,7 @@ object BidProcessingService extends TimeSegmentation {
                 val bidPrice = if (random.nextFloat() <= epsilon) cpc
                 else {
 
-                    val Array(lat, lng) = bidRequest.device.loc.toString.split(" *, *").map(_.toDouble)
+                    val Array(lat, lng) = bidRequest.getDevice.getLoc.split(" *, *").map(_.toDouble)
 
                     // TODO: ugly copy&paste
                     val timeSegment = hourSegment(lat, lng, currentTime)
@@ -72,7 +85,7 @@ object BidProcessingService extends TimeSegmentation {
                     val timeWindow = JTHours.hoursBetween(new DateTime(0), new DateTime(currentTime)).getHours
 
                     val more = searchService.moreLikeThis(Map(
-                        IndexField.Ip.toString -> bidRequest.device.ip.toString,
+                        IndexField.Ip.toString -> bidRequest.getDevice.getIp,
                         IndexField.Geosector.toString -> geosector,
                         IndexField.GeosectorTimesegment.toString -> (geosector + ":" + timeSegment.toIndexableString),
                         IndexField.GeosectorTimewindow.toString -> (geosector + ":" + timeWindow)
@@ -111,8 +124,8 @@ object BidProcessingService extends TimeSegmentation {
                     averageClickThrough * cpc * 1000
                 }
                 val notifyUrl = "http://sonar.me/notify/win?id=${AUCTION_ID}&bidId=${AUCTION_BID_ID}&impId=${AUCTION_IMP_ID}&seatId=${AUCTION_SEAT_ID}&adId=${AUCTION_AD_ID}&price=${AUCTION_PRICE}&currency=${AUCTION_CURRENCY}"
-                val bidId = bidRequest.id //for tracking and debugging. we can probably just use the bidRequest.id since we only handle one impression per bidRequest
-                val impId = bidRequest.imp.head.impid //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
+                val bidId = bidRequest.getId //for tracking and debugging. we can probably just use the bidRequest.id since we only handle one impression per bidRequest
+                val impId = bidRequest.getImpList.head.getImpid //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
                 null // Option(BidResponse(bidId, List(SeatBid(List(Bid(bidId, impId, bidPrice, nurl = notifyUrl, adm = "<html>ad markup</html>"))))))
             }
         }

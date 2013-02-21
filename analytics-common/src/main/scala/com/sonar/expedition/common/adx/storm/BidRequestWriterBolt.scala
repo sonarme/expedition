@@ -3,7 +3,7 @@ package com.sonar.expedition.common.adx.storm
 import storm.scala.dsl.StormBolt
 import backtype.storm.tuple.Tuple
 import com.sonar.expedition.common.adx.search.dao.BidRequestDao
-import com.sonar.expedition.common.avro.AvroSerialization._
+import com.sonar.expedition.common.serialization.Serialization._
 import com.amazonaws.auth.{BasicAWSCredentials, PropertiesCredentials}
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.sonar.dossier.util.StaticApplicationContext
@@ -23,7 +23,7 @@ class BidRequestWriterBolt extends StormBolt(List.empty[String]) {
         try {
             tuple matchSeq {
                 case Seq(bytes: Array[Byte]) =>
-                    dao.save(fromByteArray[BidRequestHolder](bytes))
+                    dao.save(fromByteArray(bytes, new BidRequestHolder()))
             }
             tuple ack
         } catch {

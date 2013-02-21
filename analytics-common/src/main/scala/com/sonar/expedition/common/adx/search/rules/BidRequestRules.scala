@@ -39,44 +39,44 @@ object BidRequestRules {
 
     val ruleSet = Set(
         rule(RuleMessage.DomainBlacklist) let {
-            val br = kindOf[BidRequest] having (_.app != null)
+            val br = kindOf[BidRequest] having (_.getApp != null)
             when {
-                DomainBlacklist contains br.app.domain.toString
+                DomainBlacklist contains br.getApp.getDomain
             } then {
                 exitWith(RuleMessage.DomainBlacklist)
             }
         },
 
         rule(RuleMessage.CategoryBlacklist) let {
-            val br = kindOf[BidRequest] having (br => br.app != null && br.app.cat != null)
+            val br = kindOf[BidRequest] having (br => br.getApp != null && br.getApp.getCatList != null)
             when {
-                br.app.cat.foldLeft(false)((b, a) => b || CategoryBlacklist.contains(a))
+                br.getApp.getCatList.foldLeft(false)((b, a) => b || CategoryBlacklist.contains(a))
             } then {
                 exitWith(RuleMessage.CategoryBlacklist)
             }
         },
 
         rule(RuleMessage.NotFromMobileApp) let {
-            val br = kindOf[BidRequest] having (_.app == null)
+            val br = kindOf[BidRequest] having (_.getApp == null)
             then {
                 exitWith(RuleMessage.NotFromMobileApp)
             }
         },
 
         rule(RuleMessage.AdDimensionFilter) let {
-            val br = kindOf[BidRequest] having (_.imp != null)
+            val br = kindOf[BidRequest] having (_.getImpList != null)
             then {
-                if (br.imp.size == 1) {
-                    val d = Dimension(br.imp.head.w, br.imp.head.h)
+                if (br.getImpList.size == 1) {
+                    val d = Dimension(br.getImpList.head.getW, br.getImpList.head.getH)
                     if (AdTypeFilter contains d)
                         exitWith(RuleMessage.AdDimensionFilter)
                 }
             }
         },
         rule(RuleMessage.TooManyImpressions) let {
-            val br = kindOf[BidRequest] having (_.imp != null)
+            val br = kindOf[BidRequest] having (_.getImpList != null)
             then {
-                if (br.imp.size > 1)
+                if (br.getImpList.size > 1)
                     exitWith(RuleMessage.TooManyImpressions)
             }
         },
@@ -89,7 +89,7 @@ object BidRequestRules {
             }
         },
         rule(RuleMessage.AuctionTypeNotSupported) let {
-            val br = kindOf[BidRequest] having (_.at != 2)
+            val br = kindOf[BidRequest] having (_.getAt != 2)
             then {
                 exitWith(RuleMessage.AuctionTypeNotSupported)
             }

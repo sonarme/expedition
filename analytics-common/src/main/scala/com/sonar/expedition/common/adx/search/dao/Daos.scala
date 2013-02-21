@@ -15,7 +15,7 @@ class BidRequestDao extends BaseDao[String, java.lang.Long, String](
     nameSerializer = LongSerializer.get,
     valueSerializer = StringSerializer.get) {
     def save(bidRequest: BidRequestHolder) {
-        saveValue(bidRequest.userId.toString, bidRequest.timestamp, new String(bidRequest.bidRequest.array(), "UTF-8"))
+        saveValue(bidRequest.getUserId, bidRequest.getTimestamp, new String(bidRequest.getBidRequest.toByteArray, "UTF-8"))
     }
 }
 
