@@ -20,7 +20,7 @@ import com.sonar.expedition.common.serialization.Serialization._
 import java.nio.ByteBuffer
 import collection.JavaConversions._
 import util.Random
-import org.openrtb.mobile.{BidResponse, BidRequest}
+import org.openrtb.mobile.{Bid, SeatBid, BidResponse, BidRequest}
 
 object BidProcessingService extends TimeSegmentation {
     val log = LoggerFactory.getLogger("application")
@@ -126,7 +126,14 @@ object BidProcessingService extends TimeSegmentation {
                 val notifyUrl = "http://sonar.me/notify/win?id=${AUCTION_ID}&bidId=${AUCTION_BID_ID}&impId=${AUCTION_IMP_ID}&seatId=${AUCTION_SEAT_ID}&adId=${AUCTION_AD_ID}&price=${AUCTION_PRICE}&currency=${AUCTION_CURRENCY}"
                 val bidId = bidRequest.getId //for tracking and debugging. we can probably just use the bidRequest.id since we only handle one impression per bidRequest
                 val impId = bidRequest.getImpList.head.getImpid //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
-                null // Option(BidResponse(bidId, List(SeatBid(List(Bid(bidId, impId, bidPrice, nurl = notifyUrl, adm = "<html>ad markup</html>"))))))
+                val response = new BidResponse(bidId)
+                val bidPriceInt = bidPrice.toInt
+                response.setSeatbidList(Seq({
+                    val sb = new SeatBid
+                    sb.setBidList(Seq(new Bid(impId, bidPriceInt.toString)))
+                    sb
+                }))
+                Option(response)
             }
         }
     }
