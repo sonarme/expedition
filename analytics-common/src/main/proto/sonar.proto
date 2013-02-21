@@ -7,3 +7,14 @@ message BidRequestHolder {
     required org.openrtb.mobile.BidRequest bidRequest = 2;
     required int64 timestamp = 3;
 }
+
+message BidNotification {
+    required string id = 1;
+    required string bidId = 2;
+    optional string impId = 3;
+    optional string seatId = 4;
+    optional string adId = 5;
+    optional float price = 6;
+    optional string currency = 7;
+    required int64 timestamp = 8;
+}

@@ -50,7 +50,7 @@ object BidRequestRules {
         rule(RuleMessage.CategoryBlacklist) let {
             val br = kindOf[BidRequest] having (br => br.getApp != null && br.getApp.getCatList != null)
             when {
-                br.getApp.getCatList.foldLeft(false)((b, a) => b || CategoryBlacklist.contains(a))
+                br.getApp.getCatList.exists(CategoryBlacklist)
             } then {
                 exitWith(RuleMessage.CategoryBlacklist)
             }
@@ -83,7 +83,7 @@ object BidRequestRules {
         rule(RuleMessage.MaxHourlySpentExhausted) let {
             val br = any(kindOf[BidRequest])
             when {
-                BidProcessingService.CurrentHourAmountSpent >= BidProcessingService.MaxAmountSpentHourly
+                BidProcessingService.CurrentHourAmountSpent.get() >= BidProcessingService.MaxAmountSpentHourly
             } then {
                 exitWith(RuleMessage.MaxHourlySpentExhausted)
             }

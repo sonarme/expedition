@@ -21,6 +21,7 @@ import java.nio.ByteBuffer
 import collection.JavaConversions._
 import util.Random
 import org.openrtb.mobile.{Bid, SeatBid, BidResponse, BidRequest}
+import java.util.concurrent.atomic.AtomicInteger
 
 object BidProcessingService extends TimeSegmentation {
     val log = LoggerFactory.getLogger("application")
@@ -37,16 +38,14 @@ object BidProcessingService extends TimeSegmentation {
     lazy val searchServiceCohorts = multiDirectorySearchService("/media/ephemeral0/dataCohorts")
     // TODO: shutdown
 
-    val MaxAmountSpentHourly = 10.0f
-    var CurrentHourAmountSpent = 0.0f
+    val MaxAmountSpentHourly = 500 * 100
+    val CurrentHourAmountSpent = new AtomicInteger(0)
     val random = new Random
-    var epsilon = 0.3f
-    val cpc = 1
+    var epsilon = Float.MaxValue
+    val cpm = 52
+    val notifyUrl = "http://rtb.sonar.me/notify/win?id=${AUCTION_ID}&bidId=${AUCTION_BID_ID}&impId=${AUCTION_IMP_ID}&seatId=${AUCTION_SEAT_ID}&adId=${AUCTION_AD_ID}&price=${AUCTION_PRICE}&currency=${AUCTION_CURRENCY}"
 
-
-    def setCurrentHourAmount(amount: Float) {
-        CurrentHourAmountSpent = amount
-    }
+    def spend(amount: Int) = CurrentHourAmountSpent.addAndGet(amount)
 
     def addClickThrough(term: BytesRef) =
         clickThroughRate(term).incrementAndGet()
@@ -74,7 +73,7 @@ object BidProcessingService extends TimeSegmentation {
                 None
             }
             case None => {
-                val bidPrice = if (random.nextFloat() <= epsilon) cpc
+                val bidPrice = if (random.nextFloat() <= epsilon) cpm
                 else {
 
                     val Array(lat, lng) = bidRequest.getDevice.getLoc.split(" *, *").map(_.toDouble)
@@ -121,18 +120,34 @@ object BidProcessingService extends TimeSegmentation {
                      log.info("doc serviceIds: " + serviceIds.mkString(", "))
                      log.info("score : " + totalScore)*/
                     assert(averageClickThrough <= 1f)
-                    averageClickThrough * cpc * 1000
+                    averageClickThrough * cpm
                 }
-                val notifyUrl = "http://sonar.me/notify/win?id=${AUCTION_ID}&bidId=${AUCTION_BID_ID}&impId=${AUCTION_IMP_ID}&seatId=${AUCTION_SEAT_ID}&adId=${AUCTION_AD_ID}&price=${AUCTION_PRICE}&currency=${AUCTION_CURRENCY}"
                 val bidId = bidRequest.getId //for tracking and debugging. we can probably just use the bidRequest.id since we only handle one impression per bidRequest
                 val impId = bidRequest.getImpList.head.getImpid //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
                 val response = new BidResponse(bidId)
-                val bidPriceInt = bidPrice.toInt
+                response.setBidid(bidId)
+                response.setCur("USD")
+                response.setUnits(0) // CPM
+                val bidPriceFormatted = "%.2f" format (bidPrice / 100)
                 response.setSeatbidList(Seq({
                     val sb = new SeatBid
-                    sb.setBidList(Seq(new Bid(impId, bidPriceInt.toString)))
+                    sb.setBidList(Seq({
+                        val b = new Bid(impId, bidPriceFormatted)
+                        b.setAdid("") //ID that references the ad to be served if the bid wins.
+                        b.setNurl(notifyUrl) //Win notice URL.
+                        //b.setAdm("") //Actual XHTML ad markup.
+                        //b.setAdomain("") //Advertiser's primary or top-level domain for advertiser checking.
+                        //b.setIurl("") //Sample image URL (without cache busting) for content checking.
+                        //b.setCid("") //Campaign ID or similar that appears within the ad markup.
+                        //b.setCrid("") //Creative ID for reporting content issues or defects.
+                        //b.setAttrList(Seq())
+                        b
+                    }))
+                    sb.setGroup(0)
                     sb
                 }))
+
+
                 Option(response)
             }
         }

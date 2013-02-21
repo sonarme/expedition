@@ -28,6 +28,7 @@ object SubmitTopology extends Logging {
                         )
                         )
     )
+    val kafkaZkHost = "107.22.18.19"
 
     class BidRequestTopology extends Topology {
 
@@ -38,18 +39,23 @@ object SubmitTopology extends Logging {
 
         def build(parallelismFactor: Int, local: Boolean) = {
             val t = new TopologyBuilder
-            val spoutConfig = new SpoutConfig(
-                new ZkHosts("107.22.18.19:2181", "/brokers"),
-                //new StaticHosts(Seq(new HostPort("kafkahost1")), 8), // list of Kafka brokers and  number of partitions per host
+            t.setSpout(classOf[KafkaSpout].getSimpleName + "-bidRequests_prod", new KafkaSpout(new SpoutConfig(
+                new ZkHosts(kafkaZkHost + ":2181", "/brokers"),
                 "bidRequests_prod", // topic to read from
-                "/kafkastorm", // the root path in Zookeeper for the spout to store the consumer offsets
-                "discovery")
-            // an id for this consumer for storing the consumer offsets in Zookeeper
-            val kafkaSpout = new KafkaSpout(spoutConfig)
-            t.setSpout(classOf[KafkaSpout].getSimpleName, kafkaSpout, 1) // the emits data from a direct pong (via SQS queue)
+                "/kafkastormBR", // the root path in Zookeeper for the spout to store the consumer offsets
+                "bidRequests_prod" + "-consumer") // an id for this consumer for storing the consumer offsets in Zookeeper
+            ), 1)
+            t.setSpout(classOf[KafkaSpout].getSimpleName + "-bidNotifications_prod", new KafkaSpout(new SpoutConfig(
+                new ZkHosts(kafkaZkHost + ":2181", "/brokers"),
+                "bidNotifications_prod", // topic to read from
+                "/kafkastormBN", // the root path in Zookeeper for the spout to store the consumer offsets
+                "bidNotifications_prod" + "-consumer") // an id for this consumer for storing the consumer offsets in Zookeeper
+            ), 1)
 
-            t.setBolt(classOf[BidRequestWriterBolt].getSimpleName, new BidRequestWriterBolt, 100)
-                    .shuffleGrouping(classOf[KafkaSpout].getSimpleName)
+            t.setBolt(classOf[BidRequestBolt].getSimpleName, new BidRequestBolt, 100)
+                    .shuffleGrouping(classOf[KafkaSpout].getSimpleName + "-bidRequests_prod")
+            t.setBolt(classOf[BidNotificationBolt].getSimpleName, new BidNotificationBolt, 100)
+                    .shuffleGrouping(classOf[KafkaSpout].getSimpleName + "-bidNotifications_prod")
             t.createTopology()
         }
     }
