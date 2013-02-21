@@ -1,7 +1,9 @@
+import "openrtb.proto";
+
 package com.sonar.expedition.common.adx.search.model;
 
 message BidRequestHolder {
     required string userId = 1;
-    required bytes bidRequest = 2;
+    required org.openrtb.mobile.BidRequest bidRequest = 2;
     required int64 timestamp = 3;
 }

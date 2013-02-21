@@ -4,7 +4,7 @@ import me.prettyprint.cassandra.serializers.{LongSerializer, BytesArraySerialize
 import org.joda.time.DateTime
 import java.nio.ByteBuffer
 import com.sonar.expedition.common.adx.search.model.BidRequestHolder
-
+import com.sonar.expedition.common.serialization.Serialization._
 
 class BidRequestDao extends BaseDao[String, java.lang.Long, String](
     columnFamily = "BidRequest",
@@ -15,7 +15,7 @@ class BidRequestDao extends BaseDao[String, java.lang.Long, String](
     nameSerializer = LongSerializer.get,
     valueSerializer = StringSerializer.get) {
     def save(bidRequest: BidRequestHolder) {
-        saveValue(bidRequest.getUserId, bidRequest.getTimestamp, new String(bidRequest.getBidRequest.toByteArray, "UTF-8"))
+        saveValue(bidRequest.getUserId, bidRequest.getTimestamp, new String(toByteArray(bidRequest.getBidRequest), "UTF-8"))
     }
 }
 

@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-import com.dyuproject.protostuff.ByteString;
 import com.dyuproject.protostuff.GraphIOUtil;
 import com.dyuproject.protostuff.Input;
 import com.dyuproject.protostuff.Message;
@@ -32,7 +31,7 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
     // non-private fields
     // see http://developer.android.com/guide/practices/design/performance.html#package_inner
     String userId;
-    ByteString bidRequest;
+    org.openrtb.mobile.BidRequest bidRequest;
     Long timestamp;
 
     public BidRequestHolder() {
@@ -41,7 +40,7 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
 
     public BidRequestHolder(
             String userId,
-            ByteString bidRequest,
+            org.openrtb.mobile.BidRequest bidRequest,
             Long timestamp
     ) {
         this.userId = userId;
@@ -63,11 +62,11 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
 
     // bidRequest
 
-    public ByteString getBidRequest() {
+    public org.openrtb.mobile.BidRequest getBidRequest() {
         return bidRequest;
     }
 
-    public void setBidRequest(ByteString bidRequest) {
+    public void setBidRequest(org.openrtb.mobile.BidRequest bidRequest) {
         this.bidRequest = bidRequest;
     }
 
@@ -132,8 +131,9 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
                         message.userId = input.readString();
                         break;
                     case 2:
-                        message.bidRequest = input.readBytes();
+                        message.bidRequest = input.mergeObject(message.bidRequest, org.openrtb.mobile.BidRequest.getSchema());
                         break;
+
                     case 3:
                         message.timestamp = input.readInt64();
                         break;
@@ -151,7 +151,8 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
 
             if (message.bidRequest == null)
                 throw new UninitializedMessageException(message);
-            output.writeBytes(2, message.bidRequest, false);
+            output.writeObject(2, message.bidRequest, org.openrtb.mobile.BidRequest.getSchema(), false);
+
 
             if (message.timestamp == null)
                 throw new UninitializedMessageException(message);
