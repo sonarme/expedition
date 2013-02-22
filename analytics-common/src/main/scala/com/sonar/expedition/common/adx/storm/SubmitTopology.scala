@@ -38,20 +38,27 @@ object SubmitTopology extends Logging {
 
 
         def build(parallelismFactor: Int, local: Boolean) = {
-            val t = new TopologyBuilder
-            t.setSpout(classOf[KafkaSpout].getSimpleName + "-bidRequests_prod", new KafkaSpout(new SpoutConfig(
-                new ZkHosts(kafkaZkHost + ":2181", "/brokers"),
-                "bidRequests_prod", // topic to read from
-                "/kafkastormBR", // the root path in Zookeeper for the spout to store the consumer offsets
-                "bidRequests_prod" + "-consumer") // an id for this consumer for storing the consumer offsets in Zookeeper
-            ), 1)
-            t.setSpout(classOf[KafkaSpout].getSimpleName + "-bidNotifications_prod", new KafkaSpout(new SpoutConfig(
-                new ZkHosts(kafkaZkHost + ":2181", "/brokers"),
-                "bidNotifications_prod", // topic to read from
-                "/kafkastormBN", // the root path in Zookeeper for the spout to store the consumer offsets
-                "bidNotifications_prod" + "-consumer") // an id for this consumer for storing the consumer offsets in Zookeeper
-            ), 1)
-
+            val t = new TopologyBuilder;
+            {
+                val config = new SpoutConfig(
+                    new ZkHosts(kafkaZkHost + ":2181", "/brokers"),
+                    "bidRequests_prod", // topic to read from
+                    "/consumers", // the root path in Zookeeper for the spout to store the consumer offsets
+                    "bidRequests_prod" + "-consumer")
+                //config.forceStartOffsetTime(-2)
+                t.setSpout(classOf[KafkaSpout].getSimpleName + "-bidRequests_prod", new KafkaSpout(config // an id for this consumer for storing the consumer offsets in Zookeeper
+                ), 1)
+            }
+            {
+                val config = new SpoutConfig(
+                    new ZkHosts(kafkaZkHost + ":2181", "/brokers"),
+                    "bidNotifications_prod", // topic to read from
+                    "/consumers", // the root path in Zookeeper for the spout to store the consumer offsets
+                    "bidNotifications_prod" + "-consumer")
+                //config.forceStartOffsetTime(-2)
+                t.setSpout(classOf[KafkaSpout].getSimpleName + "-bidNotifications_prod", new KafkaSpout(config // an id for this consumer for storing the consumer offsets in Zookeeper
+                ), 1)
+            }
             t.setBolt(classOf[BidRequestBolt].getSimpleName, new BidRequestBolt, 100)
                     .shuffleGrouping(classOf[KafkaSpout].getSimpleName + "-bidRequests_prod")
             t.setBolt(classOf[BidNotificationBolt].getSimpleName, new BidNotificationBolt, 100)

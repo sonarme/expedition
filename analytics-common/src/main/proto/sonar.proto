@@ -18,3 +18,9 @@ message BidNotification {
     optional string currency = 7;
     required int64 timestamp = 8;
 }
+
+
+message ClickThrough {
+    required string bidId = 1;
+    required int64 timestamp = 2;
+}
