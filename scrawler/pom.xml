@@ -476,6 +476,11 @@
             <artifactId>elephantdb-cascading</artifactId>
             <version>0.3.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze-math_2.9.2</artifactId>
+            <version>0.1</version>
+        </dependency>
     </dependencies>
 
     <build>
