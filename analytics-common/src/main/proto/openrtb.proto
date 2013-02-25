@@ -1,73 +1,80 @@
 package org.openrtb.mobile;
 
-message BidImpression { // Bid Impression Object used in Bid Request from OpenRTB Mobile 1.0 Spec
-  required string impid = 1;//Unique ID of the impression.
-  repeated string wseat = 2;//Array of allowed bidder seats; default is unrestricted.
-  optional int32 h = 3;//Height in pixels.
-  optional int32 w = 4;//Width in pixels.
-  optional int32 pos = 5;//Position of the impression on the page (see Section 3.4).
-  optional int32 instl = 6;//1 if the ad is interstitial or full screen; else '0' (i.e., no).
-  repeated string btype = 7;//Array of blocked ad types (see Section 3.2).
-  repeated string battr = 8;//Array of blocked creative attributes (see Section 3.3).
+// Bid Impression Object used in Bid Request from OpenRTB Mobile 1.0 Spec
+message BidImpression {
+  required string impid = 1; // Unique ID of the impression.
+  repeated string wseat = 2; // Array of allowed bidder seats; default is unrestricted.
+  optional int32 h = 3; // Height in pixels.
+  optional int32 w = 4; // Width in pixels.
+  optional int32 pos = 5; // Position of the impression on the page (see Section 3.4).
+  optional int32 instl = 6; // 1 if the ad is interstitial or full screen; else '0' (i.e., no).
+  repeated string btype = 7; // Array of blocked ad types (see Section 3.2).
+  repeated string battr = 8; // Array of blocked creative attributes (see Section 3.3).
 }
 
-message Site { // Site Object used in Bid Request from OpenRTB Mobile 1.0 Spec
-  optional string sid = 1;//Site ID on the exchange.
-  optional string name = 2;//Site name; may be masked at publisher's request.
-  optional string domain = 3;//Domain of the site (e.g., 'foo.com').
-  optional string pid = 4;//Publisher ID of the site.
-  optional string pub = 5;//Publisher name; may be masked at publisher's request.
-  optional string pdomain = 6;//Domain of the publisher (e.g., 'foopub.com').
-  repeated string cat = 7;//Array of content categories of the site or page (see Section 3.1).
-  optional string keywords = 8;//Comma separated list of keywords related to site content.
-  optional string page = 9;//URL of the current page.
-  optional string ref = 10;//Referrer URL that caused navigation to the current page.
-  optional string search = 11;//Search string that caused navigation to the current page.
+// Site Object used in Bid Request from OpenRTB Mobile 1.0 Spec
+message Site {
+  optional string sid = 1; // Site ID on the exchange.
+  optional string name = 2; // Site name; may be masked at publisher's request.
+  optional string domain = 3; // Domain of the site (e.g., 'foo.com').
+  optional string pid = 4; // Publisher ID of the site.
+  optional string pub = 5; // Publisher name; may be masked at publisher's request.
+  optional string pdomain = 6; // Domain of the publisher (e.g., 'foopub.com').
+  repeated string cat = 7; // Array of content categories of the site or page (see Section 3.1).
+  optional string keywords = 8; // Comma separated list of keywords related to site content.
+  optional string page = 9; // URL of the current page.
+  optional string ref = 10; // Referrer URL that caused navigation to the current page.
+  optional string search = 11; // Search string that caused navigation to the current page.
 }
 
-message App { // App Object used in Bid Request from OpenRTB Mobile 1.0 Spec
-  optional string aid = 1;//Application ID on the exchange.
-  optional string name = 2;//Application name; may be masked at publisher's request.
-  optional string domain = 3;//Domain of the application (e.g., 'mygame.foo.com').
-  optional string pid = 4;//Publisher ID of the application.
-  optional string pub = 5;//Publisher name; may be masked at publisher's request.
-  optional string pdomain = 6;//Domain of the publisher (e.g., 'foopub.com').
-  repeated string cat = 7;//Array of content categories of the application (see Section 3.1).
-  optional string keywords = 8;//Comma separated list of keywords related to application content.
-  optional string ver = 9;//Application version.
-  optional string bundle = 10;//Application bundle (e.g., com.foo.mygame).
-  optional int32 paid = 11;//'1' if the application is a paid version; else '0' (i.e., free)." }
+// App Object used in Bid Request from OpenRTB Mobile 1.0 Spec
+message App {
+  optional string aid = 1; // Application ID on the exchange.
+  optional string name = 2; // Application name; may be masked at publisher's request.
+  optional string domain = 3; // Domain of the application (e.g., 'mygame.foo.com').
+  optional string pid = 4; // Publisher ID of the application.
+  optional string pub = 5; // Publisher name; may be masked at publisher's request.
+  optional string pdomain = 6; // Domain of the publisher (e.g., 'foopub.com').
+  repeated string cat = 7; // Array of content categories of the application (see Section 3.1).
+  optional string keywords = 8; // Comma separated list of keywords related to application content.
+  optional string ver = 9; // Application version.
+  optional string bundle = 10; // Application bundle (e.g., com.foo.mygame).
+  optional int32 paid = 11; // '1' if the application is a paid version; else '0' (i.e., free)." }
 }
 
-message Device { // Device Object used in Bid Request from OpenRTB Mobile 1.0 Spec
-  optional string did = 1;//SHA1 hashed device ID; IMEI when available, else MEID or ESN.
-  optional string dpid = 2;//SHA1 hashed platform-specific ID (e.g., Android ID or UDID for iOS).
-  optional string ip = 3;//IP address closest to device (typically a carrier IP).
-  optional string country = 4;//Country derived from the IP address using ISO-3166-1 Alpha-3.
-  optional string carrier = 5;//Carrier or ISP derived from the IP address.
-  optional string ua = 6;//Device user agent string.
-  optional string make = 7;//Device make (e.g., 'Apple').
-  optional string model = 8;//Device model (e.g., 'iPhone').
-  optional string os = 9;//Device operating system (e.g., 'iOS').
-  optional string osv = 10;//Device operating system version (e.g., '3.1.2').
-  optional int32 js = 11;//'1' if the device supports JavaScript; else '0'.
-  optional string loc = 12;//Lat/Long as '-999.99,-999.99' (i.e., south and west are negative).
+// Device Object used in Bid Request from OpenRTB Mobile 1.0 Spec
+message Device {
+  optional string did = 1; // SHA1 hashed device ID; IMEI when available, else MEID or ESN.
+  optional string dpid = 2; // SHA1 hashed platform-specific ID (e.g., Android ID or UDID for iOS).
+  optional string ip = 3; // IP address closest to device (typically a carrier IP).
+  optional string country = 4; // Country derived from the IP address using ISO-3166-1 Alpha-3.
+  optional string carrier = 5; // Carrier or ISP derived from the IP address.
+  optional string ua = 6; // Device user agent string.
+  optional string make = 7; // Device make (e.g., 'Apple').
+  optional string model = 8; // Device model (e.g., 'iPhone').
+  optional string os = 9; // Device operating system (e.g., 'iOS').
+  optional string osv = 10; // Device operating system version (e.g., '3.1.2').
+  optional int32 js = 11; // '1' if the device supports JavaScript; else '0'.
+  optional string loc = 12; // Lat/Long as '-999.99,-999.99' (i.e., south and west are negative).
 }
 
-message User { // User Object used in Bid Request from OpenRTB Mobile 1.0 Spec
-  optional string uid = 1;//Unique consumer ID of this user on the exchange.
-  optional int32 yob = 2;//Year of birth as a 4-digit integer.
-  optional string gender = 3;//Gender as 'M' male, 'F' female, 'O' other.
-  optional string zip = 4;//Home zip code if USA; else postal code.
-  optional string country = 5;//Home country; using ISO-3166-1 Alpha-3.
-  optional string keywords = 6;//Comma separated list of keywords of consumer interests or intent.
+// User Object used in Bid Request from OpenRTB Mobile 1.0 Spec
+message User {
+  optional string uid = 1; // Unique consumer ID of this user on the exchange.
+  optional int32 yob = 2; // Year of birth as a 4-digit integer.
+  optional string gender = 3; // Gender as 'M' male, 'F' female, 'O' other.
+  optional string zip = 4; // Home zip code if USA; else postal code.
+  optional string country = 5; // Home country; using ISO-3166-1 Alpha-3.
+  optional string keywords = 6; // Comma separated list of keywords of consumer interests or intent.
 }
 
-message Restrictions { // Restrictions Object used in Bid Request from OpenRTB Mobile 1.0 Spec
-  repeated string bcat = 1;//Array of blocked content categories (see Section 3.1).
-  repeated string badv = 2;//Array of blocked advertiser domains.
+// Restrictions Object used in Bid Request from OpenRTB Mobile 1.0 Spec
+message Restrictions {
+  repeated string bcat = 1; // Array of blocked content categories (see Section 3.1).
+  repeated string badv = 2; // Array of blocked advertiser domains.
 }
 
+// Top-Level BidRequest Object from OpenRTB Mobile 1.0 Spec
 message BidRequest {
   required string id = 1; // Unique ID of the bid request (i.e., the overall auction ID).
   optional int32 at = 2; // Auction type - 1 indicates 1st Price, others denote alternate rules.
@@ -80,31 +87,33 @@ message BidRequest {
   optional Restrictions restrictions = 9; // The 'restrictions' object allows certain block lists to be passed on the bid request. This technique is useful in several cases including a) when bidders have not download these lists from the exchange offline, b) when block lists are highly dynamic, or c) when passing critical blocked items to ensure they are not missed in less frequent offline downloads. Per the latter case, if a block list is both passed in this object and synchronized offline, bidders must combine them via union (i.e., one does not supersede the other).
 }
 
-
-message Bid { // Bid by a seat for an impression  from OpenRTB Mobile 1.0 Spec,
-				      required string impid = 1;//ID of the impression to which this bid applies.
-				      required string price = 2;//Bid price in the currency and units specified.
-				      optional string adid = 3;//ID that references the ad to be served if the bid wins.
-				      optional string nurl = 4;//Win notice URL.
-				      optional string adm = 5;//Actual XHTML ad markup.
-				      optional string adomain = 6;//Advertiser's primary or top-level domain for advertiser checking. 
-				      optional string iurl = 7;//Sample image URL (without cache busting) for content checking. 
-				      optional string cid = 8;//Campaign ID or similar that appears within the ad markup.
-				      optional string crid = 9;//Creative ID for reporting content issues or defects.
-				      repeated string attr = 10;//Array of creative attributes (see Section 3.3).
+// Bid by a seat for an impression  from OpenRTB Mobile 1.0 Spec,
+message Bid {
+  required string impid = 1; // ID of the impression to which this bid applies.
+  required string price = 2; // Bid price in the currency and units specified.
+  optional string adid = 3; // ID that references the ad to be served if the bid wins.
+  optional string nurl = 4; // Win notice URL.
+  optional string adm = 5; // Actual XHTML ad markup.
+  optional string adomain = 6; // Advertiser's primary or top-level domain for advertiser checking. 
+  optional string iurl = 7; // Sample image URL (without cache busting) for content checking. 
+  optional string cid = 8; // Campaign ID or similar that appears within the ad markup.
+  optional string crid = 9; // Creative ID for reporting content issues or defects.
+  repeated string attr = 10; // Array of creative attributes (see Section 3.3).
 }
 
-message SeatBid { // Set of bids by a seat from OpenRTB Mobile 1.0 Spec 
-		      optional string seat = 1; // ID of the bidder seat on whose behalf this bid is made.
-		      optional int32 group = 2; // '1' means impressions must be won-lost as a group; default is '0'.
-		      repeated Bid bid = 3; // 0 or more bid objects; related to imp objects in the bid request.
-}       
+// Set of bids by a seat from OpenRTB Mobile 1.0 Spec
+message SeatBid {
+  optional string seat = 1; // ID of the bidder seat on whose behalf this bid is made.
+  optional int32 group = 2; // '1' means impressions must be won-lost as a group; default is '0'.
+  repeated Bid bid = 3; // 0 or more bid objects; related to imp objects in the bid request.
+}
 
-message BidResponse { // Top-Level BidResponse Object from OpenRTB Mobile 1.0 Spec
-      required string id = 1;//ID of the bid request.
-      optional string bidid = 2;//Bid response ID to assist tracking for bidders.
-      optional int32 nbr = 3;//Reason for not bidding (see Section 3.6); default is '0' (unknown).
-      optional string cur = 4;//Bid currency using ISO-4217 alphabetic codes; default is 'USD'.
-      optional int32 units = 5;//Bid units (see Section 3.5); default is '0' (CPM).
-      repeated SeatBid seatbid = 6;// 0 or more sets of bids by seat
+// Top-Level BidResponse Object from OpenRTB Mobile 1.0 Spec
+message BidResponse {
+  required string id = 1; // ID of the bid request.
+  optional string bidid = 2; // Bid response ID to assist tracking for bidders.
+  optional int32 nbr = 3; // Reason for not bidding (see Section 3.6); default is '0' (unknown).
+  optional string cur = 4; // Bid currency using ISO-4217 alphabetic codes; default is 'USD'.
+  optional int32 units = 5; // Bid units (see Section 3.5); default is '0' (CPM).
+  repeated SeatBid seatbid = 6; // 0 or more sets of bids by seat
 }
