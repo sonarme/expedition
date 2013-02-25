@@ -42,6 +42,7 @@ public final class Impression implements Externalizable, Message<Impression> {
     Float bidfloor;
     String bidfloorcur;
     List<String> iframebuster;
+    ImpressionExt ext;
 
     public Impression() {
 
@@ -155,6 +156,16 @@ public final class Impression implements Externalizable, Message<Impression> {
         this.iframebuster = iframebuster;
     }
 
+    // ext
+
+    public ImpressionExt getExt() {
+        return ext;
+    }
+
+    public void setExt(ImpressionExt ext) {
+        this.ext = ext;
+    }
+
     // java serialization
 
     public void readExternal(ObjectInput in) throws IOException {
@@ -234,6 +245,10 @@ public final class Impression implements Externalizable, Message<Impression> {
                             message.iframebuster = new ArrayList<String>();
                         message.iframebuster.add(input.readString());
                         break;
+                    case 11:
+                        message.ext = input.mergeObject(message.ext, ImpressionExt.getSchema());
+                        break;
+
                     default:
                         input.handleUnknownField(number, this);
                 }
@@ -278,6 +293,10 @@ public final class Impression implements Externalizable, Message<Impression> {
                         output.writeString(10, iframebuster, true);
                 }
             }
+
+            if (message.ext != null)
+                output.writeObject(11, message.ext, ImpressionExt.getSchema(), false);
+
         }
 
         public String getFieldName(int number) {
@@ -302,6 +321,8 @@ public final class Impression implements Externalizable, Message<Impression> {
                     return "bidfloorcur";
                 case 10:
                     return "iframebuster";
+                case 11:
+                    return "ext";
                 default:
                     return null;
             }
@@ -325,6 +346,7 @@ public final class Impression implements Externalizable, Message<Impression> {
             fieldMap.put("bidfloor", 8);
             fieldMap.put("bidfloorcur", 9);
             fieldMap.put("iframebuster", 10);
+            fieldMap.put("ext", 11);
         }
     };
 
