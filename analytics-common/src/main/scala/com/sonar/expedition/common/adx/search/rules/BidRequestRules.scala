@@ -27,7 +27,7 @@ object BidRequestRules {
         val CategoryBlacklist = "BidRequest is on category blacklist"
         val NotFromMobileApp = "BidRequest is not from a mobile app"
         val AdDimensionFilter = "BidRequest contains filtered Ad dimensions"
-        val TooManyImpressions = "BidRequest contains too many Impressions"
+        val ExactlyOneImpression = "BidRequest must contain one Impression"
         val MaxHourlySpentExhausted = "Max Hourly Spent Exhausted"
         val AuctionTypeNotSupported = "AuctionType not supported"
     }
@@ -73,11 +73,10 @@ object BidRequestRules {
                 }
             }
         },
-        rule(RuleMessage.TooManyImpressions) let {
-            val br = kindOf[BidRequest] having (_.getImpList != null)
+        rule(RuleMessage.ExactlyOneImpression) let {
+            val br = kindOf[BidRequest] having (br => br.getImpList == null || br.getImpList.size() != 1)
             then {
-                if (br.getImpList.size > 1)
-                    exitWith(RuleMessage.TooManyImpressions)
+                exitWith(RuleMessage.ExactlyOneImpression)
             }
         },
         rule(RuleMessage.MaxHourlySpentExhausted) let {
