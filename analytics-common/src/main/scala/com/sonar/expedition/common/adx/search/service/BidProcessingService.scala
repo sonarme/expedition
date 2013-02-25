@@ -20,9 +20,10 @@ import com.sonar.expedition.common.serialization.Serialization._
 import java.nio.ByteBuffer
 import collection.JavaConversions._
 import util.Random
-import org.openrtb.mobile.{Bid, SeatBid, BidResponse, BidRequest}
+import org.openrtb._
 import java.util.concurrent.atomic.AtomicInteger
 import com.yammer.metrics.scala.Instrumented
+import scala.Some
 
 object BidProcessingService extends TimeSegmentation with Instrumented {
     val log = LoggerFactory.getLogger("application")
@@ -53,22 +54,6 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
     def addClickThrough(term: BytesRef) =
         clickThroughRate(term).incrementAndGet()
 
-    val testr = {
-        val br = new org.openrtb.mobile.BidRequest("id")
-        br.setAt(null)
-        br.setTmax(null)
-        br.setImpList(Seq.empty[org.openrtb.mobile.BidImpression])
-        br.setApp(null)
-        br.setDevice(null)
-        br.setRestrictions(null)
-        br.setSite(null)
-        val u = new org.openrtb.mobile.User
-        u.setUid("1")
-        br.setUser(u)
-        br
-    }
-
-
     def processBidRequest(bidRequest: BidRequest, currentTime: Date = new Date): Option[BidResponse] = {
         requestTimer.time {
             BidRequestRules.execute(bidRequest) match {
@@ -80,7 +65,7 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
                     val bidPrice = if (random.nextFloat() <= epsilon) cpm
                     else {
 
-                        val Array(lat, lng) = bidRequest.getDevice.getLoc.split(" *, *").map(_.toDouble)
+                        val (lat, lng) = (bidRequest.getDevice.getGeo.getLat.toDouble, bidRequest.getDevice.getGeo.getLon.toDouble)
 
                         // TODO: ugly copy&paste
                         val timeSegment = hourSegment(lat, lng, currentTime)
@@ -127,27 +112,25 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
                         averageClickThrough * cpm
                     }
                     val bidId = bidRequest.getId //for tracking and debugging. we can probably just use the bidRequest.id since we only handle one impression per bidRequest
-                    val impId = bidRequest.getImpList.head.getImpid //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
+                    val impId = bidRequest.getImpList.head.getId //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
                     val response = new BidResponse(bidId)
                     response.setBidid(bidId)
                     response.setCur("USD")
-                    response.setUnits(0) // CPM
-                    val bidPriceFormatted = "%.2f" format (bidPrice / 100)
                     response.setSeatbidList(Seq({
                         val sb = new SeatBid
                         sb.setBidList(Seq({
-                            val b = new Bid(impId, bidPriceFormatted)
+                            val b = new Bid(bidId, impId, (bidPrice / 100f))
                             b.setAdid("") //ID that references the ad to be served if the bid wins.
                             b.setNurl(notifyUrl) //Win notice URL.
                             b.setAdm("") //Actual XHTML ad markup.
-                            b.setAdomain("") //Advertiser's primary or top-level domain for advertiser checking.
+                            b.setAdm("") //Advertiser's primary or top-level domain for advertiser checking.
                             //b.setIurl("") //Sample image URL (without cache busting) for content checking.
                             //b.setCid("") //Campaign ID or similar that appears within the ad markup.
                             //b.setCrid("") //Creative ID for reporting content issues or defects.
                             //b.setAttrList(Seq())
                             b
                         }))
-                        sb.setGroup(0)
+                        sb.setGroup(Bool.FALSE)
                         sb
                     }))
 

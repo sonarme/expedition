@@ -3,7 +3,7 @@ package com.sonar.expedition.common.adx.search.rules
 import hammurabi.{FailedExecutionException, RuleEngine, WorkingMemory, Rule}
 import Rule._
 import com.sonar.expedition.common.adx.search.service.BidProcessingService
-import org.openrtb.mobile.BidRequest
+import org.openrtb.BidRequest
 import collection.JavaConversions._
 
 object BidRequestRules {
@@ -67,7 +67,7 @@ object BidRequestRules {
             val br = kindOf[BidRequest] having (_.getImpList != null)
             then {
                 if (br.getImpList.size == 1) {
-                    val d = Dimension(br.getImpList.head.getW, br.getImpList.head.getH)
+                    val d = Dimension(br.getImpList.head.getBanner.getW, br.getImpList.head.getBanner.getH)
                     if (AdTypeFilter contains d)
                         exitWith(RuleMessage.AdDimensionFilter)
                 }

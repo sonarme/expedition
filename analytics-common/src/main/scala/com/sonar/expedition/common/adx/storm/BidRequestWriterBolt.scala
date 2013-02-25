@@ -8,7 +8,7 @@ import com.amazonaws.auth.{BasicAWSCredentials, PropertiesCredentials}
 import com.amazonaws.services.dynamodb.AmazonDynamoDBClient
 import com.sonar.dossier.util.StaticApplicationContext
 import com.sonar.expedition.common.adx.search.model.{BidNotification, BidRequestHolder}
-import org.openrtb.mobile.BidRequest
+import org.openrtb.BidRequest
 import com.dyuproject.protostuff.Message
 
 

@@ -31,7 +31,7 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
     // non-private fields
     // see http://developer.android.com/guide/practices/design/performance.html#package_inner
     String userId;
-    org.openrtb.mobile.BidRequest bidRequest;
+    org.openrtb.BidRequest bidRequest;
     Long timestamp;
 
     public BidRequestHolder() {
@@ -40,7 +40,7 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
 
     public BidRequestHolder(
             String userId,
-            org.openrtb.mobile.BidRequest bidRequest,
+            org.openrtb.BidRequest bidRequest,
             Long timestamp
     ) {
         this.userId = userId;
@@ -62,11 +62,11 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
 
     // bidRequest
 
-    public org.openrtb.mobile.BidRequest getBidRequest() {
+    public org.openrtb.BidRequest getBidRequest() {
         return bidRequest;
     }
 
-    public void setBidRequest(org.openrtb.mobile.BidRequest bidRequest) {
+    public void setBidRequest(org.openrtb.BidRequest bidRequest) {
         this.bidRequest = bidRequest;
     }
 
@@ -131,7 +131,7 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
                         message.userId = input.readString();
                         break;
                     case 2:
-                        message.bidRequest = input.mergeObject(message.bidRequest, org.openrtb.mobile.BidRequest.getSchema());
+                        message.bidRequest = input.mergeObject(message.bidRequest, org.openrtb.BidRequest.getSchema());
                         break;
 
                     case 3:
@@ -151,7 +151,7 @@ public final class BidRequestHolder implements Externalizable, Message<BidReques
 
             if (message.bidRequest == null)
                 throw new UninitializedMessageException(message);
-            output.writeObject(2, message.bidRequest, org.openrtb.mobile.BidRequest.getSchema(), false);
+            output.writeObject(2, message.bidRequest, org.openrtb.BidRequest.getSchema(), false);
 
 
             if (message.timestamp == null)
