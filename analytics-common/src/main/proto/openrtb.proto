@@ -133,6 +133,11 @@ message Video {
     optional AdPosition pos = 17;
     repeated Banner companionad = 18;
 }
+
+message ImpressionExt {
+   optional Bool strictbannersize = 1;
+}
+
 message Impression {
     required string id = 1;
     optional Banner banner = 2;
@@ -144,6 +149,7 @@ message Impression {
     optional float bidfloor = 8;
     optional string bidfloorcur = 9;
     repeated string iframebuster = 10;
+    optional ImpressionExt ext = 11;
 }
 message Publisher {
     optional string id = 1;
@@ -263,6 +269,22 @@ message User {
     optional string customdata = 8;
 }
 
+message BidRequestExt {
+  optional string androidid = 1;
+  optional string androididmd5 = 2;
+  optional string androididsha1 = 3;
+  optional string imei = 4;
+  optional string imeimd5 = 5;
+  optional string imeisha1 = 6;
+  optional string udidmd5 = 7;
+  optional string udidsha1 = 8;
+  optional string macmd5 = 9;
+  optional string macsha1 = 10;
+  optional string odin = 11;
+  optional string openudid = 12;
+  optional string idfa = 13;
+  optional string idfatracking = 14;
+}
 
 message BidRequest {
 	required string id = 1;
@@ -278,6 +300,7 @@ message BidRequest {
 	repeated string cur = 11;
 	repeated string bcat = 12;
 	repeated string badv = 13;
+  optional bytes ext = 14;
 }
 
 message SeatBid {

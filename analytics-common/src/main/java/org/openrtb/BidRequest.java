@@ -10,6 +10,7 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.dyuproject.protostuff.ByteString;
 import com.dyuproject.protostuff.GraphIOUtil;
 import com.dyuproject.protostuff.Input;
 import com.dyuproject.protostuff.Message;
@@ -45,6 +46,7 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
     List<String> cur;
     List<String> bcat;
     List<String> badv;
+    ByteString ext;
 
     public BidRequest() {
 
@@ -188,6 +190,16 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
         this.badv = badv;
     }
 
+    // ext
+
+    public ByteString getExt() {
+        return ext;
+    }
+
+    public void setExt(ByteString ext) {
+        this.ext = ext;
+    }
+
     // java serialization
 
     public void readExternal(ObjectInput in) throws IOException {
@@ -287,6 +299,9 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
                             message.badv = new ArrayList<String>();
                         message.badv.add(input.readString());
                         break;
+                    case 14:
+                        message.ext = input.readBytes();
+                        break;
                     default:
                         input.handleUnknownField(number, this);
                 }
@@ -359,6 +374,9 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
                         output.writeString(13, badv, true);
                 }
             }
+
+            if (message.ext != null)
+                output.writeBytes(14, message.ext, false);
         }
 
         public String getFieldName(int number) {
@@ -389,6 +407,8 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
                     return "bcat";
                 case 13:
                     return "badv";
+                case 14:
+                    return "ext";
                 default:
                     return null;
             }
@@ -415,6 +435,7 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
             fieldMap.put("cur", 11);
             fieldMap.put("bcat", 12);
             fieldMap.put("badv", 13);
+            fieldMap.put("ext", 14);
         }
     };
 
