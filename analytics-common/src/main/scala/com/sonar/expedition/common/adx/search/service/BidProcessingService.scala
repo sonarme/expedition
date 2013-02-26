@@ -112,7 +112,8 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
                         averageClickThrough * cpm
                     }
                     val bidId = bidRequest.getId //for tracking and debugging. we can probably just use the bidRequest.id since we only handle one impression per bidRequest
-                    val impId = bidRequest.getImpList.head.getId //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
+                    val imp = bidRequest.getImpList.head
+                    val impId = imp.getId //we will always have one impression with a bid (based on the rules we specified in BidRequestRules)
                     val response = new BidResponse(bidId)
                     response.setBidid(bidId)
                     response.setCur("USD")
@@ -120,10 +121,25 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
                         val sb = new SeatBid
                         sb.setBidList(Seq({
                             val b = new Bid(bidId, impId, (bidPrice / 100f))
+                            //todo: pull this info from ad server somehow
+                            val adm =
+                                <ad xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="smaato_ad_v0.9.xsd" modelVersion="0.9">
+                                    <imageAd>
+                                        <clickUrl>http://www.fingerprintplay.com</clickUrl>
+                                        <imgUrl>http://mysite.com/images/myad.jpg</imgUrl>
+                                        <width>{imp.getBanner.getW}</width>
+                                        <height>{imp.getBanner.getH}</height>
+                                        <toolTip>This is a tooltip text</toolTip>
+                                        <additionalText>Additional text to be displayed</additionalText>
+                                        <beacons>
+                                            <beacon>http://mysite.com/beacons/mybeacon1</beacon>
+                                            <beacon>http://mysite.com/beacons/mybeacon2</beacon>
+                                        </beacons>
+                                    </imageAd>
+                                </ad>
                             b.setAdid("") //ID that references the ad to be served if the bid wins.
                             b.setNurl(notifyUrl) //Win notice URL.
-                            b.setAdm("") //Actual XHTML ad markup.
-                            b.setAdm("") //Advertiser's primary or top-level domain for advertiser checking.
+                            b.setAdm(scala.xml.Utility.trim(adm).toString()) //Advertiser's primary or top-level domain for advertiser checking.
                             //b.setIurl("") //Sample image URL (without cache busting) for content checking.
                             //b.setCid("") //Campaign ID or similar that appears within the ad markup.
                             //b.setCrid("") //Creative ID for reporting content issues or defects.
@@ -140,7 +156,6 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
             }
         }
     }
-
 }
 
 class CTR {

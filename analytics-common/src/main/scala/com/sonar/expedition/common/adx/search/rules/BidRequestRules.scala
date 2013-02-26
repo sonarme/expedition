@@ -14,11 +14,11 @@ object BidRequestRules {
     )
     //publisher category blacklist
     val CategoryBlacklist = Set(
-        "IAB2" //Automotive
+//        "IAB2" //Automotive
     )
     //filter out these dimensions
     val AdTypeFilter = Set(
-        Dimension(10, 10)
+//        Dimension(10, 10)
     )
 
     //todo: daily spend and hourly spend max
@@ -46,7 +46,6 @@ object BidRequestRules {
                 exitWith(RuleMessage.DomainBlacklist)
             }
         },
-
         rule(RuleMessage.CategoryBlacklist) let {
             val br = kindOf[BidRequest] having (br => br.getApp != null && br.getApp.getCatList != null)
             when {
@@ -55,14 +54,14 @@ object BidRequestRules {
                 exitWith(RuleMessage.CategoryBlacklist)
             }
         },
-
+        /*
         rule(RuleMessage.NotFromMobileApp) let {
             val br = kindOf[BidRequest] having (_.getApp == null)
             then {
                 exitWith(RuleMessage.NotFromMobileApp)
             }
         },
-
+        */
         rule(RuleMessage.AdDimensionFilter) let {
             val br = kindOf[BidRequest] having (_.getImpList != null)
             then {
