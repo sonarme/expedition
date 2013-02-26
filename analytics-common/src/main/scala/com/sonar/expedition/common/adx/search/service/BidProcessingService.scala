@@ -24,6 +24,7 @@ import org.openrtb._
 import java.util.concurrent.atomic.AtomicInteger
 import com.yammer.metrics.scala.Instrumented
 import scala.Some
+import com.sonar.expedition.common.util.SonarTimer._
 
 object BidProcessingService extends TimeSegmentation with Instrumented {
     val log = LoggerFactory.getLogger("application")
@@ -55,7 +56,7 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
         clickThroughRate(term).incrementAndGet()
 
     def processBidRequest(bidRequest: BidRequest, currentTime: Date = new Date): Option[BidResponse] = {
-        requestTimer.time {
+        requestTimer.offsetTime {
             BidRequestRules.execute(bidRequest) match {
                 case Some(ruleViolation: String) => {
                     log.info("passing on bid. rule violation : " + ruleViolation)
