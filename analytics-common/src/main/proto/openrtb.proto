@@ -283,7 +283,7 @@ message UDI {
   optional string odin = 11;
   optional string openudid = 12;
   optional string idfa = 13;
-  optional string idfatracking = 14;
+  optional int32 idfatracking = 14;
 }
 
 message BidRequestExt {
