@@ -10,6 +10,8 @@ object SonarTimer {
         val countDown = new AtomicInteger(n)
         var counting = n > 0
 
+        def toSkipTimer = this
+
         def offsetTime[A](f: => A): A = {
             if (counting) {
                 if (countDown.decrementAndGet() <= 0)

@@ -41,7 +41,7 @@ object BidProcessingService extends TimeSegmentation with Instrumented {
     lazy val searchServiceCohorts = multiDirectorySearchService("/media/ephemeral0/dataCohorts")
     // TODO: shutdown
 
-    val requestTimer = metrics.timer("bidProcessor")
+    val requestTimer = metrics.timer("bidProcessor").toSkipTimer
 
     val MaxAmountSpentHourly = 500 * 100
     val CurrentHourAmountSpent = new AtomicInteger(0)

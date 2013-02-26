@@ -11,13 +11,14 @@ import com.yammer.metrics.scala.Instrumented
 import com.sonar.expedition.common.adx.search.model._
 import grizzled.slf4j.Logging
 import collection.mutable.ListBuffer
+import com.sonar.expedition.common.util.SonarTimer._
 
 class SearchService(var reader: IndexReader, val writer: IndexWriter = null) extends Instrumented with Logging {
     implicit def moreLikeThis_to_richMoreLikeThis(mlt: MoreLikeThis) = new RichMoreLikeThis(mlt)
 
     var indexSearcher = new IndexSearcher(reader)
-    val mltTimer = metrics.timer("moreLikeThis")
-    val searchTimer = metrics.timer("search")
+    val mltTimer = metrics.timer("moreLikeThis").toSkipTimer
+    val searchTimer = metrics.timer("search").toSkipTimer
 
     // TODO: hack
     def reopen() {
@@ -60,14 +61,14 @@ class SearchService(var reader: IndexReader, val writer: IndexWriter = null) ext
 
     def docFreq(term: Term) = reader.docFreq(term)
 
-    def search(field: IndexField.Value, queryStr: String, n: Int = 10) = searchTimer.time {
+    def search(field: IndexField.Value, queryStr: String, n: Int = 10) = searchTimer.offsetTime {
         val query = new TermQuery(new Term(field.toString, queryStr))
         val hits = indexSearcher.search(query, n)
         explain(query, hits)
         hits
     }
 
-    def moreLikeThis(terms: Map[String, String], n: Int = 10): TopDocs = mltTimer.time {
+    def moreLikeThis(terms: Map[String, String], n: Int = 10): TopDocs = mltTimer.offsetTime {
         val mlt = new MoreLikeThis(reader)
         //        mlt.setBoost(true)
         mlt.setMinTermFreq(1)
