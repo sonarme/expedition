@@ -10,7 +10,6 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.dyuproject.protostuff.ByteString;
 import com.dyuproject.protostuff.GraphIOUtil;
 import com.dyuproject.protostuff.Input;
 import com.dyuproject.protostuff.Message;
@@ -46,7 +45,7 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
     List<String> cur;
     List<String> bcat;
     List<String> badv;
-    ByteString ext;
+    BidRequestExt ext;
 
     public BidRequest() {
 
@@ -192,11 +191,11 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
 
     // ext
 
-    public ByteString getExt() {
+    public BidRequestExt getExt() {
         return ext;
     }
 
-    public void setExt(ByteString ext) {
+    public void setExt(BidRequestExt ext) {
         this.ext = ext;
     }
 
@@ -300,8 +299,9 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
                         message.badv.add(input.readString());
                         break;
                     case 14:
-                        message.ext = input.readBytes();
+                        message.ext = input.mergeObject(message.ext, BidRequestExt.getSchema());
                         break;
+
                     default:
                         input.handleUnknownField(number, this);
                 }
@@ -376,7 +376,8 @@ public final class BidRequest implements Externalizable, Message<BidRequest> {
             }
 
             if (message.ext != null)
-                output.writeBytes(14, message.ext, false);
+                output.writeObject(14, message.ext, BidRequestExt.getSchema(), false);
+
         }
 
         public String getFieldName(int number) {

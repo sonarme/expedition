@@ -15,7 +15,6 @@ import com.dyuproject.protostuff.Input;
 import com.dyuproject.protostuff.Message;
 import com.dyuproject.protostuff.Output;
 import com.dyuproject.protostuff.Schema;
-import com.dyuproject.protostuff.UninitializedMessageException;
 
 public final class Banner implements Externalizable, Message<Banner> {
 
@@ -45,12 +44,6 @@ public final class Banner implements Externalizable, Message<Banner> {
 
     public Banner() {
 
-    }
-
-    public Banner(
-            String id
-    ) {
-        this.id = id;
     }
 
     // getters and setters
@@ -191,8 +184,7 @@ public final class Banner implements Externalizable, Message<Banner> {
         }
 
         public boolean isInitialized(Banner message) {
-            return
-                    message.id != null;
+            return true;
         }
 
         public void mergeFrom(Input input, Banner message) throws IOException {
@@ -248,9 +240,8 @@ public final class Banner implements Externalizable, Message<Banner> {
 
 
         public void writeTo(Output output, Banner message) throws IOException {
-            if (message.id == null)
-                throw new UninitializedMessageException(message);
-            output.writeString(1, message.id, false);
+            if (message.id != null)
+                output.writeString(1, message.id, false);
 
             if (message.w != null)
                 output.writeInt32(2, message.w, false);

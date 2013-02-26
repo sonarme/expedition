@@ -102,7 +102,7 @@ enum SourceRelationship {
     SOURCE_RELATIONSHIP_DIRECT = 1;
 }
 message Banner {
-    required string id = 1;
+    optional string id = 1;
     optional int32 w = 2;
     optional int32 h = 3;
     optional AdPosition pos = 4;
@@ -269,7 +269,7 @@ message User {
     optional string customdata = 8;
 }
 
-message BidRequestExt {
+message UDI {
   optional string androidid = 1;
   optional string androididmd5 = 2;
   optional string androididsha1 = 3;
@@ -286,6 +286,10 @@ message BidRequestExt {
   optional string idfatracking = 14;
 }
 
+message BidRequestExt {
+  optional UDI udi = 1;
+}
+
 message BidRequest {
 	required string id = 1;
 	repeated Impression imp = 2;
@@ -300,7 +304,7 @@ message BidRequest {
 	repeated string cur = 11;
 	repeated string bcat = 12;
 	repeated string badv = 13;
-  optional bytes ext = 14;
+  optional BidRequestExt ext = 14;
 }
 
 message SeatBid {
