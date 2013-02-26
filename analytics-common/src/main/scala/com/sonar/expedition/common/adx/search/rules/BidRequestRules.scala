@@ -9,16 +9,16 @@ import collection.JavaConversions._
 object BidRequestRules {
 
     //domain blacklist
-    val DomainBlacklist = Set(
+    val DomainBlacklist = Set[String](
         "highlig.ht"
     )
     //publisher category blacklist
-    val CategoryBlacklist = Set(
-//        "IAB2" //Automotive
+    val CategoryBlacklist = Set[String](
+        //        "IAB2" //Automotive
     )
     //filter out these dimensions
-    val AdTypeFilter = Set(
-//        Dimension(10, 10)
+    val AdTypeFilter = Set[Dimension](
+        //        Dimension(10, 10)
     )
 
     //todo: daily spend and hourly spend max
