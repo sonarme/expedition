@@ -14,11 +14,11 @@ object BidRequestRules {
     )
     //publisher category blacklist
     val CategoryBlacklist = Set[String](
-        //        "IAB2" //Automotive
+//        "IAB2" //Automotive
     )
-    //filter out these dimensions
-    val AdTypeFilter = Set[Dimension](
-        //        Dimension(10, 10)
+    //Only bid on ads with these dimensions
+    val AdTypeInclusionFilter = Set[Dimension](
+        Dimension(300, 250)
     )
 
     //todo: daily spend and hourly spend max
@@ -26,7 +26,7 @@ object BidRequestRules {
         val DomainBlacklist = "BidRequest is on domain blacklist"
         val CategoryBlacklist = "BidRequest is on category blacklist"
         val NotFromMobileApp = "BidRequest is not from a mobile app"
-        val AdDimensionFilter = "BidRequest contains filtered Ad dimensions"
+        val AdDimensionFilter = "BidRequest contains unsupported Ad dimensions"
         val ExactlyOneImpression = "BidRequest must contain one Impression"
         val MaxHourlySpentExhausted = "Max Hourly Spent Exhausted"
         val AuctionTypeNotSupported = "AuctionType not supported"
@@ -67,7 +67,7 @@ object BidRequestRules {
             then {
                 if (br.getImpList.size == 1) {
                     val d = Dimension(br.getImpList.head.getBanner.getW, br.getImpList.head.getBanner.getH)
-                    if (AdTypeFilter contains d)
+                    if (!(AdTypeInclusionFilter contains d))
                         exitWith(RuleMessage.AdDimensionFilter)
                 }
             }
