@@ -255,18 +255,7 @@
             <artifactId>lift-json</artifactId>
             <version>2.0</version>
         </dependency-->
-        <!-- using older slf4j because of hadoop compatibility -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.5.8</version>
-        </dependency>
-        <!-- commons logging to slf4j bridge  -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <version>1.5.8</version>
-        </dependency>
+
         <!--
                 &lt;!&ndash; log to simpleDB &ndash;&gt;
                 <dependency>
@@ -622,6 +611,18 @@
         <profile>
             <id>windows</id>
             <dependencies>
+                <!-- using older slf4j because of hadoop compatibility -->
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                    <version>1.5.8</version>
+                </dependency>
+                <!-- commons logging to slf4j bridge  -->
+                <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                    <version>1.5.8</version>
+                </dependency>
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-core</artifactId>
