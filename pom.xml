@@ -10,6 +10,7 @@
     <modules>
         <module>analytics-common</module>
         <module>scrawler</module>
+        <module>statistics</module>
     </modules>
 
     <repositories>
