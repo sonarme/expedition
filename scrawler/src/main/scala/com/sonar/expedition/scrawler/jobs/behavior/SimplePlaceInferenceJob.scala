@@ -48,7 +48,7 @@ class SimplePlaceInferenceJob(args: Args) extends DefaultJob(args) with Normaliz
     val bb = new BoundingBox(new WGS84Point(24.5210, -124.7625), new WGS84Point(49.3845, -66.9326))
     val segmentedCheckins = checkins.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'location, 'timeSegment, 'geosector)) {
         dto: CheckinDTO =>
-            if (dto.serviceProfileId == null || dto.serviceType != ServiceType.sonar || !bb.contains(dto.geohash.getBoundingBoxCenterPoint)) Iterable.empty
+            if (dto.serviceProfileId == null || dto.serviceCheckinId == null || dto.serviceType != ServiceType.sonar || !bb.contains(dto.geohash.getBoundingBoxCenterPoint)) Iterable.empty
             else {
                 val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
                 val weekDay = isWeekDay(ldt)
