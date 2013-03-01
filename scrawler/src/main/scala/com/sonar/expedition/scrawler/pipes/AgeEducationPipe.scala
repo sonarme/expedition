@@ -21,8 +21,9 @@ trait AgeEducationPipe extends ScaldingImplicits {
 
         val highestEducation = if (!education || educations.isEmpty) Education.unknown else educations.map(_._1).flatten.maxBy(AgeEducationPipe.EducationPriority)
         val age = if (dto.birthday == null) {
-            if (educations.isEmpty) None
-            else Some(educations.map(_._2).flatten.max)
+            val ages = educations.map(_._2).flatten
+            if (ages.isEmpty) None
+            else Some(ages.max)
         }
         else Some(org.joda.time.Years.yearsBetween(new DateTime(dto.birthday), DateTime.now).getYears)
         (age, highestEducation)
