@@ -16,6 +16,9 @@ import ch.hsr.geohash.{WGS84Point, BoundingBox, GeoHash}
 import collection.JavaConversions._
 import scalaz._
 import Scalaz._
+import javax.crypto.spec.SecretKeySpec
+import javax.crypto.Cipher
+import com.sonar.expedition.scrawler.Encryption._
 
 class SimplePlaceInferenceJob(args: Args) extends DefaultJob(args) with Normalizers with CheckinInference with TimeSegmentation {
     val segments = Seq(1 -> 7, 7 -> 11, 11 -> 14, 14 -> 16, 16 -> 20, 20 -> 1) map {
@@ -45,7 +48,7 @@ class SimplePlaceInferenceJob(args: Args) extends DefaultJob(args) with Normaliz
     val bb = new BoundingBox(new WGS84Point(24.5210, -124.7625), new WGS84Point(49.3845, -66.9326))
     val segmentedCheckins = checkins.flatMapTo(('checkinDto) ->('checkinId, 'spl, 'location, 'timeSegment, 'geosector)) {
         dto: CheckinDTO =>
-            if (dto.serviceProfileId == null || dto.serviceType != ServiceType.sonar || !bb.contains(dto.geohash.getBoundingBoxCenterPoint)) Iterable.empty
+            if (dto.serviceProfileId == null || dto.serviceCheckinId == null || dto.serviceType != ServiceType.sonar || !bb.contains(dto.geohash.getBoundingBoxCenterPoint)) Iterable.empty
             else {
                 val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
                 val weekDay = isWeekDay(ldt)
@@ -53,7 +56,7 @@ class SimplePlaceInferenceJob(args: Args) extends DefaultJob(args) with Normaliz
                 // create tuples for each time segment
                 for (segment <- createSegments(ldt.toLocalTime.getHourOfDay, segments, Some((24, 0)));
                      geosector <- centerSector.getAdjacent :+ centerSector) yield
-                    (dto.canonicalId, dto.profileId, dto.serviceVenue.location.geodata.canonicalLatLng, TimeSegment(weekDay, segment.name).toIndexableString, geosector.longValue())
+                    (dto.serviceType.name() + "-" + encrypt(dto.serviceCheckinId), dto.serviceType.name() + "-" + encrypt(dto.serviceProfileId), dto.serviceVenue.location.geodata.canonicalLatLng, TimeSegment(weekDay, segment.name).toIndexableString, geosector.longValue())
             }
     }
 
@@ -66,7 +69,7 @@ class SimplePlaceInferenceJob(args: Args) extends DefaultJob(args) with Normaliz
 
     val sectorizedVenues = venues.read.flatMapTo(('venueDto) ->('geosector, 'venueType)) {
         dto: ServiceVenueDTO =>
-            if (dto.serviceType == ServiceType.foursquare)
+            if (dto.serviceType == ServiceType.foursquare && dto.getCategory != null)
                 dto.getCategory.map {
                     category: String => (smallSector(dto.location.geodata.latitude, dto.location.geodata.longitude).longValue(), category)
                 }
@@ -88,4 +91,6 @@ class SimplePlaceInferenceJob(args: Args) extends DefaultJob(args) with Normaliz
     placeInference.write(placeInferenceOut)
 
     def smallSector(lat: Double, lng: Double) = GeoHash.withBitPrecision(lat, lng, 8 * 5 - 2)
+
+
 }
