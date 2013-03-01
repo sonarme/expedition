@@ -11,6 +11,7 @@ import com.twitter.scalding.SequenceFile
 import com.twitter.scalding.Tsv
 import com.twitter.scalding.IterableSource
 import collection.JavaConversions._
+import com.sonar.expedition.scrawler.Encryption._
 
 class SonarFeatureJob(args: Args) extends DefaultJob(args) with AgeEducationPipe {
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
@@ -37,10 +38,10 @@ class SonarFeatureJob(args: Args) extends DefaultJob(args) with AgeEducationPipe
     else SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO)
     profiles.read.flatMapTo(('profileId, 'profileDto, 'serviceType) ->('profileId, 'gender, 'age)) {
         in: (String, ServiceProfileDTO, ServiceType) =>
-            val (profileId, profileDto, serviceType) = in
+            val (profileId, dto, serviceType) = in
             if (serviceType == ServiceType.sonar) {
-                val (age, _) = getAgeAndEducation(profileDto, education = false)
-                Some(profileId, profileDto.gender.name(), age.getOrElse(null))
+                val (age, _) = getAgeAndEducation(dto, education = false)
+                Some(dto.serviceType.name() + "-" + encrypt(dto.userId), dto.gender.name(), age.getOrElse(null))
             } else None
     }.write(Tsv(args("featuresOut")))
 

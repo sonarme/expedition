@@ -69,11 +69,13 @@ class SimplePlaceInferenceJob(args: Args) extends DefaultJob(args) with Normaliz
 
     val sectorizedVenues = venues.read.flatMapTo(('venueDto) ->('geosector, 'venueType)) {
         dto: ServiceVenueDTO =>
-            if (dto.serviceType == ServiceType.foursquare && dto.getCategory != null)
+            val geodata = dto.location.geodata
+            if (dto.serviceType == ServiceType.foursquare && dto.getCategory != null && bb.contains(new WGS84Point(geodata.latitude, geodata.longitude)))
                 dto.getCategory.map {
                     category: String => (smallSector(dto.location.geodata.latitude, dto.location.geodata.longitude).longValue(), category)
                 }
-            else Iterable.empty
+            else
+                Iterable.empty
     }.groupBy('geosector) {
         _.foldLeft('venueType -> 'venueTypes)(Map.empty[String, Int]) {
             (agg: Map[String, Int], venueType: String) => agg |+| Map(venueType -> 1)
