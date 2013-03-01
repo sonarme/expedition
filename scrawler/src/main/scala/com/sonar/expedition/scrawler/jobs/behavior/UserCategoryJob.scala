@@ -50,19 +50,7 @@ class UserCategoryJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPi
             .discard('profileId)
             .map('profileDto ->('gender, 'age, 'income, 'education)) {
         dto: ServiceProfileDTO =>
-            val educations = for (education <- dto.education) yield {
-                val parsedDegree = parseDegree(education.degree, education.schoolName)
-                val age = getAge(education.year, parsedDegree, education.degree)
-                (parsedDegree, age)
-            }
-
-            val highestEducation = if (educations.isEmpty) Education.unknown else educations.map(_._1).flatten.maxBy(AgeEducationPipe.EducationPriority)
-            val age = if (dto.birthday == null) {
-                if (educations.isEmpty) None
-                else educations.map(_._2).flatten.max
-            }
-            else Some(org.joda.time.Years.yearsBetween(new DateTime(dto.birthday), DateTime.now).getYears)
-
+            val (age, highestEducation) = getAgeAndEducation(dto)
             (dto.gender, age, 55000, highestEducation) //todo: calculate the income and education
     }
             .discard('profileDto)

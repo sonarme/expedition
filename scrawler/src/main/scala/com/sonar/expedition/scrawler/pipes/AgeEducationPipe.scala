@@ -5,10 +5,28 @@ import com.sonar.expedition.scrawler.util.CommonFunctions._
 import util.matching.Regex
 import com.sonar.expedition.scrawler.pipes.AgeEducationPipe._
 import com.sonar.dossier.dto.Education._
-import com.sonar.dossier.dto.{ServiceType, Education}
-
+import com.sonar.dossier.dto.{ServiceProfileDTO, ServiceType, Education}
+import collection.JavaConversions._
+import org.scala_tools.time.Imports._
 
 trait AgeEducationPipe extends ScaldingImplicits {
+
+    def getAgeAndEducation(dto: ServiceProfileDTO, education: Boolean = true) = {
+        lazy val educations = if (dto.education == null) Iterable.empty
+        else for (education <- dto.education) yield {
+            val parsedDegree = parseDegree(education.degree, education.schoolName)
+            val age = getAge(education.year, parsedDegree, education.degree)
+            (parsedDegree, age)
+        }
+
+        val highestEducation = if (!education || educations.isEmpty) Education.unknown else educations.map(_._1).flatten.maxBy(AgeEducationPipe.EducationPriority)
+        val age = if (dto.birthday == null) {
+            if (educations.isEmpty) None
+            else Some(educations.map(_._2).flatten.max)
+        }
+        else Some(org.joda.time.Years.yearsBetween(new DateTime(dto.birthday), DateTime.now).getYears)
+        (age, highestEducation)
+    }
 
     @deprecated
     def ageEducationPipe(serviceProfileInput: RichPipe) =
@@ -35,13 +53,13 @@ trait AgeEducationPipe extends ScaldingImplicits {
 
     def parseDegree(degreeString: String, school: String): Option[Education] = {
 
-        val removePunc = degreeString.replaceAll( """\p{P}""", "").toLowerCase
+        val removePunc = Option(degreeString).getOrElse("").replaceAll( """\p{P}""", "").toLowerCase
         val list = removePunc.split("\\s+")
         val firstWord = list.headOption.getOrElse("")
         val secondWord = list.tail.headOption.getOrElse("")
 
         val degree = matchDegree(firstWord) orElse matchDegree(secondWord)
-        val schoolList = school.replaceAll( """\p{P}""", "").toLowerCase.split("\\s+")
+        val schoolList = Option(school).getOrElse("").replaceAll( """\p{P}""", "").toLowerCase.split("\\s+")
         val isHigh = schoolList.exists(_ == "high")
 
         if (isHigh)
