@@ -37,11 +37,11 @@ class SonarFeatureJob(args: Args) extends DefaultJob(args) with AgeEducationPipe
     ), Tuples.ProfileIdDTO)
     else SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO)
     profiles.read.flatMapTo(('profileId, 'profileDto, 'serviceType) ->('profileId, 'gender, 'age)) {
-        in: (String, ServiceProfileDTO, ServiceType) =>
+        in: (ServiceProfileLink, ServiceProfileDTO, ServiceType) =>
             val (profileId, dto, serviceType) = in
-            if (profileId.startsWith("sonar")) {
+            if (profileId.serviceType == ServiceType.sonar) {
                 val (age, _) = getAgeAndEducation(dto, education = false)
-                Some(dto.serviceType.name() + "-" + encrypt(dto.userId), dto.gender.name(), age.getOrElse(null))
+                Some(profileId.serviceType.name() + "-" + encrypt(profileId.key), dto.gender.name(), age.getOrElse(null))
             } else None
     }.write(Tsv(args("featuresOut")))
 
