@@ -7,10 +7,9 @@ import com.sonar.dossier.Normalizers
 import com.sonar.expedition.scrawler.jobs.DefaultJob
 
 class ServiceVenueJob(args: Args) extends DefaultJob(args) with Normalizers {
-    val argsCheckin = args("checkinsIn")
-    val argsVenues = args("venuesOut")
-    val argsStats = args("statsOut")
-    val venues = SequenceFile(argsCheckin, Tuples.CheckinIdDTO).read.flatMapTo(('checkinDto) ->('venueId, 'venueDto, 'raw)) {
+    val checkinsIn = args("checkinsIn")
+    val venuesOut = args("venuesOut")
+    val venues = SequenceFile(checkinsIn, Tuples.CheckinIdDTO).read.flatMapTo(('checkinDto) ->('venueId, 'venueDto, 'raw)) {
         dto: CheckinDTO =>
             if (dto.venueId == null || dto.serviceType != ServiceType.foursquare) None
             else {
@@ -31,11 +30,11 @@ class ServiceVenueJob(args: Args) extends DefaultJob(args) with Normalizers {
                 if (left._1) left else right
         }
     }
-    venues.write(SequenceFile(argsVenues, Tuples.VenueIdDTO))
+    venues.write(SequenceFile(venuesOut, Tuples.VenueIdDTO))
     venues.discard('venueDto).groupBy('raw) {
         // write some stats so we know how many venues from raw we have
         _.size
-    }.write(Tsv(argsStats, ('raw, 'size)))
+    }.write(Tsv(venuesOut + "_stats", ('raw, 'size)))
 
 
 }
