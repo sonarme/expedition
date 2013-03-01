@@ -39,7 +39,7 @@ class SonarFeatureJob(args: Args) extends DefaultJob(args) with AgeEducationPipe
     profiles.read.flatMapTo(('profileId, 'profileDto, 'serviceType) ->('profileId, 'gender, 'age)) {
         in: (String, ServiceProfileDTO, ServiceType) =>
             val (profileId, dto, serviceType) = in
-            if (serviceType == ServiceType.sonar) {
+            if (profileId.startsWith("sonar")) {
                 val (age, _) = getAgeAndEducation(dto, education = false)
                 Some(dto.serviceType.name() + "-" + encrypt(dto.userId), dto.gender.name(), age.getOrElse(null))
             } else None
