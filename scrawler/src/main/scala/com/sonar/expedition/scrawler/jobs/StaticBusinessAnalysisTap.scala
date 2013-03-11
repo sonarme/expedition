@@ -2,18 +2,21 @@ package com.sonar.expedition.scrawler.jobs
 
 import com.twitter.scalding._
 import com.sonar.expedition.scrawler.pipes._
-import com.sonar.expedition.scrawler.util.CommonFunctions._
-import me.prettyprint.cassandra.serializers.{DateSerializer, LongSerializer, StringSerializer, DoubleSerializer}
 import cascading.tuple.Fields
-import java.nio.ByteBuffer
-import com.sonar.scalding.cassandra.CassandraSource
-import com.sonar.scalding.cassandra.NarrowRowScheme
-import com.sonar.scalding.cassandra.CassandraSource
-import com.sonar.scalding.cassandra.NarrowRowScheme
+import com.sonar.expedition.scrawler.util.Tuples
+import org.joda.time.DateMidnight
+import com.sonar.dossier.dto
+import dto._
+import dto.ServiceProfileDTO
+import dto.UserEducation
+import org.scala_tools.time.Imports._
 import com.twitter.scalding.SequenceFile
-import com.sonar.scalding.cassandra.CassandraSource
-import com.sonar.scalding.cassandra.NarrowRowScheme
-import com.sonar.expedition.scrawler.util.CommonFunctions
+import com.twitter.scalding.Tsv
+import com.twitter.scalding.IterableSource
+import collection.JavaConversions._
+import com.twitter.scalding.SequenceFile
+import com.twitter.scalding.Tsv
+import com.twitter.scalding.IterableSource
 
 // Use args:
 // STAG while local testing: --rpcHost 184.73.11.214 --ppmap 10.4.103.222:184.73.11.214,10.96.143.88:50.16.106.193
@@ -23,49 +26,74 @@ class StaticBusinessAnalysisTap(args: Args) extends DefaultJob(args) with Checki
 
     val sequenceOutputStaticOption = args.optional("staticOutput")
     val sequenceOutputTimeOption = args.optional("timeOutput")
+    val test = args.optional("test").map(_.toBoolean).getOrElse(false)
+    val profiles = if (test) IterableSource(Seq(
+        ("roger", {
+            val roger = ServiceProfileDTO(ServiceType.facebook, "123")
+            roger.gender = Gender.male
+            roger.birthday = new DateMidnight(1981, 2, 24).toDate
+            roger
+        }, ServiceType.sonar),
+        ("katie", {
+            val katie = ServiceProfileDTO(ServiceType.foursquare, "234")
+            katie.gender = Gender.female
+            katie.birthday = new DateMidnight(1999, 1, 1).toDate
+            katie
+        }, ServiceType.sonar),
+        ("ben", {
+            val ben = ServiceProfileDTO(ServiceType.sonar, "2345")
+            ben.gender = Gender.male
+            ben.education = Seq(UserEducation(year = "2004", degree = "BS"), UserEducation(year = "2005", degree = "MSc"))
+            ben
+        }, ServiceType.sonar)
+    ), Tuples.ProfileIdDTO)
+    else SequenceFile(args("profilesIn"), Tuples.ProfileIdDTO)
+    val checkinSource = if (test) IterableSource(Seq(
 
-    val (newCheckins, checkinsWithGoldenId) = checkinSource(args, false, true)
+        dto.CheckinDTO(ServiceType.sonar,
+            "corner1",
+            GeodataDTO(40.745241, -73.982942),
+            DateTime.now,
+            "ben123",
+            None
+        ),
+        dto.CheckinDTO(ServiceType.sonar,
+            "corner2",
+            GeodataDTO(40.744575, -73.983028),
+            DateTime.now,
+            "ben123",
+            None
+        )
 
-    val checkinsWithGoldenIdAndLoc = checkinsWithGoldenId
-            .map(('lat, 'lng) -> 'loc) {
-        fields: (String, String) =>
-            val (lat, lng) = fields
-            lat + ":" + lng
-    }.map('goldenId -> 'venueKey) {
-        goldenId: String => goldenId
+    ).map(c => c.id -> c), Tuples.CheckinIdDTO)
+    else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
+    val checkins = checkinSource.read.filter('checkinDTO) {
+        c: CheckinDTO => c.venueId != null
     }
-    val profiles = serviceProfiles(args)
+    val correlation = if (test) IterableSource(Seq(
+        (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.foursquare, "ben123")),
+        (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.sonar, "ben123"))
+    ), Tuples.CorrelationGolden)
+    else SequenceFile(args("correlationIn") + "_golden", Tuples.CorrelationGolden)
 
+    val checkinsWithVenueKey = checkins.mapTo('checkinDto ->('checkinId, 'serviceType, 'lat, 'lng, 'hourChunk, 'venueKey, 'profileId)) {
+        c: CheckinDTO =>
+            val ldt = localDateTime(c.latitude, c.longitude, c.checkinTime.toDate)
 
-    /*
-val joinedProfiles = profiles.rename('key->'rowkey)
-val trainer = new BayesModelPipe(args)
-
-val seqModel = SequenceFile(bayesmodel, Fields.ALL).read.mapTo((0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10) ->('key, 'token, 'featureCount, 'termDocCount, 'docCount, 'logTF, 'logIDF, 'logTFIDF, 'normTFIDF, 'rms, 'sigmak)) {
-fields: (String, String, Int, Int, Int, Double, Double, Double, Double, Double, Double) => fields
-
-}
-
-
-val jobtypes = joinedProfiles.rename('worktitle -> 'data)
-
-val trained = trainer.calcProb(seqModel, jobtypes).project(('data, 'key, 'weight)).rename(('key, 'weight) ->('income, 'weight1))
-
-val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, trained).project(('rowkey, 'uname, 'fbid, 'lnid, 'fsid, 'twid, 'educ, 'worked, 'city, 'edegree, 'eyear, 'worktitle, 'workdesc, 'impliedGender, 'impliedGenderProb, 'age, 'degree, 'income))
- .rename('rowkey -> 'key) */
-
-
-    val combined = checkinsWithGoldenIdAndLoc.joinWithSmaller('keyid -> 'key, profiles).discard('key)
+            (c.canonicalId, c.serviceType.name(), c.latitude, c.longitude, ldt.getHourOfDay, c.serviceVenue.canonicalId, c.profileId)
+    }
+    val combined = checkinsWithVenueKey.joinWithSmaller('profileId -> 'profileId, profiles.map('profileDto ->('age, 'impliedGender, 'degree)) {
+        p: ServiceProfileDTO =>
+            val (age, education) = getAgeAndEducation(p, true)
+            (age, p.gender, education)
+    }.discard('profileDto))
 
     sequenceOutputStaticOption foreach {
         sequenceOutputStatic =>
 
-            val withHomeWork = combined.unique('venueKey, 'lat, 'lng, 'keyid).joinWithSmaller('keyid -> 'key1, SequenceFile(args("centroids"), ('key1, 'workCentroid, 'homeCentroid))).discard('key1)
-
-
             val ageGenderDegreeCheckins = ageGenderDegree(combined)
 
-            val totalCheckins = checkinsWithGoldenId.groupBy('goldenId) {
+            val totalCheckins = checkinsWithVenueKey.groupBy('venueKey) {
                 _.size
             }.mapTo(('goldenId, 'size) ->('rowKey, 'columnName, 'columnValue)) {
                 in: (String, Int) =>
@@ -83,7 +111,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
 
 
 
-            val visits = checkinsWithGoldenId.rename('goldenId -> 'venueKey).groupBy('keyid, 'venueKey) {
+            val visits = checkinsWithVenueKey.groupBy('venueKey, 'profileId) {
                 _.size('visits)
             }
 
@@ -113,7 +141,7 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
             }
 
 
-
+            val withHomeWork = checkinsWithVenueKey.joinWithSmaller('profileId -> 'userGoldenId, SequenceFile(args("centroidsIn"), Tuples.Centroid))
             val reach = findReach(withHomeWork)
 
             val reachMean = reach
@@ -130,23 +158,19 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     (venueKey + "_reach_distance", "stdevDist", stdev)
             }
 
-            val latLng = checkinsWithGoldenIdAndLoc.groupBy('venueKey) {
-                _.head('lat, 'lng)
-            }
-            val reachLat = latLng
-                    .mapTo(('venueKey, 'lat) ->('rowKey, 'columnName, 'columnValue)) {
-                in: (String, Double) =>
-                    val (venueKey, lat) = in
-                    (venueKey + "_reach_distance", "latitude", lat)
-            }
+            val venues = if (test) IterableSource(Seq(
+                ("gg", ServiceVenueDTO(ServiceType.foursquare, "gg", "gg", location = LocationDTO(GeodataDTO(40.744916, -73.982599), "x"), category = Seq("coffee"))),
+                ("dd", ServiceVenueDTO(ServiceType.foursquare, "dd", "dd", location = LocationDTO(GeodataDTO(40.744835, -73.982706), "x"), category = Seq("coffee", "bagels"))),
+                ("hp24", ServiceVenueDTO(ServiceType.foursquare, "hp24", "hp24", location = LocationDTO(GeodataDTO(40.745144, -73.983006), "x"), category = Seq("hair")))
+            ), Tuples.VenueIdDTO)
+            else SequenceFile(args("venuesIn"), Tuples.VenueIdDTO)
 
-            val reachLong = latLng
-                    .mapTo(('venueKey, 'lng) ->('rowKey, 'columnName, 'columnValue)) {
-                in: (String, Double) =>
-                    val (venueKey, lng) = in
-                    (venueKey + "_reach_distance", "longitude", lng)
+            val reachLatLong = venues
+                    .flatMapTo(('venueDto) ->('rowKey, 'columnName, 'columnValue)) {
+                v: ServiceVenueDTO =>
+                    Seq((v.canonicalId + "_reach_distance", "latitude", v.location.geodata.latitude),
+                        (v.canonicalId + "_reach_distance", "longitude", v.location.geodata.longitude))
             }
-
 
             val reachHome = reach
                     .mapTo(('venueKey, 'numHome) ->('rowKey, 'columnName, 'columnValue)) {
@@ -161,30 +185,30 @@ val profilesWithIncome = joinedProfiles.joinWithSmaller('worktitle -> 'data, tra
                     val (venueKey, count) = in
                     (venueKey + "_reach_originCount", "numWork", count.toDouble)
             }
-
-            val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
-            val byIncome = groupByIncome(combined.joinWithSmaller('worktitle -> 'worktitle1, income.rename('worktitle -> 'worktitle1)).discard('worktitle1))
-                    .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
-                in: (String, String, Int) =>
-                    val (venueKey, income, frequency) = in
-                    (venueKey + "_income", income, frequency.toDouble)
-            }.project('rowKey, 'columnName, 'columnValue)
-            val totalIncome = byIncome.groupBy('columnName) {
-                _.sum('columnValue)
-            }.map(() -> 'rowKey) {
-                u: Unit => "totalAll_income"
-            }.project('rowKey, 'columnName, 'columnValue)
+            /*
+                        val income = SequenceFile(args("income"), ('worktitle, 'income, 'weight)).read
+                        val byIncome = groupByIncome(combined.joinWithSmaller('worktitle -> 'worktitle1, income.rename('worktitle -> 'worktitle1)).discard('worktitle1))
+                                .map(('venueKey, 'incomeBracket, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+                            in: (String, String, Int) =>
+                                val (venueKey, income, frequency) = in
+                                (venueKey + "_income", income, frequency.toDouble)
+                        }.project('rowKey, 'columnName, 'columnValue)
+                        val totalIncome = byIncome.groupBy('columnName) {
+                            _.sum('columnValue)
+                        }.map(() -> 'rowKey) {
+                            u: Unit => "totalAll_income"
+                        }.project('rowKey, 'columnName, 'columnValue)*/
 
             val staticOutput =
-                (byIncome ++ totalIncome ++ ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork ++ reachLat ++ reachLong ++ reachMean ++ reachStdev ++ loyalty ++ visitsStats)
+                (/*byIncome ++ totalIncome ++*/ ageGenderDegreeCheckins ++ totalCheckins ++ reachHome ++ reachWork ++ reachLatLong ++ reachMean ++ reachStdev ++ loyalty ++ visitsStats)
 
             staticOutput.write(SequenceFile(sequenceOutputStatic, Fields.ALL))
                     .write(Tsv(sequenceOutputStatic + "_tsv", Fields.ALL))
     }
     sequenceOutputTimeOption foreach {
         sequenceOutputTime =>
-            val byTime = timeSeries(chunkTime(combined))
-                    .mapTo(('venueKey, 'hourChunk, 'serType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
+            val byTime = timeSeries(checkinsWithVenueKey)
+                    .mapTo(('venueKey, 'hourChunk, 'serviceType, 'size) ->('rowKey, 'columnName, 'columnValue)) {
                 in: (String, Int, String, Int) =>
                     val (venueKey, hour, serviceType, frequency) = in
                     (venueKey + "_checkinFrequencyPerHour_" + serviceType, hour.toLong * 3600000, frequency.toDouble)

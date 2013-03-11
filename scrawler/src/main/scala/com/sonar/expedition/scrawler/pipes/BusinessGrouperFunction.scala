@@ -38,23 +38,26 @@ trait BusinessGrouperFunction extends ScaldingImplicits {
     def groupByAge(combinedInput: RichPipe) =
         combinedInput
                 .flatMap('age -> 'ageBracket) {
-            age: Int =>
-                if (age < 0)
-                    None
-                else Some(if (age < 18)
-                    "<18"
-                else if (age < 25)
-                    "18-24"
-                else if (age < 35)
-                    "25-34"
-                else if (age < 45)
-                    "35-44"
-                else if (age < 55)
-                    "45-54"
-                else if (age < 65)
-                    "55-64"
-                else
-                    "65+")
+            ageOpt: Option[Int] =>
+                ageOpt flatMap {
+                    age =>
+                        if (age < 0)
+                            None
+                        else Some(if (age < 18)
+                            "<18"
+                        else if (age < 25)
+                            "18-24"
+                        else if (age < 35)
+                            "25-34"
+                        else if (age < 45)
+                            "35-44"
+                        else if (age < 55)
+                            "45-54"
+                        else if (age < 65)
+                            "55-64"
+                        else
+                            "65+")
+                }
         }.groupBy('ageBracket, 'venueKey) {
             _.size
         }

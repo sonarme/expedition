@@ -16,6 +16,7 @@ object Tuples extends TupleConversions {
     val Correlation = ('correlationId, 'correlationSPL)
     val CorrelationGolden = ('userGoldenSPL, 'correlationSPL)
     val Matrix = ('x, 'y, 'val)
+    val Centroid = ('userGoldenId, 'work, 'home)
 
     object Crawler extends FieldConversions {
         val Links = ('url, 'timestamp, 'referer)

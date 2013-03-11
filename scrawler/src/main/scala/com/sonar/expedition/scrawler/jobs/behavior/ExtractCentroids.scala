@@ -103,7 +103,7 @@ class ExtractCentroids(args: Args) extends DefaultJob(args) with CheckinInferenc
         (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.foursquare, "ben123")),
         (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.sonar, "ben123"))
     ), Tuples.CorrelationGolden)
-    else SequenceFile(args("correlationIn"), Tuples.CorrelationGolden)
+    else SequenceFile(args("correlationIn") + "_golden", Tuples.CorrelationGolden)
 
     val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('spl, 'location, 'clusterColumn)) {
         dto: CheckinDTO =>
@@ -133,5 +133,5 @@ class ExtractCentroids(args: Args) extends DefaultJob(args) with CheckinInferenc
         }
     }.groupBy('userGoldenId) {
         _.pivot(('clusterColumn, 'clusterCenter) ->('work, 'home))
-    } write (SequenceFile(args("centroidOut"), ('userGoldenId, 'work, 'home)))
+    } write (SequenceFile(args("centroidOut"), Tuples.Centroid))
 }
