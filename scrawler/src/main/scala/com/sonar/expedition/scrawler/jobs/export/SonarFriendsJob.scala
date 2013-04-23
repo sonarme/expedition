@@ -10,6 +10,7 @@ import com.sonar.expedition.scrawler.jobs.{Ddb, DefaultJob}
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import org.codehaus.jackson.map.ObjectMapper
 import com.amazonaws.services.dynamodb.model.AttributeValue
+import scala.reflect.BeanProperty
 
 class SonarFriendsJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with FriendGrouperFunction {
     val rpcHostArg = args("rpcHost")
@@ -31,7 +32,7 @@ class SonarFriendsJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPi
         SequenceFile(output, ('sonarId, 'serviceProfileId)).map(('sonarId, 'serviceProfileId) ->('sonarId, 'serviceProfileId)) {
             in: (String, String) =>
                 ("sonarId\u0003" + SonarFriendsJob.om.writeValueAsString(new AttributeValue(in._1)),
-                        "friendProfileId\u0003" + SonarFriendsJob.om.writeValueAsString(new AttributeValue(in._2)))
+                        "friendProfileId\u0003" + SonarFriendsJob.om.writeValueAsString(AValue(in._2)))
         }.groupBy('sonarId) {
             _.mkString('serviceProfileId -> 'out, "\u0002")
         }.write(Ddb(output + "_ddb", ('sonarId, 'out)))
@@ -42,3 +43,5 @@ class SonarFriendsJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPi
 object SonarFriendsJob {
     val om = new ObjectMapper
 }
+
+case class AValue(@BeanProperty var s: String)
