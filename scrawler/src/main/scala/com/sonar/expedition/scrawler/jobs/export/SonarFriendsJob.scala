@@ -30,7 +30,7 @@ class SonarFriendsJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPi
     } else {
         SequenceFile(output, ('sonarId, 'serviceProfileId)).map(('sonarId, 'serviceProfileId) ->('sonarId, 'serviceProfileId)) {
             in: (String, String) =>
-                ("sonarId\u0003" + SonarFriendsJob.om.writeValueAsString(new AttributeValue(in._1)),
+                ("sonarId\u0003" + SonarFriendsJob.om.writeValueAsString(AValue(in._1)),
                         "friendProfileId\u0003" + SonarFriendsJob.om.writeValueAsString(AValue(in._2)))
         }.groupBy('sonarId) {
             _.mkString('serviceProfileId -> 'out, "\u0002")
