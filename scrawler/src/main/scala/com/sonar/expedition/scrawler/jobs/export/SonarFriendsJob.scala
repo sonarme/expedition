@@ -9,7 +9,6 @@ import me.prettyprint.cassandra.serializers.StringSerializer
 import com.sonar.expedition.scrawler.jobs.{Ddb, DefaultJob}
 import com.sonar.dossier.dao.cassandra.ServiceProfileLinkSerializer
 import org.codehaus.jackson.map.ObjectMapper
-import com.amazonaws.services.dynamodb.model.AttributeValue
 import scala.reflect.BeanProperty
 
 class SonarFriendsJob(args: Args) extends DefaultJob(args) with DTOProfileInfoPipe with FriendGrouperFunction {
