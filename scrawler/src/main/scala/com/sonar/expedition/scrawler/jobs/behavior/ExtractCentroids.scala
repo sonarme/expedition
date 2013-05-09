@@ -99,15 +99,17 @@ class ExtractCentroids(args: Args) extends DefaultJob(args) with CheckinInferenc
     ).map(c => c.id -> c), Tuples.CheckinIdDTO)
     else SequenceFile(args("checkinsIn"), Tuples.CheckinIdDTO)
 
-    val correlation = if (test) IterableSource(Seq(
-        (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.foursquare, "ben123")),
-        (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.sonar, "ben123"))
-    ), Tuples.CorrelationGolden)
-    else SequenceFile(args("correlationIn") + "_golden", Tuples.CorrelationGolden)
+    /*
+        val correlation = if (test) IterableSource(Seq(
+            (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.foursquare, "ben123")),
+            (ServiceProfileLink(ServiceType.sonar, "ben123"), ServiceProfileLink(ServiceType.sonar, "ben123"))
+        ), Tuples.CorrelationGolden)
+        else SequenceFile(args("correlationIn") + "_golden", Tuples.CorrelationGolden)
+    */
 
-    val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('spl, 'location, 'clusterColumn)) {
+    val segmentedCheckins = checkinSource.read.flatMapTo(('checkinDto) ->('userGoldenId, 'location, 'clusterColumn)) {
         dto: CheckinDTO =>
-            if (dto.serviceProfileId == null) Iterable.empty
+            if (dto.serviceProfileId == null || dto.serviceType != ServiceType.sonar) Iterable.empty
             else {
                 val ldt = localDateTime(dto.latitude, dto.longitude, dto.checkinTime.toDate)
                 // create tuples for each time segment
@@ -116,15 +118,15 @@ class ExtractCentroids(args: Args) extends DefaultJob(args) with CheckinInferenc
                 else {
                     val weekDay = isWeekDay(ldt)
                     val isWork = weekDay && timeSegments.map(_.name).forall(identity[Boolean])
-                    Some((dto.link, GeodataDTO(dto.latitude, dto.longitude), if (isWork) "work" else "home"))
+                    Some((dto.link.profileId, GeodataDTO(dto.latitude, dto.longitude), if (isWork) "work" else "home"))
                 }
             }
-    }.leftJoinWithSmaller('spl -> 'correlationSPL, correlation.read).discard('correlationSPL).map(('userGoldenSPL, 'spl) -> 'userGoldenId) {
-        in: (ServiceProfileLink, ServiceProfileLink) =>
+    } /*.leftJoinWithSmaller('spl -> 'correlationSPL, correlation.read).discard('correlationSPL).map(('userGoldenSPL, 'spl) -> 'userGoldenId) {
+        in: (String, String) =>
         // add some fake correlation id if there is no correlation in cassandra
             val (correlationId, spl) = in
             if (correlationId == null) spl else correlationId
-    }.groupBy('userGoldenId, 'clusterColumn) {
+    }*/ .groupBy('userGoldenId, 'clusterColumn) {
         _.mapList('location -> 'clusterCenter) {
             locations: List[GeodataDTO] =>
                 (LocationClusterer.maxClusterCenter(locations.map(location => (location.latitude, location.longitude))) map {
