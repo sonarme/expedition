@@ -19,6 +19,14 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
     val checkinsIn = args("checkinsIn")
     val output = args("output")
 
+    lazy val geofences = {
+        val source = io.Source.fromFile(geofencesIn)
+        val locations = source.mkString
+        source.close()
+        val om = new ObjectMapper
+        om.readValue(locations, classOf[JsonNode]).fields().flatMap(_.getValue).toList
+    }
+
     val checkinSource = if (test) IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
             "walmart0",
@@ -90,9 +98,8 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
                 //find each walmart checkin and the checkin after that to use as the exit
                 checkinDtoList.partition {
                     checkinDto: CheckinDTO => {
-                        val geofences = getGeofences(geofencesIn)
-                        geofences.find(wm =>Haversine.haversineInMeters(checkinDto.latitude, checkinDto.longitude, wm.get("latitude").asDouble(), wm.get("longitude").asDouble) <= 200) match {
-                            case Some(location) => checkinDto.serviceCheckinId = location.get("factual_id").textValue(); true
+                        geofences.find(wm =>Haversine.haversineInMeters(checkinDto.latitude, checkinDto.longitude, wm.get("lat").asDouble(), wm.get("lng").asDouble) <= 200) match {
+                            case Some(location) => checkinDto.serviceCheckinId = "factual-" + location.get("id").textValue(); true
                             case None => false
                         }
 
@@ -113,13 +120,4 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
 
     //group the checkins by user
     checkins.write(Csv(output))
-
-
-    private def getGeofences(file: String) = {
-        val source = io.Source.fromFile(file)
-        val locations = source.mkString
-        source.close()
-        val om = new ObjectMapper
-        om.readValue(locations, classOf[JsonNode]).fields().flatMap(_.getValue).toList
-    }
 }
