@@ -18,14 +18,7 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
     val checkinsIn = args("checkinsIn")
     val output = args("output")
-
-    lazy val geofences = {
-        val source = io.Source.fromFile(geofencesIn)
-        val locations = source.mkString
-        source.close()
-        val om = new ObjectMapper
-        om.readValue(locations, classOf[JsonNode]).fields().flatMap(_.getValue).toList
-    }
+    val sonarIds = args("sonarIds")
 
     val checkinSource = if (test) IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
@@ -88,17 +81,20 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
     else SequenceFile(checkinsIn, Tuples.CheckinIdDTO)
 
     //for each sonar checkin, see if it is in the list of walmarts
-    val checkins = checkinSource
+    val checkinsGrouped = checkinSource
         .filter('checkinDto) {checkinDto: CheckinDTO => checkinDto.serviceType == ServiceType.sonar}
         .map('checkinDto -> ('sonarId, 'checkinTime)) { checkinDto: CheckinDTO => (checkinDto.serviceProfileId, checkinDto.checkinTime) }
         .groupBy('sonarId) { _.toList[CheckinDTO]('checkinDto -> 'checkinDtoList).sortBy('checkinTime).reverse}
+
+    checkinsGrouped.project('sonarId).write(Tsv(sonarIds))
+
         //split list into two...one for walmart checkins and another for anything else
-        .map('checkinDtoList -> ('targetedPongs, 'otherPongs)) {
+    val checkinsPartitioned = checkinsGrouped.map('checkinDtoList -> ('targetedPongs, 'otherPongs)) {
             checkinDtoList: List[CheckinDTO] => {
                 //find each walmart checkin and the checkin after that to use as the exit
                 checkinDtoList.partition {
                     checkinDto: CheckinDTO => {
-                        geofences.find(wm =>Haversine.haversineInMeters(checkinDto.latitude, checkinDto.longitude, wm.get("lat").asDouble(), wm.get("lng").asDouble) <= 200) match {
+                        getGeofences().find(wm =>Haversine.haversineInMeters(checkinDto.latitude, checkinDto.longitude, wm.get("lat").asDouble(), wm.get("lng").asDouble) <= 200) match {
                             case Some(location) => checkinDto.serviceCheckinId = "factual-" + location.get("id").textValue(); true
                             case None => false
                         }
@@ -108,16 +104,26 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
             }
         }
         .discard('checkinDtoList)
-        .flatMapTo(('sonarId, 'targetedPongs, 'otherPongs) -> ('appId, 'platform, 'deviceId, 'geofenceId, 'lat, 'lng, 'entering, 'exiting)) {
+
+    val checkins = checkinsPartitioned.flatMapTo(('sonarId, 'targetedPongs, 'otherPongs) -> ('appId, 'platform, 'deviceId, 'geofenceId, 'lat, 'lng, 'entering, 'exiting, 'zone)) {
             in: (String, List[CheckinDTO], List[CheckinDTO]) => {
                 val (sonarId, targetedPongs, otherPongs) = in
                 //for each targetedPong...look for a corresponding otherpong which is the first pong after the targeted pong...this is a geofence exit action
                 val geofenceActions = targetedPongs.map(tp => (tp, otherPongs.find(tp.checkinTime < _.checkinTime).getOrElse(tp)))
                 val dtf = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
-                geofenceActions.map{ case(enter, exit) => ("sampler", "ios", sonarId, enter.serviceCheckinId, enter.latitude, enter.longitude, enter.checkinTime.withZone(DateTimeZone.UTC).toString(dtf), exit.checkinTime.withZone(DateTimeZone.UTC).toString(dtf))}
+                val zf = DateTimeFormat.forPattern("ZZ")
+                geofenceActions.map{ case(enter, exit) => ("sampler", "ios", sonarId, enter.serviceCheckinId, enter.latitude, enter.longitude, enter.checkinTime.withZone(DateTimeZone.UTC).toString(dtf), exit.checkinTime.withZone(DateTimeZone.UTC).toString(dtf), enter.checkinTime.toString(zf))}
             }
         }
 
     //group the checkins by user
     checkins.write(Csv(output))
+
+    private def getGeofences() = {
+        val source = io.Source.fromFile(geofencesIn)
+        val locations = source.mkString
+        source.close()
+        val om = new ObjectMapper
+        om.readValue(locations, classOf[JsonNode]).fields().flatMap(_.getValue).toList
+    }
 }
