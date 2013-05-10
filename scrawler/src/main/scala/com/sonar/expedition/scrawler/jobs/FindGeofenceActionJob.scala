@@ -122,7 +122,7 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
     */
 
     private def getGeofences() = {
-        val source = io.Source.fromFile(geofencesIn)
+        val source = io.Source.fromURL(geofencesIn)
         val locations = source.mkString
         source.close()
         val om = new ObjectMapper
