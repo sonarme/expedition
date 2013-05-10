@@ -88,6 +88,7 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
 
     checkinsGrouped.project('sonarId).write(Tsv(sonarIds))
 
+    /*
         //split list into two...one for walmart checkins and another for anything else
     val checkinsPartitioned = checkinsGrouped.map('checkinDtoList -> ('targetedPongs, 'otherPongs)) {
             checkinDtoList: List[CheckinDTO] => {
@@ -118,6 +119,7 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
 
     //group the checkins by user
     checkins.write(Csv(output))
+    */
 
     private def getGeofences() = {
         val source = io.Source.fromFile(geofencesIn)

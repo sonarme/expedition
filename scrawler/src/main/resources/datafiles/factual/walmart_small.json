@@ -1,63 +1,21 @@
 {
     "MA": [
         {
-            "region": "MA",
-            "website": "http://www.walmart.com",
-            "status": "1",
-            "tel": "(508) 584-2333",
-            "neighborhood": {},
-            "chain_id": "ab4b9fa0-d68a-012e-5619-003048cad9da",
-            "postcode": "02301",
-            "category_labels": {},
-            "category_ids": {},
-            "country": "us",
-            "chain_name": "Walmart",
-            "category": "Shopping > Department Stores",
-            "address": "700 Oak St",
-            "name": "Walmart",
-            "locality": "Brockton",
-            "longitude": -71.05758522727274,
-            "latitude": 42.101077409090905,
-            "factual_id": "2e17bf47-cb41-4a92-8868-29f0060f0d4f"
+            "lng": -71.05758522727274,
+            "lat": 42.101077409090905,
+            "id": "2e17bf47-cb41-4a92-8868-29f0060f0d4f"
         }
     ],
     "NJ": [
-    {
-        "region": "NJ",
-        "status": "1",
-        "tel": "(732) 458-8301",
-        "neighborhood": {},
-        "postcode": "08724",
-        "category_labels": {},
-        "category_ids": {},
-        "country": "us",
-        "category": "Shopping > Department Stores",
-        "address": "157 Van Zile Rd",
-        "name": "Walmart",
-        "locality": "Brick",
-        "longitude": -74.117419,
-        "latitude": 40.077632,
-        "factual_id": "9216f270-ca2a-4cf8-963e-f439df77fbbd"
-    },
-    {
-        "region": "NJ",
-        "website": "http://www.walmart.com",
-        "status": "1",
-        "tel": "(201) 955-0280",
-        "neighborhood": {},
-        "chain_id": "ab4b9fa0-d68a-012e-5619-003048cad9da",
-        "postcode": "07032",
-        "category_labels": {},
-        "category_ids": {},
-        "country": "us",
-        "chain_name": "Walmart",
-        "category": "Shopping > Department Stores",
-        "address": "150 Harrison Ave",
-        "name": "Walmart",
-        "locality": "Kearny",
-        "longitude": -74.13558515,
-        "latitude": 40.7495177625,
-        "factual_id": "2184e1b8-cfe7-427b-b11c-c1e4d3e0f5a9"
-    }
-]
+        {
+            "lng": -74.117419,
+            "lat": 40.077632,
+            "id": "9216f270-ca2a-4cf8-963e-f439df77fbbd"
+        },
+        {
+            "lng": -74.13558515,
+            "lat": 40.7495177625,
+            "id": "2184e1b8-cfe7-427b-b11c-c1e4d3e0f5a9"
+        }
+    ]
 }
