@@ -121,7 +121,7 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
 
 
     private def getGeofences() = {
-        val source = io.Source.fromURL(geofencesIn)
+        val source = io.Source.fromURL(classOf[FindGeofenceActionJob].getResource("/datafiles/factual/" + geofencesIn + ".json"))
         val locations = source.mkString
         source.close()
         val om = new ObjectMapper
