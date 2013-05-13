@@ -18,7 +18,6 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
     val test = args.optional("test").map(_.toBoolean).getOrElse(false)
     val checkinsIn = args("checkinsIn")
     val output = args("output")
-    val sonarIds = args("sonarIds")
 
     val checkinSource = if (test) IterableSource(Seq(
         dto.CheckinDTO(ServiceType.foursquare,
@@ -88,8 +87,6 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
             }
         }
         .groupBy('sonarId) { _.toList[CondensedCheckin](('condensedCheckin) -> 'condensedCheckinList).sortBy('checkinTime).reverse}
-
-//    checkinsGrouped.project('sonarId).write(Tsv(sonarIds))
 
         //split list into two...one for walmart checkins and another for anything else
     val checkinsPartitioned = checkinsGrouped.map('condensedCheckinList -> ('targetedPongs, 'otherPongs)) {
