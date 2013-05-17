@@ -80,16 +80,17 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
     else SequenceFile(checkinsIn, Tuples.CheckinIdDTO)
 
     //for each sonar checkin, see if it is in the list of walmarts
-    val checkinsGrouped = checkinSource
+    val checkinsCondensed = checkinSource
         .filter('checkinDto) {checkinDto: CheckinDTO => checkinDto.serviceType == ServiceType.sonar}
         .mapTo('checkinDto -> ('sonarId, 'checkinTime, 'condensedCheckin)) { checkinDto: CheckinDTO => {
             (checkinDto.serviceProfileId, checkinDto.checkinTime, CondensedCheckin(checkinDto.serviceProfileId, checkinDto.checkinTime, checkinDto.serviceCheckinId, checkinDto.latitude, checkinDto.longitude))
             }
         }
-        .groupBy('sonarId) { _.toList[CondensedCheckin](('condensedCheckin) -> 'condensedCheckinList).sortBy('checkinTime).reverse}
+
+    val checkinsGrouped = checkinsCondensed.groupBy('sonarId) { _.toList[CondensedCheckin](('condensedCheckin) -> 'condensedCheckinList).sortBy('checkinTime).reverse}
 
         //split list into two...one for walmart checkins and another for anything else
-    val checkinsPartitioned = checkinsGrouped.map('condensedCheckinList -> ('targetedPongs, 'otherPongs)) {
+    val checkinsPartitioned = checkinsGrouped.mapTo('condensedCheckinList -> ('targetedPongs, 'otherPongs)) {
             condensedCheckinList: List[CondensedCheckin] => {
                 //find each walmart checkin and the checkin after that to use as the exit
                 condensedCheckinList.partition { condensedCheckin => {
@@ -102,16 +103,14 @@ class FindGeofenceActionJob(args: Args) extends DefaultJob(args) {
                 }
             }
         }
-        .discard('condensedCheckinList)
 
-    val checkins = checkinsPartitioned.flatMapTo(('sonarId, 'targetedPongs, 'otherPongs) -> ('appId, 'platform, 'deviceId, 'geofenceId, 'lat, 'lng, 'entering, 'exiting, 'zone)) {
-            in: (String, List[CondensedCheckin], List[CondensedCheckin]) => {
-                val (sonarId, targetedPongs, otherPongs) = in
+    val checkins = checkinsPartitioned.flatMapTo(('targetedPongs, 'otherPongs) -> ('appId, 'platform, 'deviceId, 'geofenceId, 'lat, 'lng, 'entering, 'exiting, 'zone)) {
+            in: (List[CondensedCheckin], List[CondensedCheckin]) => {
+                val (targetedPongs, otherPongs) = in
                 //for each targetedPong...look for a corresponding otherpong which is the first pong after the targeted pong...this is a geofence exit action
                 val geofenceActions = targetedPongs.map(tp => (tp, otherPongs.find(tp.checkinTime < _.checkinTime).getOrElse(tp)))
                 val dtf = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
-                val zf = DateTimeFormat.forPattern("ZZ")
-                geofenceActions.map{ case(enter, exit) => ("sampler", "ios", sonarId, enter.venueId, enter.lat, enter.lng, enter.checkinTime.withZone(DateTimeZone.UTC).toString(dtf), exit.checkinTime.withZone(DateTimeZone.UTC).toString(dtf), enter.checkinTime.toString(zf))}
+                geofenceActions.map{ case(enter, exit) => ("sampler", "ios", enter.sonarId, enter.venueId, enter.lat, enter.lng, enter.checkinTime.withZone(DateTimeZone.UTC).toString(dtf), exit.checkinTime.withZone(DateTimeZone.UTC).toString(dtf), (enter.lng * 24 / 360).toInt)}
             }
         }
 
